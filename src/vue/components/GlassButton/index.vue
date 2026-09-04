@@ -4,8 +4,9 @@ import type {
   LiquidGlassCreateOptions,
   LiquidGlassMaterialOptions,
   SurfaceShape,
-} from '../../types';
-import { useLiquidGlass } from '../composables/useLiquidGlass';
+} from '../../../types';
+import { useLiquidGlass } from '../../composables/useLiquidGlass';
+
 
 
 export type GlassButtonSize = 'sm' | 'md' | 'lg';
@@ -164,7 +165,7 @@ defineExpose({
 </template>
 
 <style>
-@import '../../styles/liquid-glass.css';
+@import '../../../styles/liquid-glass.css';
 
 .lg-glass-button {
   display: inline-flex;
