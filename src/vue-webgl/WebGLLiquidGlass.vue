@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type {
-  LiquidGlassCreateOptions,
-  LiquidGlassMaterialOptions,
-  SurfaceShape,
-} from '../types';
-import { useLiquidGlass } from './useLiquidGlass';
+import type { LiquidGlassMaterialOptions, SurfaceShape, WebGLCreateOptions } from '../types';
+import { useWebGLLiquidGlass } from './useWebGLLiquidGlass';
 
 const props = withDefaults(
   defineProps<{
     interactive?: boolean;
+    backgroundUrl?: string;
     blur?: number;
     opacity?: number;
     thickness?: number;
@@ -30,10 +27,11 @@ const props = withDefaults(
 );
 
 const containerRef = ref<HTMLDivElement | null>(null);
-const createOptions = computed<LiquidGlassCreateOptions>(() => {
-  const options: LiquidGlassCreateOptions = {
+const createOptions = computed<WebGLCreateOptions>(() => {
+  const options: WebGLCreateOptions = {
     ...props.options,
     interactive: props.interactive,
+    backgroundUrl: props.backgroundUrl,
   };
 
   if (props.blur !== undefined) options.blur = props.blur;
@@ -54,13 +52,13 @@ const createOptions = computed<LiquidGlassCreateOptions>(() => {
   return options;
 });
 
-const { instance, update, resize, destroy } = useLiquidGlass(containerRef, createOptions);
+const { instance, update, resize, destroy } = useWebGLLiquidGlass(containerRef, createOptions);
 
 defineExpose({ instance, update, resize, destroy });
 </script>
 
 <template>
-  <div ref="container" class="lg-root">
+  <div ref="container" class="lg-root lg-webgl-wrapper">
     <div class="lg-content">
       <slot />
     </div>

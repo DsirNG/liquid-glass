@@ -7,10 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      three:
-        specifier: ^0.185.1
-        version: 0.185.1
     devDependencies:
       '@commitlint/cli':
         specifier: ^21.2.2
@@ -66,6 +62,9 @@ importers:
       stylelint-config-standard:
         specifier: ^40.0.0
         version: 40.0.0(stylelint@17.14.1(supports-color@10.2.2)(typescript@6.0.3))
+      three:
+        specifier: ^0.185.1
+        version: 0.185.1
       typescript:
         specifier: ~6.0.2
         version: 6.0.3

@@ -11,8 +11,7 @@ export type {
   NormalizedLiquidGlassOptions,
   ResolvedLiquidGlassOptions,
   LiquidGlassInstance,
-  RendererType,
-  ResolvedRendererType,
+  LiquidGlassEngineType,
   GlassPreset,
   SurfaceShape,
 } from '../types';

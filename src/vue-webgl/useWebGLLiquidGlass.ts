@@ -7,35 +7,33 @@ import {
   type ShallowRef,
   type MaybeRefOrGetter,
 } from 'vue';
-import type {
-  LiquidGlassCreateOptions,
-  LiquidGlassInstance,
-  LiquidGlassUpdateOptions,
-} from '../types';
-import { createLiquidGlass } from '../core';
+import type { LiquidGlassInstance, LiquidGlassUpdateOptions, WebGLCreateOptions } from '../types';
+import { createWebGLLiquidGlass } from '../webgl';
 
-export interface UseLiquidGlassReturn {
+export interface UseWebGLLiquidGlassReturn {
   instance: ShallowRef<LiquidGlassInstance | null>;
   update: (options: LiquidGlassUpdateOptions) => void;
   resize: () => void;
   destroy: () => void;
 }
 
-/** Binds the DOM-native Liquid Glass engine to a Vue element ref. */
-export function useLiquidGlass(
+/** Binds the optional WebGL implementation to a Vue element ref. */
+export function useWebGLLiquidGlass(
   target: Ref<HTMLElement | null | undefined>,
-  options?: MaybeRefOrGetter<LiquidGlassCreateOptions | undefined>
-): UseLiquidGlassReturn {
+  options?: MaybeRefOrGetter<WebGLCreateOptions | undefined>
+): UseWebGLLiquidGlassReturn {
   const instance = shallowRef<LiquidGlassInstance | null>(null);
+  let currentBackgroundUrl = toValue(options)?.backgroundUrl;
 
   function initInstance(): void {
     const element = target.value;
     if (!element || instance.value) return;
-
     try {
-      instance.value = createLiquidGlass(element, toValue(options));
+      const resolvedOptions = toValue(options);
+      currentBackgroundUrl = resolvedOptions?.backgroundUrl;
+      instance.value = createWebGLLiquidGlass(element, resolvedOptions);
     } catch (error) {
-      console.error('[LiquidGlass/Vue] Failed to initialize instance:', error);
+      console.error('[LiquidGlass/Vue-WebGL] Failed to initialize instance:', error);
     }
   }
 
@@ -58,6 +56,11 @@ export function useLiquidGlass(
       () => toValue(options),
       (newOptions) => {
         if (!instance.value) {
+          initInstance();
+          return;
+        }
+        if (newOptions?.backgroundUrl !== currentBackgroundUrl) {
+          cleanupInstance();
           initInstance();
           return;
         }

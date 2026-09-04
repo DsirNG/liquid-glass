@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
-import type { RendererType, GlassPreset, LiquidGlassMaterialOptions } from '../src/core';
+import type { GlassPreset, LiquidGlassMaterialOptions } from '../src/core';
 import { GLASS_PRESETS } from '../src/core';
 import { LiquidGlass } from '../src/vue';
+import { WebGLLiquidGlass } from '../src/vue-webgl';
 import { t } from './locales';
-import { DEFAULT_BACKGROUNDS, type QualityTier } from './types';
+import { DEFAULT_BACKGROUNDS, type DemoEngine, type QualityTier } from './types';
 import { useCardDrag } from './composables/useCardDrag';
 
 import TopNavbar from './components/TopNavbar.vue';
@@ -17,7 +18,7 @@ const backgrounds = DEFAULT_BACKGROUNDS;
 const currentBg = ref(backgrounds[0].url);
 
 // Engine & Quality selection
-const selectedEngine = ref<RendererType>('svg');
+const selectedEngine = ref<DemoEngine>('dom');
 const selectedQuality = ref<QualityTier>('high');
 
 // Geometry Dimensions
@@ -46,10 +47,14 @@ function applyPreset(presetKey: GlassPreset) {
 }
 
 // Stage LiquidGlass reference & physical engine status
-const mainGlassRef = ref<InstanceType<typeof LiquidGlass> | null>(null);
+const domGlassRef = ref<InstanceType<typeof LiquidGlass> | null>(null);
+const webglGlassRef = ref<InstanceType<typeof WebGLLiquidGlass> | null>(null);
 
 const resolvedEngineLabel = computed(() => {
-  const resolved = mainGlassRef.value?.renderer;
+  const resolved =
+    selectedEngine.value === 'webgl'
+      ? webglGlassRef.value?.instance?.renderer
+      : domGlassRef.value?.instance?.renderer;
   return resolved ? resolved.toUpperCase() : '...';
 });
 
@@ -61,7 +66,10 @@ const {
   handlePointerMove,
   handlePointerUp,
   resetPosition,
-} = useCardDrag(() => mainGlassRef.value?.resize());
+} = useCardDrag(() => {
+  domGlassRef.value?.resize();
+  webglGlassRef.value?.resize();
+});
 </script>
 
 <template>
@@ -125,17 +133,24 @@ const {
           @dblclick="resetPosition"
         >
           <LiquidGlass
-            ref="mainGlassRef"
-            :renderer="selectedEngine"
+            v-if="selectedEngine === 'dom'"
+            ref="domGlassRef"
+            :options="params"
+            :interactive="true"
+            style="width: 100%; height: 100%"
+          >
+            <MusicPlayerCard current-renderer="dom" />
+          </LiquidGlass>
+          <WebGLLiquidGlass
+            v-else
+            ref="webglGlassRef"
             :options="params"
             :background-url="currentBg"
             :interactive="true"
             style="width: 100%; height: 100%"
           >
-            <template #default="{ renderer: currentRunRenderer }">
-              <MusicPlayerCard :current-renderer="currentRunRenderer" />
-            </template>
-          </LiquidGlass>
+            <MusicPlayerCard current-renderer="webgl" />
+          </WebGLLiquidGlass>
         </div>
       </div>
     </main>

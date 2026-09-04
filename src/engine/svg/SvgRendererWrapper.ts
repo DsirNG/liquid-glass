@@ -1,7 +1,7 @@
 import type {
   LiquidGlassUpdateOptions,
   RendererDelegate,
-  ResolvedLiquidGlassOptions,
+  NormalizedLiquidGlassOptions,
 } from '../../types';
 import { hexToRgb } from '../../utils/color';
 import { getElementRect } from '../../utils/dom';
@@ -13,7 +13,7 @@ import { SvgGlassEngine } from './SvgFilterBuilder';
  */
 export class SvgRendererWrapper implements RendererDelegate {
   private element: HTMLElement;
-  private options: ResolvedLiquidGlassOptions;
+  private options: NormalizedLiquidGlassOptions;
   private svgEngine: SvgGlassEngine;
   private refractionLayer: HTMLDivElement;
   private tintLayer: HTMLDivElement;
@@ -21,7 +21,7 @@ export class SvgRendererWrapper implements RendererDelegate {
   private isDestroyed = false;
   private updateTimer: number | null = null;
 
-  constructor(element: HTMLElement, options: ResolvedLiquidGlassOptions) {
+  constructor(element: HTMLElement, options: NormalizedLiquidGlassOptions) {
     this.element = element;
     this.options = { ...options };
     this.svgEngine = new SvgGlassEngine();

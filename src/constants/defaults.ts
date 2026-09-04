@@ -1,7 +1,7 @@
-import type { ResolvedLiquidGlassOptions } from '../types/glass';
+import type { NormalizedLiquidGlassOptions } from '../types/glass';
 
-export const DEFAULT_GLASS_OPTIONS: Readonly<ResolvedLiquidGlassOptions> = Object.freeze({
-  renderer: 'webgl', // 默认物理引擎为 webgl (若 auto 探测可用)
+/** Defaults for the DOM-native material engine. */
+export const DEFAULT_GLASS_OPTIONS: Readonly<NormalizedLiquidGlassOptions> = Object.freeze({
   blur: 2.0,
   opacity: 0.06,
   thickness: 45,

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { LiquidGlassOptions } from '../../types';
+import type { NormalizedLiquidGlassOptions } from '../../types';
 import { vertexShader, fragmentShader } from './shaders';
 
 export interface WebGLGlassParams {
@@ -7,7 +7,7 @@ export interface WebGLGlassParams {
   y: number;
   width: number;
   height: number;
-  options: LiquidGlassOptions;
+  options: NormalizedLiquidGlassOptions;
   lightAngle?: number;
   backgroundUrl?: string;
 }

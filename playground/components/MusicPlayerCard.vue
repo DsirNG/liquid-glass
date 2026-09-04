@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { ResolvedRendererType } from '../../src/core';
+import type { LiquidGlassEngineType } from '../../src/core';
 import { t } from '../locales';
 
 defineProps<{
-  currentRenderer?: ResolvedRendererType | null;
+  currentRenderer?: LiquidGlassEngineType | null;
 }>();
 
 const isPlaying = ref(false);

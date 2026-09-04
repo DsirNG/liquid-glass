@@ -1,7 +1,7 @@
 import type {
   LiquidGlassUpdateOptions,
   RendererDelegate,
-  ResolvedLiquidGlassOptions,
+  NormalizedWebGLOptions,
 } from '../../types';
 import { getElementRect } from '../../utils/dom';
 import { WebGLGlassRenderer } from './GlassRenderer';
@@ -14,13 +14,13 @@ export class WebGLRendererWrapper implements RendererDelegate {
   private element: HTMLElement;
   private canvas: HTMLCanvasElement;
   private renderer: WebGLGlassRenderer;
-  private options: ResolvedLiquidGlassOptions;
+  private options: NormalizedWebGLOptions;
   private resizeObserver: ResizeObserver | null = null;
   private isDestroyed = false;
   private boundHandleMouseMove: ((e: MouseEvent) => void) | null = null;
   private boundHandleWindowResize: (() => void) | null = null;
 
-  constructor(element: HTMLElement, options: ResolvedLiquidGlassOptions) {
+  constructor(element: HTMLElement, options: NormalizedWebGLOptions) {
     this.element = element;
     this.options = { ...options };
 

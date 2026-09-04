@@ -1,6 +1,7 @@
 export type {
   RendererType,
   ResolvedRendererType,
+  LiquidGlassEngineType,
   LiquidGlassInstance,
   RendererDelegate,
 } from './renderer';
@@ -16,5 +17,5 @@ export type {
   ResolvedLiquidGlassOptions,
 } from './glass';
 
-export type { WebGLGlassParams } from './webgl';
+export type { WebGLGlassParams, WebGLCreateOptions, NormalizedWebGLOptions } from './webgl';
 export type { SvgFilterResult } from './svg';

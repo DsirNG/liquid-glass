@@ -1,37 +1,22 @@
 import type {
   LiquidGlassInstance,
   LiquidGlassUpdateOptions,
-  RendererDelegate,
-  ResolvedLiquidGlassOptions,
-  ResolvedRendererType,
+  NormalizedLiquidGlassOptions,
 } from '../types';
-import { WebGLRendererWrapper } from './webgl/WebGLRendererWrapper';
 import { SvgRendererWrapper } from './svg/SvgRendererWrapper';
 
-/**
- * Public instance controller delegating rendering implementation to an internal protocol.
- * Completely framework-agnostic.
- */
-export class RendererManager implements LiquidGlassInstance {
-  public readonly renderer: ResolvedRendererType;
+/** DOM-native Liquid Glass engine. SVG filters are an internal implementation detail. */
+export class LiquidGlassEngine implements LiquidGlassInstance {
+  public readonly renderer = 'dom' as const;
+  private readonly delegate: SvgRendererWrapper;
   private _isDestroyed = false;
-  private delegate: RendererDelegate;
 
   public get isDestroyed(): boolean {
     return this._isDestroyed;
   }
 
-  constructor(
-    element: HTMLElement,
-    rendererType: ResolvedRendererType,
-    options: ResolvedLiquidGlassOptions
-  ) {
-    this.renderer = rendererType;
-    if (this.renderer === 'webgl') {
-      this.delegate = new WebGLRendererWrapper(element, options);
-    } else {
-      this.delegate = new SvgRendererWrapper(element, options);
-    }
+  constructor(element: HTMLElement, options: NormalizedLiquidGlassOptions) {
+    this.delegate = new SvgRendererWrapper(element, options);
   }
 
   public update(options: LiquidGlassUpdateOptions): void {

@@ -1,4 +1,5 @@
 export type QualityTier = 'low' | 'medium' | 'high' | 'ultra';
+export type DemoEngine = 'dom' | 'webgl';
 
 export interface BackgroundItem {
   id: string;

@@ -4,7 +4,7 @@ import { LiquidGlass, useLiquidGlass } from 'liquid-glass/vue';
 import 'liquid-glass/style.css';
 
 const boxRef = ref<HTMLDivElement | null>(null);
-const { renderer } = useLiquidGlass(boxRef, { blur: 18 });
+const { instance } = useLiquidGlass(boxRef, { blur: 18 });
 </script>
 
 <template>
@@ -12,6 +12,6 @@ const { renderer } = useLiquidGlass(boxRef, { blur: 18 });
     <LiquidGlass :blur="20">
       <div>Slot Content</div>
     </LiquidGlass>
-    <div ref="boxRef">Composable Target: {{ renderer }}</div>
+    <div ref="boxRef">Composable Target: {{ instance?.renderer }}</div>
   </div>
 </template>

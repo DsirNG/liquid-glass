@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { RendererType, GlassPreset, LiquidGlassMaterialOptions } from '../../src/core';
-import type { BackgroundItem, QualityTier } from '../types';
+import type { GlassPreset, LiquidGlassMaterialOptions } from '../../src/core';
+import type { BackgroundItem, DemoEngine, QualityTier } from '../types';
 import { t } from '../locales';
 
 defineProps<{
   isOpen: boolean;
-  selectedEngine: RendererType;
+  selectedEngine: DemoEngine;
   selectedQuality: QualityTier;
   glassWidth: number;
   glassHeight: number;
@@ -16,7 +16,7 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:isOpen', value: boolean): void;
-  (e: 'update:selectedEngine', value: RendererType): void;
+  (e: 'update:selectedEngine', value: DemoEngine): void;
   (e: 'update:selectedQuality', value: QualityTier): void;
   (e: 'update:glassWidth', value: number): void;
   (e: 'update:glassHeight', value: number): void;
@@ -48,8 +48,8 @@ function onParamInput(key: keyof LiquidGlassMaterialOptions, e: Event, isNumber 
         <label class="group-title">{{ t.engineMode }}</label>
         <div class="radio-pill-group">
           <button
-            :class="{ active: selectedEngine === 'svg' }"
-            @click="emit('update:selectedEngine', 'svg')"
+            :class="{ active: selectedEngine === 'dom' }"
+            @click="emit('update:selectedEngine', 'dom')"
           >
             {{ t.engineSvgLight }}
           </button>
@@ -58,12 +58,6 @@ function onParamInput(key: keyof LiquidGlassMaterialOptions, e: Event, isNumber 
             @click="emit('update:selectedEngine', 'webgl')"
           >
             {{ t.engineWebglShader }}
-          </button>
-          <button
-            :class="{ active: selectedEngine === 'auto' }"
-            @click="emit('update:selectedEngine', 'auto')"
-          >
-            {{ t.engineAutoShort }}
           </button>
         </div>
       </section>

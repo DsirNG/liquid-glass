@@ -1,26 +1,11 @@
-import type {
-  LiquidGlassInstance,
-  LiquidGlassCreateOptions,
-  ResolvedLiquidGlassOptions,
-} from '../types';
+import type { LiquidGlassCreateOptions, LiquidGlassInstance } from '../types';
 import { normalizeOptions } from './options';
-import { resolveRenderer } from './resolver';
-import { RendererManager } from './RendererManager';
+import { LiquidGlassEngine } from './LiquidGlassEngine';
 
-export { RendererManager } from './RendererManager';
-export { resolveRenderer } from './resolver';
+export { LiquidGlassEngine } from './LiquidGlassEngine';
 export { normalizeOptions } from './options';
 
-/**
- * Creates and mounts a framework-agnostic Liquid Glass instance onto a DOM element.
- *
- * @example
- * ```ts
- * const glass = createLiquidGlass(element, { blur: 20 });
- * glass.update({ blur: 30 });
- * glass.destroy();
- * ```
- */
+/** Creates the DOM-native Liquid Glass engine. */
 export function createLiquidGlass(
   element: HTMLElement,
   options?: LiquidGlassCreateOptions
@@ -28,14 +13,5 @@ export function createLiquidGlass(
   if (!element || !(element instanceof HTMLElement)) {
     throw new Error('[LiquidGlass] createLiquidGlass requires a valid HTMLElement.');
   }
-
-  const normalized = normalizeOptions(options);
-  const requestedRenderer = normalized.renderer;
-  const resolvedRenderer = resolveRenderer(requestedRenderer);
-  const resolvedOptions: ResolvedLiquidGlassOptions = {
-    ...normalized,
-    renderer: resolvedRenderer,
-  };
-
-  return new RendererManager(element, resolvedRenderer, resolvedOptions);
+  return new LiquidGlassEngine(element, normalizeOptions(options));
 }

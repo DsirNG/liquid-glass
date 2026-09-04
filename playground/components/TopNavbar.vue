@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import type { RendererType } from '../../src/core';
 import { LiquidGlass } from '../../src/vue';
+import type { DemoEngine } from '../types';
 import { t, currentLocale, setLocale } from '../locales';
 
 defineProps<{
-  selectedEngine: RendererType;
+  selectedEngine: DemoEngine;
   isPanelOpen: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:selectedEngine', engine: RendererType): void;
+  (e: 'update:selectedEngine', engine: DemoEngine): void;
   (e: 'update:isPanelOpen', open: boolean): void;
 }>();
 </script>
@@ -17,7 +17,6 @@ const emit = defineEmits<{
 <template>
   <header class="top-navbar-wrapper">
     <LiquidGlass
-      renderer="svg"
       :options="{
         blur: 14.0,
         opacity: 0.08,
@@ -36,10 +35,9 @@ const emit = defineEmits<{
         </div>
 
         <div class="nav-actions">
-          <template v-for="eng in ['svg', 'webgl', 'auto'] as const" :key="eng">
+          <template v-for="eng in ['dom', 'webgl'] as const" :key="eng">
             <LiquidGlass
               v-if="selectedEngine === eng"
-              renderer="svg"
               :options="{
                 blur: 6,
                 opacity: 0.22,
@@ -52,11 +50,11 @@ const emit = defineEmits<{
               class="glass-tab-pill"
             >
               <button class="engine-tab active" @click="emit('update:selectedEngine', eng)">
-                {{ eng === 'svg' ? t.engineSvg : eng === 'webgl' ? t.engineWebgl : t.engineAuto }}
+                {{ eng === 'dom' ? t.engineSvg : t.engineWebgl }}
               </button>
             </LiquidGlass>
             <button v-else class="engine-tab" @click="emit('update:selectedEngine', eng)">
-              {{ eng === 'svg' ? t.engineSvg : eng === 'webgl' ? t.engineWebgl : t.engineAuto }}
+              {{ eng === 'dom' ? t.engineSvg : t.engineWebgl }}
             </button>
           </template>
         </div>
@@ -66,7 +64,6 @@ const emit = defineEmits<{
           <template v-for="loc in ['zh', 'en'] as const" :key="loc">
             <LiquidGlass
               v-if="currentLocale === loc"
-              renderer="svg"
               :options="{
                 blur: 5,
                 opacity: 0.22,
@@ -89,7 +86,6 @@ const emit = defineEmits<{
         </div>
 
         <LiquidGlass
-          renderer="svg"
           :options="{
             blur: 8,
             opacity: isPanelOpen ? 0.22 : 0.1,

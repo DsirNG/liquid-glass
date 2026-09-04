@@ -1,4 +1,4 @@
-import type { LiquidGlassOptions, NormalizedLiquidGlassOptions } from '../types';
+import type { LiquidGlassCreateOptions, NormalizedLiquidGlassOptions } from '../types';
 import { DEFAULT_GLASS_OPTIONS } from '../constants';
 import { clamp } from '../utils/math';
 
@@ -9,15 +9,14 @@ function sanitizeNumber(val: unknown, fallback: number, min: number, max: number
   return clamp(val, min, max);
 }
 
-/**
- * Validates and normalizes user-provided options against defaults and safe numeric ranges.
- */
-export function normalizeOptions(options?: LiquidGlassOptions): NormalizedLiquidGlassOptions {
+/** Validates and normalizes material and runtime options for an engine. */
+export function normalizeOptions(
+  options?: LiquidGlassCreateOptions
+): NormalizedLiquidGlassOptions {
   const d = DEFAULT_GLASS_OPTIONS;
-  const o = options || {};
+  const o = options ?? {};
 
   return {
-    renderer: o.renderer === 'webgl' || o.renderer === 'svg' ? o.renderer : 'auto',
     blur: sanitizeNumber(o.blur, d.blur, 0, 50),
     opacity: sanitizeNumber(o.opacity, d.opacity, 0, 1),
     thickness: sanitizeNumber(o.thickness, d.thickness, 0, 200),
@@ -34,9 +33,7 @@ export function normalizeOptions(options?: LiquidGlassOptions): NormalizedLiquid
       typeof o.shadowColor === 'string' && o.shadowColor.trim().length > 0
         ? o.shadowColor
         : d.shadowColor,
-    surfaceShape: o.surfaceShape || d.surfaceShape,
+    surfaceShape: o.surfaceShape ?? d.surfaceShape,
     interactive: typeof o.interactive === 'boolean' ? o.interactive : d.interactive,
-    backgroundUrl:
-      typeof o.backgroundUrl === 'string' && o.backgroundUrl ? o.backgroundUrl : undefined,
   };
 }
