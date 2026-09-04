@@ -1,0 +1,9 @@
+:root {
+  --lg-radius: 40px;
+  --lg-tint-rgb: 255, 255, 255;
+  --lg-tint-alpha: 0.08;
+  --lg-shadow-blur: 16px;
+  --lg-shadow-spread: -6px;
+  --lg-shadow-color: rgba(255, 255, 255, 0.45);
+  --lg-outer-shadow-blur: 24px;
+}

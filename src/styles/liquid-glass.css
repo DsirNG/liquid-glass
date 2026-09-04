@@ -1,0 +1,71 @@
+@import './variables.css';
+
+/* Root Host Element */
+.lg-root {
+  position: relative;
+  display: inline-flex;
+  isolation: isolate;
+  box-sizing: border-box;
+}
+
+/* SVG Renderer Layers */
+.lg-svg-container {
+  position: relative;
+  display: inline-flex;
+  isolation: isolate;
+  border-radius: var(--lg-radius, 40px);
+  box-shadow: 0 8px var(--lg-outer-shadow-blur, 24px) rgba(0, 0, 0, 0.22);
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.lg-svg-refraction {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.lg-svg-tint {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 0 var(--lg-shadow-blur, 16px) var(--lg-shadow-spread, -6px)
+      var(--lg-shadow-color, rgba(255, 255, 255, 0.4));
+  background-color: rgba(var(--lg-tint-rgb, 255, 255, 255), var(--lg-tint-alpha, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+/* WebGL Renderer Layers */
+.lg-webgl-wrapper {
+  position: relative;
+  display: inline-flex;
+  isolation: isolate;
+  box-sizing: border-box;
+}
+
+.lg-webgl-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Common Content Slot */
+.lg-content {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}

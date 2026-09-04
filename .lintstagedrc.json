@@ -1,0 +1,5 @@
+{
+  "{src,playground}/**/*.{js,ts,vue}": ["eslint --fix --no-warn-ignored", "prettier --write"],
+  "src/**/*.css": ["stylelint --fix", "prettier --write"],
+  "*.{json,md}": ["prettier --write"]
+}

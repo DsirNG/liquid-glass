@@ -1,0 +1,16 @@
+{
+  "name": "smoke-test-vanilla",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vite": "^8.0.0"
+  },
+  "dependencies": {
+    "liquid-glass": "file:C:/Users/Administrator/Documents/antigravity/delightful-heisenberg/liquid-glass-lab/temp-pack/liquid-glass-0.1.0.tgz"
+  }
+}

@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 11.20.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint Code (ESLint with Architecture Boundary Rules)
+        run: pnpm run lint
+
+      - name: Lint Styles (Stylelint)
+        run: pnpm run lint:style
+
+      - name: Type Check (TypeScript)
+        run: pnpm run type-check
+
+      - name: Run Unit & Lifecycle Tests (Vitest)
+        run: pnpm run test
+
+      - name: Build Library (Vite Library Mode & .d.ts generation)
+        run: pnpm run build
+
+      - name: Package Smoke Test (pnpm pack + Vanilla/Vue fixtures)
+        run: pnpm run test:smoke
+
+      - name: Build Playground Website
+        run: pnpm run build:playground
