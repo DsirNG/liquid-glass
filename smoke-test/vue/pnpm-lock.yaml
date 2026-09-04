@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       liquid-glass:
-        specifier: file:C:/Users/Administrator/Documents/antigravity/delightful-heisenberg/liquid-glass-lab/temp-pack/liquid-glass-0.1.0.tgz
-        version: file:../../temp-pack/liquid-glass-0.1.0.tgz(vue@3.5.42(typescript@5.9.3))
+        specifier: file:E:/liquid-glass/temp-pack/liquid-glass-0.1.0.tgz
+        version: file:../../temp-pack/liquid-glass-0.1.0.tgz(three@0.185.1)(vue@3.5.42(typescript@5.9.3))
       vue:
         specifier: ^3.5.41
         version: 3.5.42(typescript@5.9.3)
@@ -170,11 +170,6 @@ packages:
 
   '@volar/typescript@2.4.28':
     resolution: {integrity: sha512-Ja6yvWrbis2QtN4ClAKreeUZPVYMARDYZl9LMEv1iQ1QdepB6wn0jTRxA9MftYmYa4DQ4k/DaSZpFPUfxl8giw==}
-    peerDependencies:
-      typescript: '*'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
 
   '@vue/compiler-core@3.5.42':
     resolution: {integrity: sha512-2Ye1ilMtKXxl8qZUrQ5j0CdgenFp/HFQmta6rfRyfEsTG69L6Wk+tWuNoHYHMx9E8tF2Slvdg1FuwDvAXdy1LQ==}
@@ -323,11 +318,14 @@ packages:
     engines: {node: '>= 12.0.0'}
 
   liquid-glass@file:../../temp-pack/liquid-glass-0.1.0.tgz:
-    resolution: {integrity: sha512-utkGD1uoDhh32LUuAaKL/MGgyTNcZNQYgdC4i4mgxIaFYPXRz2eIBaUcHNbl36OT5uisNNwDY8mV2X3FMRALCw==, tarball: file:../../temp-pack/liquid-glass-0.1.0.tgz}
+    resolution: {integrity: sha512-OB1TN7eR7hFreDkwICr7GWFmL5R61sFUD5TsDyPp4L3vPlJqd6aXRr6bWz6PurYK6ZMjr1pICiuSJxepSI7b9w==, tarball: file:../../temp-pack/liquid-glass-0.1.0.tgz}
     version: 0.1.0
     peerDependencies:
+      three: '>=0.185.0'
       vue: '>=3.3.0'
     peerDependenciesMeta:
+      three:
+        optional: true
       vue:
         optional: true
 
@@ -515,13 +513,11 @@ snapshots:
 
   '@volar/source-map@2.4.28': {}
 
-  '@volar/typescript@2.4.28(typescript@5.9.3)':
+  '@volar/typescript@2.4.28':
     dependencies:
       '@volar/language-core': 2.4.28
       path-browserify: 1.0.1
       vscode-uri: 3.2.0
-    optionalDependencies:
-      typescript: 5.9.3
 
   '@vue/compiler-core@3.5.42':
     dependencies:
@@ -658,10 +654,9 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.33.0
       lightningcss-win32-x64-msvc: 1.33.0
 
-  liquid-glass@file:../../temp-pack/liquid-glass-0.1.0.tgz(vue@3.5.42(typescript@5.9.3)):
-    dependencies:
-      three: 0.185.1
+  liquid-glass@file:../../temp-pack/liquid-glass-0.1.0.tgz(three@0.185.1)(vue@3.5.42(typescript@5.9.3)):
     optionalDependencies:
+      three: 0.185.1
       vue: 3.5.42(typescript@5.9.3)
 
   magic-string@0.30.21:
@@ -707,7 +702,8 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  three@0.185.1: {}
+  three@0.185.1:
+    optional: true
 
   tinyglobby@0.2.17:
     dependencies:
@@ -730,7 +726,7 @@ snapshots:
 
   vue-tsc@3.3.11(typescript@5.9.3):
     dependencies:
-      '@volar/typescript': 2.4.28(typescript@5.9.3)
+      '@volar/typescript': 2.4.28
       '@vue/language-core': 3.3.11
       typescript: 5.9.3
 

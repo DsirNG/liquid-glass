@@ -2,8 +2,9 @@
 import { ref, reactive, computed } from 'vue';
 import type { GlassPreset, LiquidGlassMaterialOptions } from '../src/core';
 import { GLASS_PRESETS } from '../src/core';
-import { LiquidGlass } from '../src/vue';
+import { LiquidGlass, GlassButton } from '../src/vue';
 import { WebGLLiquidGlass } from '../src/vue-webgl';
+
 import { t } from './locales';
 import { DEFAULT_BACKGROUNDS, type DemoEngine, type QualityTier } from './types';
 import { useCardDrag } from './composables/useCardDrag';
@@ -152,10 +153,20 @@ const {
             <MusicPlayerCard current-renderer="webgl" />
           </WebGLLiquidGlass>
         </div>
+
+        <!-- GlassButton Component Showcase Row -->
+        <div class="glass-buttons-row">
+          <GlassButton size="sm" variant="ghost">Ghost SM</GlassButton>
+          <GlassButton size="md" variant="default">Default MD</GlassButton>
+          <GlassButton size="md" variant="primary">Primary MD</GlassButton>
+          <GlassButton size="md" variant="danger">Danger</GlassButton>
+          <GlassButton size="sm" :disabled="true">Disabled</GlassButton>
+        </div>
       </div>
     </main>
   </div>
 </template>
+
 
 <style>
 /* Global resets & typography */
@@ -272,4 +283,17 @@ body,
 .glass-stage-card-wrapper.dragging {
   cursor: grabbing;
 }
+
+.glass-buttons-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
 </style>
+

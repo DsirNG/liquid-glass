@@ -11,6 +11,6 @@
     "vite": "^8.0.0"
   },
   "dependencies": {
-    "liquid-glass": "file:C:/Users/Administrator/Documents/antigravity/delightful-heisenberg/liquid-glass-lab/temp-pack/liquid-glass-0.1.0.tgz"
+    "liquid-glass": "file:E:/liquid-glass/temp-pack/liquid-glass-0.1.0.tgz"
   }
 }

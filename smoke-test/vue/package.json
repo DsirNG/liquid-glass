@@ -7,7 +7,7 @@
     "build": "vue-tsc -b && vite build"
   },
   "dependencies": {
-    "liquid-glass": "file:C:/Users/Administrator/Documents/antigravity/delightful-heisenberg/liquid-glass-lab/temp-pack/liquid-glass-0.1.0.tgz",
+    "liquid-glass": "file:E:/liquid-glass/temp-pack/liquid-glass-0.1.0.tgz",
     "vue": "^3.5.41"
   },
   "devDependencies": {

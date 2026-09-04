@@ -59,18 +59,24 @@ glass.destroy();
 
 ```vue
 <script setup lang="ts">
-import { LiquidGlass } from 'liquid-glass/vue';
+import { LiquidGlass, GlassButton } from 'liquid-glass/vue';
 import 'liquid-glass/style.css';
 </script>
 
 <template>
   <LiquidGlass :options="{ thickness: 45, ior: 2.2, dispersion: 0.018 }">
-    <button>Click me</button>
+    <div>Liquid Glass Container</div>
   </LiquidGlass>
+
+  <!-- Ready-to-use Liquid Glass Button -->
+  <GlassButton variant="primary" size="md" @click="handleClick">
+    Action Button
+  </GlassButton>
 </template>
 ```
 
 ## Optional WebGL API
+
 
 ```ts
 import { createWebGLLiquidGlass } from 'liquid-glass/webgl';
