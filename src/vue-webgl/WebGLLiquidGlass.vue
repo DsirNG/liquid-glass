@@ -58,7 +58,7 @@ defineExpose({ instance, update, resize, destroy });
 </script>
 
 <template>
-  <div ref="container" class="lg-root lg-webgl-wrapper">
+  <div ref="containerRef" class="lg-root lg-webgl-wrapper">
     <div class="lg-content">
       <slot />
     </div>

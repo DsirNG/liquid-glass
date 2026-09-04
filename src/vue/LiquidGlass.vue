@@ -60,7 +60,7 @@ defineExpose({ instance, update, resize, destroy });
 </script>
 
 <template>
-  <div ref="container" class="lg-root">
+  <div ref="containerRef" class="lg-root">
     <div class="lg-content">
       <slot />
     </div>
