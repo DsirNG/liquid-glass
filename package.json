@@ -23,7 +23,10 @@
       "types": "./dist/vue-webgl/index.d.ts",
       "import": "./dist/vue-webgl/index.js"
     },
-    "./style.css": "./dist/style.css"
+    "./style.css": {
+      "types": "./dist/style.css.d.ts",
+      "default": "./dist/style.css"
+    }
   },
   "files": [
     "dist"

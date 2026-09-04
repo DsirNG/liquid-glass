@@ -318,7 +318,7 @@ packages:
     engines: {node: '>= 12.0.0'}
 
   liquid-glass@file:../../temp-pack/liquid-glass-0.1.0.tgz:
-    resolution: {integrity: sha512-WhzPLx1rqU+4X1RN3Q1Pi0+yoNgL1c/ND8s9m8q/w65V5eVXwu8W9HR6JIkp4ULiydG3pPR9WTNwNjsfuWHypg==, tarball: file:../../temp-pack/liquid-glass-0.1.0.tgz}
+    resolution: {integrity: sha512-Ul7/rYbT5rllFxbvaWGeL4buUSpXehwa/xQ2Q5kUOtP4KwnlMOnFWZp4C/3kqDTEaAONWKWAeFOOfzfEEIhLxg==, tarball: file:../../temp-pack/liquid-glass-0.1.0.tgz}
     version: 0.1.0
     peerDependencies:
       three: '>=0.185.0'

@@ -1,7 +1,18 @@
 import { resolve } from 'node:path';
-import { defineConfig } from 'vite';
+import { copyFileSync } from 'node:fs';
+import { defineConfig, type Plugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import dts from 'vite-plugin-dts';
+
+const copyStyleDtsPlugin: Plugin = {
+  name: 'copy-style-dts',
+  closeBundle() {
+    copyFileSync(
+      resolve(__dirname, 'src/style.css.d.ts'),
+      resolve(__dirname, 'dist/style.css.d.ts')
+    );
+  },
+};
 
 export default defineConfig({
   publicDir: false,
@@ -13,7 +24,9 @@ export default defineConfig({
       entryRoot: 'src',
       outDir: 'dist',
     }),
+    copyStyleDtsPlugin,
   ],
+
   build: {
     outDir: 'dist',
     emptyOutDir: true,
