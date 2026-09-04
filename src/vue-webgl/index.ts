@@ -1,8 +1,9 @@
-export { default as WebGLLiquidGlass } from './WebGLLiquidGlass.vue';
+export { WebGLLiquidGlass } from './components';
 export {
   useWebGLLiquidGlass,
   type UseWebGLLiquidGlassReturn,
-} from './useWebGLLiquidGlass';
+} from './composables';
+
 
 export type {
   LiquidGlassInstance,

@@ -4,8 +4,9 @@ import type {
   LiquidGlassCreateOptions,
   LiquidGlassMaterialOptions,
   SurfaceShape,
-} from '../types';
-import { useLiquidGlass } from './useLiquidGlass';
+} from '../../types';
+import { useLiquidGlass } from '../composables/useLiquidGlass';
+
 
 const props = withDefaults(
   defineProps<{
@@ -68,5 +69,6 @@ defineExpose({ instance, update, resize, destroy });
 </template>
 
 <style>
-@import '../styles/liquid-glass.css';
+@import '../../styles/liquid-glass.css';
 </style>
+

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { LiquidGlassMaterialOptions, SurfaceShape, WebGLCreateOptions } from '../types';
-import { useWebGLLiquidGlass } from './useWebGLLiquidGlass';
+import type { LiquidGlassMaterialOptions, SurfaceShape, WebGLCreateOptions } from '../../types';
+import { useWebGLLiquidGlass } from '../composables/useWebGLLiquidGlass';
+
 
 const props = withDefaults(
   defineProps<{
@@ -66,5 +67,6 @@ defineExpose({ instance, update, resize, destroy });
 </template>
 
 <style>
-@import '../styles/liquid-glass.css';
+@import '../../styles/liquid-glass.css';
 </style>
+

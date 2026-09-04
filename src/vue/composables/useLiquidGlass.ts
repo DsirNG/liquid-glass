@@ -11,8 +11,9 @@ import type {
   LiquidGlassCreateOptions,
   LiquidGlassInstance,
   LiquidGlassUpdateOptions,
-} from '../types';
-import { createLiquidGlass } from '../core';
+} from '../../types';
+import { createLiquidGlass } from '../../core';
+
 
 export interface UseLiquidGlassReturn {
   instance: ShallowRef<LiquidGlassInstance | null>;

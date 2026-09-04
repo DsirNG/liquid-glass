@@ -7,8 +7,9 @@ import {
   type ShallowRef,
   type MaybeRefOrGetter,
 } from 'vue';
-import type { LiquidGlassInstance, LiquidGlassUpdateOptions, WebGLCreateOptions } from '../types';
-import { createWebGLLiquidGlass } from '../webgl';
+import type { LiquidGlassInstance, LiquidGlassUpdateOptions, WebGLCreateOptions } from '../../types';
+import { createWebGLLiquidGlass } from '../../webgl';
+
 
 export interface UseWebGLLiquidGlassReturn {
   instance: ShallowRef<LiquidGlassInstance | null>;
