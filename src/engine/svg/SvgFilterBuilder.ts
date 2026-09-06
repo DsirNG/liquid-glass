@@ -1,16 +1,12 @@
 import type { LiquidGlassOptions, SvgFilterResult } from '../../types';
 import { ensureGlobalSvgDefs } from '../../utils/dom';
-import {
-  calculateRefractionProfile,
-  generateDisplacementMap,
-  generateSpecularMap,
-  SURFACE_FNS,
-} from './displacementMap';
+import { DEFAULT_DISPLACEMENT_MAP_URL } from './displacementMap';
 
 let filterCounter = 0;
 
 /**
  * Creates or updates an SVG filter element in the document global SVG defs
+ * with full RGB chromatic aberration displacement and center preservation mask.
  */
 export class SvgGlassEngine {
   private defsContainer: SVGDefsElement | null = null;
@@ -35,60 +31,118 @@ export class SvgGlassEngine {
    * Rebuilds filter for given dimensions and options
    */
   public update(
-    width: number,
-    height: number,
+    _width: number,
+    _height: number,
     options: LiquidGlassOptions
   ): SvgFilterResult | null {
     if (this.isDestroyed) return null;
     const defs = this.ensureDefs();
     if (!defs) return null;
 
-    const w = Math.max(2, Math.floor(width));
-    const h = Math.max(2, Math.floor(height));
-    const radius = options.radius ?? 40;
-    const bezel = options.bezel ?? 36;
-    const thickness = options.thickness ?? 50;
-    const ior = options.ior ?? 2.4;
+    const dispUrl = DEFAULT_DISPLACEMENT_MAP_URL;
     const refractionScale = options.refraction ?? 1.0;
-    const blur = options.blur ?? 1.5;
-    const specular = options.specular ?? 0.6;
-    const saturation = options.saturation ?? 1.4;
-    const shapeKey = options.surfaceShape ?? 'convex_squircle';
-
-    const heightFn = SURFACE_FNS[shapeKey] || SURFACE_FNS.convex_squircle;
-    const clampedBezel = Math.min(bezel, radius - 1, Math.min(w, h) / 2 - 1);
-
-    const profile = calculateRefractionProfile(thickness, clampedBezel, heightFn, ior, 128);
-    const maxDisp = Math.max(...Array.from(profile).map(Math.abs)) || 1;
-
-    const dispUrl = generateDisplacementMap(w, h, radius, clampedBezel, profile, maxDisp);
-    const specUrl = generateSpecularMap(w, h, radius, clampedBezel * 2.5);
-    const scale = maxDisp * refractionScale;
+    const scale = refractionScale * 64;
+    const dispersion = options.dispersion ?? 2.0;
 
     if (!this.filterElement) {
       this.filterElement = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
       this.filterElement.id = this.filterId;
-      this.filterElement.setAttribute('x', '0%');
-      this.filterElement.setAttribute('y', '0%');
-      this.filterElement.setAttribute('width', '100%');
-      this.filterElement.setAttribute('height', '100%');
+      this.filterElement.setAttribute('x', '-20%');
+      this.filterElement.setAttribute('y', '-20%');
+      this.filterElement.setAttribute('width', '140%');
+      this.filterElement.setAttribute('height', '140%');
+      this.filterElement.setAttribute('color-interpolation-filters', 'sRGB');
       defs.appendChild(this.filterElement);
     }
 
     this.filterElement.innerHTML = `
-      <feGaussianBlur in="SourceGraphic" stdDeviation="${blur}" result="blurred_source" />
-      <feImage href="${dispUrl}" x="0" y="0" width="${w}" height="${h}" result="disp_map" />
-      <feDisplacementMap in="blurred_source" in2="disp_map"
-        scale="${scale}" xChannelSelector="R" yChannelSelector="G"
-        result="displaced" />
-      <feColorMatrix in="displaced" type="saturate" values="${saturation}" result="displaced_sat" />
-      <feImage href="${specUrl}" x="0" y="0" width="${w}" height="${h}" result="spec_layer" />
-      <feComposite in="displaced_sat" in2="spec_layer" operator="in" result="spec_masked" />
-      <feComponentTransfer in="spec_layer" result="spec_faded">
-        <feFuncA type="linear" slope="${specular}" />
+      <feImage
+        href="${dispUrl}"
+        x="0"
+        y="0"
+        width="100%"
+        height="100%"
+        result="DISPLACEMENT_MAP"
+        preserveAspectRatio="none"
+      />
+      <feColorMatrix
+        in="DISPLACEMENT_MAP"
+        type="matrix"
+        values="0.3 0.3 0.3 0 0
+                0.3 0.3 0.3 0 0
+                0.3 0.3 0.3 0 0
+                0   0   0   1 0"
+        result="EDGE_INTENSITY"
+      />
+      <feComponentTransfer in="EDGE_INTENSITY" result="EDGE_MASK">
+        <feFuncA type="discrete" tableValues="0 ${dispersion * 0.05} 1" />
       </feComponentTransfer>
-      <feBlend in="spec_masked" in2="displaced" mode="normal" result="with_sat" />
-      <feBlend in="spec_faded" in2="with_sat" mode="normal" />
+      <feOffset in="SourceGraphic" dx="0" dy="0" result="CENTER_ORIGINAL" />
+      <feDisplacementMap
+        in="SourceGraphic"
+        in2="DISPLACEMENT_MAP"
+        scale="${-scale}"
+        xChannelSelector="R"
+        yChannelSelector="B"
+        result="RED_DISPLACED"
+      />
+      <feColorMatrix
+        in="RED_DISPLACED"
+        type="matrix"
+        values="1 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 1 0"
+        result="RED_CHANNEL"
+      />
+      <feDisplacementMap
+        in="SourceGraphic"
+        in2="DISPLACEMENT_MAP"
+        scale="${-scale * (1 - dispersion * 0.05)}"
+        xChannelSelector="R"
+        yChannelSelector="B"
+        result="GREEN_DISPLACED"
+      />
+      <feColorMatrix
+        in="GREEN_DISPLACED"
+        type="matrix"
+        values="0 0 0 0 0
+                0 1 0 0 0
+                0 0 0 0 0
+                0 0 0 1 0"
+        result="GREEN_CHANNEL"
+      />
+      <feDisplacementMap
+        in="SourceGraphic"
+        in2="DISPLACEMENT_MAP"
+        scale="${-scale * (1 - dispersion * 0.1)}"
+        xChannelSelector="R"
+        yChannelSelector="B"
+        result="BLUE_DISPLACED"
+      />
+      <feColorMatrix
+        in="BLUE_DISPLACED"
+        type="matrix"
+        values="0 0 0 0 0
+                0 0 0 0 0
+                0 0 1 0 0
+                0 0 0 1 0"
+        result="BLUE_CHANNEL"
+      />
+      <feBlend in="RED_CHANNEL" in2="GREEN_CHANNEL" mode="screen" result="RG" />
+      <feBlend in="RG" in2="BLUE_CHANNEL" mode="screen" result="RGB_COMBINED" />
+      <feComposite in="RGB_COMBINED" in2="EDGE_MASK" operator="in" result="EDGE_ABERRATION" />
+      <feColorMatrix
+        in="EDGE_MASK"
+        type="matrix"
+        values="0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 -1 1"
+        result="INVERTED_MASK"
+      />
+      <feComposite in="CENTER_ORIGINAL" in2="INVERTED_MASK" operator="in" result="CENTER_CLEAN" />
+      <feComposite in="EDGE_ABERRATION" in2="CENTER_CLEAN" operator="over" />
     `;
 
     return {

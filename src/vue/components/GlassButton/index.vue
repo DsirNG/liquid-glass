@@ -7,8 +7,6 @@ import type {
 } from '../../../types';
 import { useLiquidGlass } from '../../composables/useLiquidGlass';
 
-
-
 export type GlassButtonSize = 'sm' | 'md' | 'lg';
 export type GlassButtonVariant = 'default' | 'primary' | 'ghost' | 'danger';
 
@@ -51,14 +49,12 @@ const emit = defineEmits<{
 const buttonRef = ref<HTMLButtonElement | null>(null);
 
 // Size-based geometry presets
-const SIZE_CONFIGS: Record<
-  GlassButtonSize,
-  { radius: number; bezel: number; thickness: number }
-> = {
-  sm: { radius: 16, bezel: 12, thickness: 30 },
-  md: { radius: 20, bezel: 16, thickness: 42 },
-  lg: { radius: 24, bezel: 20, thickness: 54 },
-};
+const SIZE_CONFIGS: Record<GlassButtonSize, { radius: number; bezel: number; thickness: number }> =
+  {
+    sm: { radius: 16, bezel: 12, thickness: 30 },
+    md: { radius: 20, bezel: 16, thickness: 42 },
+    lg: { radius: 24, bezel: 20, thickness: 54 },
+  };
 
 // Variant-based material presets
 const VARIANT_CONFIGS: Record<

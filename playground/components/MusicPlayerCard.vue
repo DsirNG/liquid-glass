@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { LiquidGlassEngineType } from '../../src/core';
 import { t } from '../locales';
-
-defineProps<{
-  currentRenderer?: LiquidGlassEngineType | null;
-}>();
 
 const isPlaying = ref(false);
 </script>
@@ -15,9 +10,7 @@ const isPlaying = ref(false);
     <div class="drag-handle-bar" />
     <div class="card-inner-header">
       <div class="card-chip">{{ t.nowPlaying }}</div>
-      <div class="hifi-icon">
-        {{ currentRenderer === 'webgl' ? '♪ WebGL' : 'SVG Refraction' }}
-      </div>
+      <div class="hifi-icon">Liquid Glass Optics</div>
     </div>
 
     <div class="track-info">

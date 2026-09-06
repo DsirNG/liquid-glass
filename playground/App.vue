@@ -2,11 +2,10 @@
 import { ref, reactive, computed } from 'vue';
 import type { GlassPreset, LiquidGlassMaterialOptions } from '../src/core';
 import { GLASS_PRESETS } from '../src/core';
-import { LiquidGlass, GlassButton, LiquidGlassReactButton } from '../src/vue';
-import { WebGLLiquidGlass } from '../src/vue-webgl';
+import { LiquidGlass, GlassButton } from '../src/vue';
 
 import { t } from './locales';
-import { DEFAULT_BACKGROUNDS, type DemoEngine, type QualityTier } from './types';
+import { DEFAULT_BACKGROUNDS, type QualityTier } from './types';
 import { useCardDrag } from './composables/useCardDrag';
 
 import TopNavbar from './components/TopNavbar.vue';
@@ -18,8 +17,7 @@ import MusicPlayerCard from './components/MusicPlayerCard.vue';
 const backgrounds = DEFAULT_BACKGROUNDS;
 const currentBg = ref(backgrounds[0].url);
 
-// Engine & Quality selection
-const selectedEngine = ref<DemoEngine>('dom');
+// Quality selection
 const selectedQuality = ref<QualityTier>('high');
 
 // Geometry Dimensions
@@ -29,13 +27,16 @@ const glassHeight = ref(240);
 // Calibrated Optical Material Parameters (Strictly Material Options)
 const params = reactive<LiquidGlassMaterialOptions>({
   ...GLASS_PRESETS['ios-like'],
-  blur: 0,
+  blur: 0.1,
   opacity: 0.08,
   radius: 26,
   bezel: 24,
-  specular: 0.6,
+  specular: 0.7,
   tint: '#ffffff',
   shadow: 0.35,
+  refraction: 1.0,
+  dispersion: 2.0,
+  saturation: 130,
 });
 
 // Control panel visibility
@@ -47,17 +48,8 @@ function applyPreset(presetKey: GlassPreset) {
   Object.assign(params, preset);
 }
 
-// Stage LiquidGlass reference & physical engine status
+// Stage LiquidGlass reference
 const domGlassRef = ref<InstanceType<typeof LiquidGlass> | null>(null);
-const webglGlassRef = ref<InstanceType<typeof WebGLLiquidGlass> | null>(null);
-
-const resolvedEngineLabel = computed(() => {
-  const resolved =
-    selectedEngine.value === 'webgl'
-      ? webglGlassRef.value?.instance?.renderer
-      : domGlassRef.value?.instance?.renderer;
-  return resolved ? resolved.toUpperCase() : '...';
-});
 
 // Card Drag & Free Movement
 const {
@@ -69,7 +61,6 @@ const {
   resetPosition,
 } = useCardDrag(() => {
   domGlassRef.value?.resize();
-  webglGlassRef.value?.resize();
 });
 
 // Solid color background detection & adaptation
@@ -103,23 +94,16 @@ const rootStyle = computed(() => {
     backgroundColor: '#0b0d14',
   };
 });
-
-const webglBgUrl = computed(() => {
-  if (!isSolidColor.value) return currentBg.value;
-  const color = encodeURIComponent(currentBg.value);
-  return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="${color}"/></svg>`;
-});
 </script>
 
 <template>
   <div class="lab-root" :style="rootStyle" :class="{ 'is-light-stage': isLightBg }">
     <!-- Top Floating Glass Navbar -->
-    <TopNavbar v-model:selected-engine="selectedEngine" v-model:is-panel-open="isPanelOpen" />
+    <TopNavbar v-model:is-panel-open="isPanelOpen" />
 
     <!-- Parameter Inspector Drawer -->
     <ControlDrawer
       v-model:is-open="isPanelOpen"
-      v-model:selected-engine="selectedEngine"
       v-model:selected-quality="selectedQuality"
       v-model:glass-width="glassWidth"
       v-model:glass-height="glassHeight"
@@ -135,16 +119,12 @@ const webglBgUrl = computed(() => {
       <!-- Minimalist Real DOM Typography Backdrop (Refracted by LiquidGlass) -->
       <StageBackdrop :is-light="isLightBg" />
 
-      <!-- Center Stage: The ONE and ONLY LiquidGlass -->
+      <!-- Center Stage: Unified LiquidGlass Engine -->
       <div class="stage-center">
-        <!-- Live Status Pill: Direct single source of truth -->
+        <!-- Live Status Pill -->
         <div class="engine-indicator-pill">
           <span class="pulse-dot" />
-          <span class="indicator-text">
-            Requested: <strong>{{ selectedEngine.toUpperCase() }}</strong>
-            <span class="indicator-sep">/</span>
-            Resolved: <strong>{{ resolvedEngineLabel }}</strong>
-          </span>
+          <span class="indicator-text"> Engine: <strong>LiquidGlass Native Optics</strong> </span>
           <button
             v-if="cardPos.x !== 0 || cardPos.y !== 0"
             class="reset-pos-btn"
@@ -172,46 +152,32 @@ const webglBgUrl = computed(() => {
           @dblclick="resetPosition"
         >
           <LiquidGlass
-            v-if="selectedEngine === 'dom'"
             ref="domGlassRef"
             :options="params"
             :interactive="true"
             style="width: 100%; height: 100%"
           >
-            <MusicPlayerCard current-renderer="dom" />
+            <MusicPlayerCard />
           </LiquidGlass>
-          <WebGLLiquidGlass
-            v-else
-            ref="webglGlassRef"
-            :options="params"
-            :background-url="webglBgUrl"
-            :interactive="true"
-            style="width: 100%; height: 100%"
-          >
-            <MusicPlayerCard current-renderer="webgl" />
-          </WebGLLiquidGlass>
         </div>
 
-        <!-- GlassButton Component Showcase Row -->
+        <!-- GlassButton Component Showcase Row: Variants -->
         <div class="glass-buttons-row">
-          <GlassButton size="sm" variant="ghost">Ghost SM</GlassButton>
-          <GlassButton size="md" variant="default">Default MD</GlassButton>
-          <GlassButton size="md" variant="primary">Primary MD</GlassButton>
+          <span class="row-label">BUTTON VARIANTS:</span>
+          <GlassButton size="md" variant="default">Default</GlassButton>
+          <GlassButton size="md" variant="primary">Primary</GlassButton>
+          <GlassButton size="md" variant="ghost">Ghost</GlassButton>
           <GlassButton size="md" variant="danger">Danger</GlassButton>
-          <GlassButton size="sm" :disabled="true">Disabled</GlassButton>
+          <GlassButton size="md" :disabled="true">Disabled</GlassButton>
         </div>
 
-        <!-- 1:1 Liquid Glass React Buttons (Pure SVG UI Reproduction) -->
+        <!-- GlassButton Component Showcase Row: Sizes & Icons -->
         <div class="glass-buttons-row">
-          <span
-            class="row-label"
-            style="font-size: 11px; opacity: 0.7; letter-spacing: 0.5px; margin-right: 4px"
-            >SVG 1:1 REPRO:</span
-          >
-          <LiquidGlassReactButton>
-            <span>Click Me</span>
-          </LiquidGlassReactButton>
-          <LiquidGlassReactButton>
+          <span class="row-label">SIZES & ICONS:</span>
+          <GlassButton size="sm" variant="default">Small</GlassButton>
+          <GlassButton size="md" variant="primary">Medium</GlassButton>
+          <GlassButton size="lg" variant="primary">Large Action</GlassButton>
+          <GlassButton size="md" variant="default">
             <span style="display: inline-flex; align-items: center; gap: 6px">
               Log Out
               <svg
@@ -229,10 +195,7 @@ const webglBgUrl = computed(() => {
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
             </span>
-          </LiquidGlassReactButton>
-          <LiquidGlassReactButton :displacement-scale="85" :saturation="160">
-            <span>Vivid Pill</span>
-          </LiquidGlassReactButton>
+          </GlassButton>
         </div>
       </div>
     </main>

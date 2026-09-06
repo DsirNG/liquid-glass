@@ -17,5 +17,4 @@ export type {
   ResolvedLiquidGlassOptions,
 } from './glass';
 
-export type { WebGLGlassParams, WebGLCreateOptions, NormalizedWebGLOptions } from './webgl';
 export type { SvgFilterResult } from './svg';

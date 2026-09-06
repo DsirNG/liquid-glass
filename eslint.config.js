@@ -16,6 +16,7 @@ export default tseslint.config(
       '*.config.*',
       'take_screenshot.mjs',
       'scripts/**',
+      'liquid-glass-react/**',
     ],
   },
   js.configs.recommended,
@@ -30,7 +31,10 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       'vue/multi-word-component-names': 'off',
     },
   },
@@ -51,11 +55,12 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
-          paths: [
-            { name: 'vue', message: 'Violation: Types layer cannot import Vue.' },
-          ],
+          paths: [{ name: 'vue', message: 'Violation: Types layer cannot import Vue.' }],
           patterns: [
-            { group: ['**/utils/**', '**/constants/**', '**/engine/**', '**/core/**', '**/vue/**'], message: 'Violation: Types layer cannot import higher business layers.' },
+            {
+              group: ['**/utils/**', '**/constants/**', '**/engine/**', '**/core/**', '**/vue/**'],
+              message: 'Violation: Types layer cannot import higher business layers.',
+            },
           ],
         },
       ],
@@ -68,11 +73,12 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
-          paths: [
-            { name: 'vue', message: 'Violation: Utils layer cannot import Vue.' },
-          ],
+          paths: [{ name: 'vue', message: 'Violation: Utils layer cannot import Vue.' }],
           patterns: [
-            { group: ['**/constants/**', '**/engine/**', '**/core/**', '**/vue/**'], message: 'Violation: Utils layer cannot import higher business layers.' },
+            {
+              group: ['**/constants/**', '**/engine/**', '**/core/**', '**/vue/**'],
+              message: 'Violation: Utils layer cannot import higher business layers.',
+            },
           ],
         },
       ],
@@ -85,11 +91,12 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
-          paths: [
-            { name: 'vue', message: 'Violation: Constants layer cannot import Vue.' },
-          ],
+          paths: [{ name: 'vue', message: 'Violation: Constants layer cannot import Vue.' }],
           patterns: [
-            { group: ['**/engine/**', '**/core/**', '**/vue/**'], message: 'Violation: Constants layer cannot import higher business layers.' },
+            {
+              group: ['**/engine/**', '**/core/**', '**/vue/**'],
+              message: 'Violation: Constants layer cannot import higher business layers.',
+            },
           ],
         },
       ],
@@ -103,10 +110,17 @@ export default tseslint.config(
         'error',
         {
           paths: [
-            { name: 'vue', message: 'Violation: Engine layer must remain 100% framework-agnostic. Do NOT import Vue.' },
+            {
+              name: 'vue',
+              message:
+                'Violation: Engine layer must remain 100% framework-agnostic. Do NOT import Vue.',
+            },
           ],
           patterns: [
-            { group: ['**/core/**', '**/vue/**'], message: 'Violation: Engine layer cannot import Core facade or Vue adapter.' },
+            {
+              group: ['**/core/**', '**/vue/**'],
+              message: 'Violation: Engine layer cannot import Core facade or Vue adapter.',
+            },
           ],
         },
       ],
@@ -120,7 +134,10 @@ export default tseslint.config(
         'error',
         {
           paths: [
-            { name: 'vue', message: 'Violation: Core facade must remain framework-agnostic. Do NOT import Vue.' },
+            {
+              name: 'vue',
+              message: 'Violation: Core facade must remain framework-agnostic. Do NOT import Vue.',
+            },
           ],
           patterns: [
             { group: ['**/vue/**'], message: 'Violation: Core facade cannot import Vue adapter.' },

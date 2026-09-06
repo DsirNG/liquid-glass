@@ -1,7 +1,6 @@
 export {
   LiquidGlass,
   GlassButton,
-  LiquidGlassReactButton,
   type GlassButtonSize,
   type GlassButtonVariant,
 } from './components';

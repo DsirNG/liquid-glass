@@ -17,6 +17,8 @@ export class SvgRendererWrapper implements RendererDelegate {
   private svgEngine: SvgGlassEngine;
   private refractionLayer: HTMLDivElement;
   private tintLayer: HTMLDivElement;
+  private borderScreenLayer: HTMLDivElement;
+  private borderOverlayLayer: HTMLDivElement;
   private resizeObserver: ResizeObserver | null = null;
   private isDestroyed = false;
   private updateTimer: number | null = null;
@@ -31,7 +33,7 @@ export class SvgRendererWrapper implements RendererDelegate {
       this.element.classList.add('lg-svg-container');
     }
 
-    // Create refraction layer
+    // Create refraction warp layer
     this.refractionLayer = document.createElement('div');
     this.refractionLayer.className = 'lg-svg-refraction';
     this.refractionLayer.style.position = 'absolute';
@@ -40,21 +42,37 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.refractionLayer.style.zIndex = '1';
     this.refractionLayer.style.pointerEvents = 'none';
     this.refractionLayer.style.overflow = 'hidden';
-    this.refractionLayer.style.backdropFilter = `url(#${this.svgEngine.filterId})`;
-    (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
-      `url(#${this.svgEngine.filterId})`;
 
-    // Create tint & specular layer
+    // Create tint body layer
     this.tintLayer = document.createElement('div');
     this.tintLayer.className = 'lg-svg-tint';
     this.tintLayer.style.position = 'absolute';
     this.tintLayer.style.inset = '0';
     this.tintLayer.style.borderRadius = 'inherit';
-    this.tintLayer.style.zIndex = '2';
+    this.tintLayer.style.zIndex = '1';
     this.tintLayer.style.pointerEvents = 'none';
 
+    // Create dual specular highlight borders
+    this.borderScreenLayer = document.createElement('div');
+    this.borderScreenLayer.className = 'lg-border-screen';
+    this.borderScreenLayer.style.position = 'absolute';
+    this.borderScreenLayer.style.inset = '0';
+    this.borderScreenLayer.style.borderRadius = 'inherit';
+    this.borderScreenLayer.style.zIndex = '2';
+    this.borderScreenLayer.style.pointerEvents = 'none';
+
+    this.borderOverlayLayer = document.createElement('div');
+    this.borderOverlayLayer.className = 'lg-border-overlay';
+    this.borderOverlayLayer.style.position = 'absolute';
+    this.borderOverlayLayer.style.inset = '0';
+    this.borderOverlayLayer.style.borderRadius = 'inherit';
+    this.borderOverlayLayer.style.zIndex = '2';
+    this.borderOverlayLayer.style.pointerEvents = 'none';
+
     // Insert layers before existing children so slots / content remain on top (z-index: 3)
-    this.element.insertBefore(this.tintLayer, this.element.firstChild);
+    this.element.insertBefore(this.borderOverlayLayer, this.element.firstChild);
+    this.element.insertBefore(this.borderScreenLayer, this.borderOverlayLayer);
+    this.element.insertBefore(this.tintLayer, this.borderScreenLayer);
     this.element.insertBefore(this.refractionLayer, this.tintLayer);
 
     this.applyStyles();
@@ -86,6 +104,24 @@ export class SvgRendererWrapper implements RendererDelegate {
     s.setProperty('--lg-shadow-spread', `${shadowSpread}px`);
     s.setProperty('--lg-shadow-color', opts.shadowColor);
     s.setProperty('--lg-outer-shadow-blur', `${outerShadowBlur}px`);
+
+    const blurVal = typeof opts.blur === 'number' ? opts.blur : 0.1;
+    const satVal = typeof opts.saturation === 'number' ? opts.saturation : 130;
+    const filterCss = `url(#${this.svgEngine.filterId}) blur(${blurVal}px) saturate(${satVal}%)`;
+    this.refractionLayer.style.backdropFilter = filterCss;
+    (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
+      filterCss;
+
+    const specular = opts.specular ?? 0.6;
+    if (specular <= 0) {
+      this.borderScreenLayer.style.display = 'none';
+      this.borderOverlayLayer.style.display = 'none';
+    } else {
+      this.borderScreenLayer.style.display = '';
+      this.borderOverlayLayer.style.display = '';
+      this.borderScreenLayer.style.opacity = String(Math.min(1, specular * 1.2));
+      this.borderOverlayLayer.style.opacity = String(Math.min(1, specular * 1.5));
+    }
   }
 
   private updateFilter(): void {
@@ -138,6 +174,12 @@ export class SvgRendererWrapper implements RendererDelegate {
     }
     if (this.tintLayer && this.tintLayer.parentNode) {
       this.tintLayer.parentNode.removeChild(this.tintLayer);
+    }
+    if (this.borderScreenLayer && this.borderScreenLayer.parentNode) {
+      this.borderScreenLayer.parentNode.removeChild(this.borderScreenLayer);
+    }
+    if (this.borderOverlayLayer && this.borderOverlayLayer.parentNode) {
+      this.borderOverlayLayer.parentNode.removeChild(this.borderOverlayLayer);
     }
 
     this.element.classList.remove('lg-svg-container');

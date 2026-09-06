@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { LiquidGlass } from '../../src/vue';
-import type { DemoEngine } from '../types';
 import { t, currentLocale, setLocale } from '../locales';
 
 defineProps<{
-  selectedEngine: DemoEngine;
   isPanelOpen: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:selectedEngine', engine: DemoEngine): void;
   (e: 'update:isPanelOpen', open: boolean): void;
 }>();
 </script>
@@ -31,32 +28,7 @@ const emit = defineEmits<{
         <div class="logo">
           <span class="logo-dot" />
           <span class="logo-text">{{ t.labTitle }}</span>
-          <span class="badge">{{ t.specBadge }}</span>
-        </div>
-
-        <div class="nav-actions">
-          <template v-for="eng in ['dom', 'webgl'] as const" :key="eng">
-            <LiquidGlass
-              v-if="selectedEngine === eng"
-              :options="{
-                blur: 6,
-                opacity: 0.22,
-                radius: 18,
-                bezel: 10,
-                specular: 0.85,
-                tint: '#ffffff',
-                shadow: 0.2,
-              }"
-              class="glass-tab-pill"
-            >
-              <button class="engine-tab active" @click="emit('update:selectedEngine', eng)">
-                {{ eng === 'dom' ? t.engineSvg : t.engineWebgl }}
-              </button>
-            </LiquidGlass>
-            <button v-else class="engine-tab" @click="emit('update:selectedEngine', eng)">
-              {{ eng === 'dom' ? t.engineSvg : t.engineWebgl }}
-            </button>
-          </template>
+          <span class="badge">LiquidGlass Native</span>
         </div>
 
         <!-- Bilingual Switcher -->

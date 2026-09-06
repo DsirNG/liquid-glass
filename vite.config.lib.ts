@@ -35,13 +35,11 @@ export default defineConfig({
       entry: {
         'core/index': resolve(__dirname, 'src/core/index.ts'),
         'vue/index': resolve(__dirname, 'src/vue/index.ts'),
-        'webgl/index': resolve(__dirname, 'src/webgl/index.ts'),
-        'vue-webgl/index': resolve(__dirname, 'src/vue-webgl/index.ts'),
       },
       formats: ['es'],
     },
     rollupOptions: {
-      external: ['vue', 'three'],
+      external: ['vue'],
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: 'chunks/[name]-[hash].js',

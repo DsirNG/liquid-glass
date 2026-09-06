@@ -7,8 +7,6 @@ import type {
 } from '../../../types';
 import { useLiquidGlass } from '../../composables/useLiquidGlass';
 
-
-
 const props = withDefaults(
   defineProps<{
     interactive?: boolean;
@@ -72,5 +70,3 @@ defineExpose({ instance, update, resize, destroy });
 <style>
 @import '../../../styles/liquid-glass.css';
 </style>
-
-

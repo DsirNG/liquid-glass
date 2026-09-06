@@ -10,10 +10,18 @@ describe('package entry-point boundaries', () => {
     expect(`${core}${engine}${domEngine}`).not.toMatch(/three|webgl/i);
   });
 
-  it('exports WebGL only through explicit package entries', () => {
+  it('completely excludes Three.js and WebGL from the package', () => {
     const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8'));
-    expect(pkg.exports['./webgl']).toBeDefined();
-    expect(pkg.exports['./vue-webgl']).toBeDefined();
-    expect(pkg.peerDependenciesMeta.three.optional).toBe(true);
+    expect(pkg.exports['./webgl']).toBeUndefined();
+    expect(pkg.exports['./vue-webgl']).toBeUndefined();
+    expect(pkg.peerDependencies?.three).toBeUndefined();
+    expect(pkg.devDependencies?.three).toBeUndefined();
+  });
+
+  it('exports only DOM core, Vue, and style entries', () => {
+    const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8'));
+    expect(pkg.exports['.']).toBeDefined();
+    expect(pkg.exports['./vue']).toBeDefined();
+    expect(pkg.exports['./style.css']).toBeDefined();
   });
 });

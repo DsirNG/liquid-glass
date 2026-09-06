@@ -34,31 +34,59 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  z-index: 2;
+  z-index: 1;
   pointer-events: none;
   box-shadow:
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
     inset 0 0 var(--lg-shadow-blur, 16px) var(--lg-shadow-spread, -6px)
       var(--lg-shadow-color, rgba(255, 255, 255, 0.4));
-  background-color: rgba(var(--lg-tint-rgb, 255, 255, 255), var(--lg-tint-alpha, 0.06));
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  background-color: rgba(var(--lg-tint-rgb, 255, 255, 255), var(--lg-tint-alpha, 0.08));
 }
 
-/* WebGL Renderer Layers */
-.lg-webgl-wrapper {
-  position: relative;
-  display: inline-flex;
-  isolation: isolate;
-  box-sizing: border-box;
-}
-
-.lg-webgl-canvas {
-  position: fixed;
+/* Specular Highlight Border 1 (Screen Blend - Ambient Rim) */
+.lg-border-screen {
+  position: absolute;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 1;
+  border-radius: inherit;
   pointer-events: none;
+  z-index: 2;
+  box-sizing: border-box;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  mix-blend-mode: screen;
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  padding: 1.5px;
+}
+
+/* Specular Highlight Border 2 (Overlay Blend - Intense Reflection Line) */
+.lg-border-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  box-sizing: border-box;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  mix-blend-mode: overlay;
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  padding: 1.5px;
 }
 
 /* Common Content Slot */

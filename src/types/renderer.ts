@@ -7,7 +7,7 @@ export type RendererType = 'auto' | 'webgl' | 'svg';
 export type ResolvedRendererType = Exclude<RendererType, 'auto'>;
 
 /** Runtime engine used by an instance. */
-export type LiquidGlassEngineType = 'dom' | 'webgl';
+export type LiquidGlassEngineType = 'dom';
 
 /** Public instance lifecycle and material update contract. */
 export interface LiquidGlassInstance {
