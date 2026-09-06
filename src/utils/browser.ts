@@ -1,18 +1,3 @@
-/**
- * Checks whether WebGL (WebGL 1 or experimental-webgl) is supported by the current environment.
- */
-export function supportsWebGLRenderer(): boolean {
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return false;
-  }
-  try {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    return !!(window.WebGLRenderingContext && gl);
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Checks whether SVG Filters (feDisplacementMap, backdrop-filter) are supported.

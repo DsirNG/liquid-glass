@@ -1,17 +1,11 @@
-import type { LiquidGlassOptions, SvgFilterResult } from '../../types';
+import type { ResolvedMaterial } from './MaterialResolver';
+import type { OpticalFieldAssets } from './OpticalFieldAssets';
 import { ensureGlobalSvgDefs } from '../../utils/dom';
-import { DEFAULT_DISPLACEMENT_MAP_URL } from './displacementMap';
 
 export interface DispersionScales {
   r: number;
   g: number;
   b: number;
-}
-
-export interface DispersionProfile {
-  red: number;
-  green: number;
-  blue: number;
 }
 
 export const DISPERSION_PROFILES = {
@@ -24,84 +18,140 @@ export type DispersionProfileName = keyof typeof DISPERSION_PROFILES;
 
 export function resolveDispersionScales(
   scale: number,
-  dispersion = 2.0,
-  profile: DispersionProfileName | DispersionProfile = 'ios'
+  dispersion = 1.5,
+  profile: DispersionProfileName = 'ios'
 ): DispersionScales {
-  const p = typeof profile === 'string' ? (DISPERSION_PROFILES[profile] ?? DISPERSION_PROFILES.ios) : profile;
+  const p = DISPERSION_PROFILES[profile] || DISPERSION_PROFILES.ios;
   return {
-    r: -scale * (1 - p.red * dispersion),
+    r: -scale,
     g: -scale * (1 - p.green * dispersion),
     b: -scale * (1 - p.blue * dispersion),
   };
 }
 
 /**
- * Modular builder for the Liquid Glass SVG optical filter graph.
- * Separates displacement, RGB channel isolation, Alpha preservation, and center body masking.
+ * Builds high-fidelity SVG Filter Graph implementing the differential optical pipeline:
+ * - Dynamic userSpaceOnUse filter region to avoid clipping wide refractions and scattering blur.
+ * - Normalized optical vector field driven by physical amplitude * lensingGain.
+ * - Continuous partition-of-unity basis: Body scattering, Inner lensing/dispersion, Coverage clipping.
  */
 export class SvgFilterBuilder {
   public static resolveDispersionScales = resolveDispersionScales;
 
-  public static build(options: LiquidGlassOptions): string {
-    const refractionScale = options.refraction ?? 1.0;
-    const baseScale = refractionScale * 64;
-    const dispersion = options.dispersion ?? 2.0;
-    const dispProfile = (options as { dispersionProfile?: DispersionProfileName | DispersionProfile }).dispersionProfile ?? 'ios';
-    const scales = resolveDispersionScales(baseScale, dispersion, dispProfile);
-    const dispUrl = DEFAULT_DISPLACEMENT_MAP_URL;
+  public static build(
+    material: ResolvedMaterial,
+    assets?: OpticalFieldAssets | null,
+    userRefraction = 1.0
+  ): string {
+    const { bodyBlur, saturation, dispersionGain, lensingGain } = material;
+    const width = assets?.width ?? 300;
+    const height = assets?.height ?? 80;
+    const physicalAmplitude = assets?.physicalAmplitude ?? 32;
+    const refractionGain = material.calibration?.optics?.refractionGain ?? 1.0;
+    const baseScale = physicalAmplitude * lensingGain * userRefraction * refractionGain;
+    const scales = resolveDispersionScales(baseScale, dispersionGain);
 
-    return [
-      this.buildDisplacementSource(dispUrl),
-      this.buildMaskHierarchy(dispersion),
-      this.buildRedDispersion(scales.r),
-      this.buildGreenDispersion(scales.g),
-      this.buildBlueDispersion(scales.b),
-      this.buildRgbComposite(),
-      this.buildCenterPreservation(),
-    ].join('\n');
-  }
 
-  private static buildDisplacementSource(dispUrl: string): string {
-    return `<feImage href="${dispUrl}" x="0" y="0" width="100%" height="100%" result="DISPLACEMENT_TEXTURE" preserveAspectRatio="none" />`;
-  }
+    const vectorHref = assets?.vectorUrl || '';
+    const basisHref = assets?.basisUrl || '';
 
-  private static buildMaskHierarchy(dispersion: number): string {
+    const satMatrix = (s: number) => {
+      const inv = 1 - s;
+      const r = 0.2126 * inv;
+      const g = 0.7152 * inv;
+      const b = 0.0722 * inv;
+      return `${r + s} ${g} ${b} 0 0
+              ${r} ${g + s} ${b} 0 0
+              ${r} ${g} ${b + s} 0 0
+              0 0 0 1 0`;
+    };
+
     return `
-      <!-- Geometry Bezel Mask: extract edge luminance from displacement texture -->
-      <feColorMatrix
-        in="DISPLACEMENT_TEXTURE"
-        type="matrix"
-        values="0.33 0.33 0.33 0 0
-                0.33 0.33 0.33 0 0
-                0.33 0.33 0.33 0 0
-                0    0    0    1 0"
-        result="EDGE_LUMINANCE"
+      <!-- 1. Load Dynamic Mathematical Assets -->
+      <feImage
+        href="${vectorHref}"
+        xlink:href="${vectorHref}"
+        x="0"
+        y="0"
+        width="${width}"
+        height="${height}"
+        preserveAspectRatio="none"
+        result="DISPLACEMENT_TEXTURE"
       />
-      <!-- outer/inner thresholded edge mask -->
-      <feComponentTransfer in="EDGE_LUMINANCE" result="EDGE_MASK">
-        <feFuncA type="discrete" tableValues="0 ${dispersion * 0.05} 1" />
-      </feComponentTransfer>
-      <!-- body mask: center plateau complementary to the edge mask -->
+      <feImage
+        href="${basisHref}"
+        xlink:href="${basisHref}"
+        x="0"
+        y="0"
+        width="${width}"
+        height="${height}"
+        preserveAspectRatio="none"
+        result="BASIS_FIELD"
+      />
+
+      <!-- 2. Decompose Continuous Basis Channels -->
+      <!-- Red Channel -> Outer Rim Basis (OUTER_MASK) -->
       <feColorMatrix
-        in="EDGE_MASK"
+        in="BASIS_FIELD"
         type="matrix"
-        values="0 0 0 0 0
-                0 0 0 0 0
-                0 0 0 0 0
-                0 0 0 -1 1"
+        values="1 0 0 0 0
+                1 0 0 0 0
+                1 0 0 0 0
+                1 0 0 0 0"
+        result="OUTER_MASK"
+      />
+      <!-- Green Channel -> Inner Lensing Basis (EDGE_MASK) -->
+      <feColorMatrix
+        in="BASIS_FIELD"
+        type="matrix"
+        values="0 1 0 0 0
+                0 1 0 0 0
+                0 1 0 0 0
+                0 1 0 0 0"
+        result="EDGE_MASK"
+      />
+      <!-- Blue Channel -> Body Transmission Basis (BODY_MASK) -->
+      <feColorMatrix
+        in="BASIS_FIELD"
+        type="matrix"
+        values="0 0 1 0 0
+                0 0 1 0 0
+                0 0 1 0 0
+                0 0 1 0 0"
         result="BODY_MASK"
       />
-    `;
-  }
+      <!-- Alpha Channel -> Exact AA Coverage Mask -->
+      <feColorMatrix
+        in="BASIS_FIELD"
+        type="matrix"
+        values="0 0 0 1 0
+                0 0 0 1 0
+                0 0 0 1 0
+                0 0 0 1 0"
+        result="COVERAGE_MASK"
+      />
 
-  private static buildRedDispersion(scale: number): string {
-    return `
+      <!-- 3. Body Material Pass (Mild scattering blur & saturation, zero displacement) -->
+      ${
+        bodyBlur > 0.01
+          ? `<feGaussianBlur in="SourceGraphic" stdDeviation="${bodyBlur}" result="BODY_BLURRED" />`
+          : `<feOffset in="SourceGraphic" dx="0" dy="0" result="BODY_BLURRED" />`
+      }
+      <feColorMatrix
+        in="BODY_BLURRED"
+        type="matrix"
+        values="${satMatrix(saturation)}"
+        result="BODY_MATERIAL"
+      />
+      <feComposite in="BODY_MATERIAL" in2="BODY_MASK" operator="in" result="BODY_CLEAN" />
+
+      <!-- 4. Inner Lensing Pass (Physical deflection & subtle chromatic dispersion) -->
       <feDisplacementMap
         in="SourceGraphic"
         in2="DISPLACEMENT_TEXTURE"
-        scale="${scale}"
+        scale="${scales.r}"
         xChannelSelector="R"
-        yChannelSelector="B"
+        yChannelSelector="G"
         result="RED_DISPLACED"
       />
       <feColorMatrix
@@ -113,17 +163,13 @@ export class SvgFilterBuilder {
                 0 0 0 1 0"
         result="RED_CHANNEL"
       />
-    `;
-  }
 
-  private static buildGreenDispersion(scale: number): string {
-    return `
       <feDisplacementMap
         in="SourceGraphic"
         in2="DISPLACEMENT_TEXTURE"
-        scale="${scale}"
+        scale="${scales.g}"
         xChannelSelector="R"
-        yChannelSelector="B"
+        yChannelSelector="G"
         result="GREEN_DISPLACED"
       />
       <feColorMatrix
@@ -135,17 +181,13 @@ export class SvgFilterBuilder {
                 0 0 0 1 0"
         result="GREEN_CHANNEL"
       />
-    `;
-  }
 
-  private static buildBlueDispersion(scale: number): string {
-    return `
       <feDisplacementMap
         in="SourceGraphic"
         in2="DISPLACEMENT_TEXTURE"
-        scale="${scale}"
+        scale="${scales.b}"
         xChannelSelector="R"
-        yChannelSelector="B"
+        yChannelSelector="G"
         result="BLUE_DISPLACED"
       />
       <feColorMatrix
@@ -157,35 +199,45 @@ export class SvgFilterBuilder {
                 0 0 0 1 0"
         result="BLUE_CHANNEL"
       />
-    `;
-  }
 
-  private static buildRgbComposite(): string {
-    return `
       <feBlend in="RED_CHANNEL" in2="GREEN_CHANNEL" mode="screen" result="RG_COMBINED" />
       <feBlend in="RG_COMBINED" in2="BLUE_CHANNEL" mode="screen" result="RGB_COMBINED" />
-      <!-- Alpha preservation: clamp to original SourceGraphic Alpha to eliminate white fringe -->
+      <!-- Alpha clamping to SourceGraphic to eliminate anti-aliasing white halos -->
       <feComposite in="RGB_COMBINED" in2="SourceGraphic" operator="in" result="RGB_ALPHA_PRESERVED" />
-    `;
-  }
-
-  private static buildCenterPreservation(): string {
-    return `
-      <!-- Refracted Edge: RGB displaced backdrop masked by EDGE_MASK -->
       <feComposite in="RGB_ALPHA_PRESERVED" in2="EDGE_MASK" operator="in" result="EDGE_REFRACTED" />
-      <!-- Clean Center: Source backdrop masked by BODY_MASK (center plateau) -->
-      <feOffset in="SourceGraphic" dx="0" dy="0" result="SOURCE_ORIGINAL" />
-      <feComposite in="SOURCE_ORIGINAL" in2="BODY_MASK" operator="in" result="BODY_CLEAN" />
-      <!-- Final Optical Result: Edge Refraction + Body Original -->
-      <feComposite in="EDGE_REFRACTED" in2="BODY_CLEAN" operator="over" result="FINAL_GLASS" />
+
+      <!-- 5. Outer Rim Transmission Pass (Sharp boundary definition & Fresnel reflection) -->
+      <feComposite in="SourceGraphic" in2="OUTER_MASK" operator="in" result="OUTER_PASS" />
+
+      <!-- 6. Optical Recombination or Debug Mode Inspection Output -->
+      ${
+        material.debug === 'vector'
+          ? `<feOffset in="DISPLACEMENT_TEXTURE" dx="0" dy="0" result="FINAL_GLASS" />`
+          : material.debug === 'outer'
+            ? `<feColorMatrix in="BASIS_FIELD" type="matrix" values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 1 0" result="FINAL_GLASS" />`
+            : material.debug === 'inner'
+              ? `<feColorMatrix in="BASIS_FIELD" type="matrix" values="0 1 0 0 0  0 1 0 0 0  0 1 0 0 0  0 0 0 1 0" result="FINAL_GLASS" />`
+              : material.debug === 'body'
+                ? `<feColorMatrix in="BASIS_FIELD" type="matrix" values="0 0 1 0 0  0 0 1 0 0  0 0 1 0 0  0 0 0 1 0" result="FINAL_GLASS" />`
+                : material.debug === 'coverage'
+                  ? `<feColorMatrix in="BASIS_FIELD" type="matrix" values="0 0 0 1 0  0 0 0 1 0  0 0 0 1 0  0 0 0 1 0" result="FINAL_GLASS" />`
+                  : material.debug === 'refraction'
+                    ? `<feComposite in="RGB_ALPHA_PRESERVED" in2="COVERAGE_MASK" operator="in" result="FINAL_GLASS" />`
+                    : `<!-- Standard Material Composite: Outer + Inner + Body = Coverage -->
+                       <feComposite in="EDGE_REFRACTED" in2="BODY_CLEAN" operator="over" result="INNER_BODY_COMBINED" />
+                       <feComposite in="OUTER_PASS" in2="INNER_BODY_COMBINED" operator="over" result="OPTICAL_COMBINED" />
+                       <feComposite in="OPTICAL_COMBINED" in2="COVERAGE_MASK" operator="in" result="FINAL_GLASS" />`
+      }
+
     `;
   }
 }
 
+
 let filterCounter = 0;
 
 /**
- * Creates or updates an SVG filter element in the document global SVG defs.
+ * Manages the SVG <filter> DOM node in the global SVG defs container.
  */
 export class SvgGlassEngine {
   private defsContainer: SVGDefsElement | null = null;
@@ -195,6 +247,7 @@ export class SvgGlassEngine {
 
   constructor(idPrefix = 'lg-svg-filter') {
     this.filterId = `${idPrefix}-${++filterCounter}`;
+    this.initFilterElement();
   }
 
   private ensureDefs(): SVGDefsElement | null {
@@ -206,45 +259,58 @@ export class SvgGlassEngine {
     return defs;
   }
 
-  public update(
-    _width: number,
-    _height: number,
-    options: LiquidGlassOptions
-  ): SvgFilterResult | null {
-    if (this.isDestroyed) return null;
+  private initFilterElement(): void {
     const defs = this.ensureDefs();
-    if (!defs) return null;
+    if (!defs) return;
 
     if (!this.filterElement) {
       this.filterElement = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
       this.filterElement.id = this.filterId;
+      this.filterElement.setAttribute('color-interpolation-filters', 'sRGB');
+      this.filterElement.setAttribute('filterUnits', 'userSpaceOnUse');
+      this.filterElement.setAttribute('primitiveUnits', 'userSpaceOnUse');
       this.filterElement.setAttribute('x', '-20%');
       this.filterElement.setAttribute('y', '-20%');
       this.filterElement.setAttribute('width', '140%');
       this.filterElement.setAttribute('height', '140%');
-      this.filterElement.setAttribute('color-interpolation-filters', 'sRGB');
       defs.appendChild(this.filterElement);
     }
+  }
 
-    this.filterElement.innerHTML = SvgFilterBuilder.build(options);
+  public update(
+    material: ResolvedMaterial,
+    assets?: OpticalFieldAssets | null,
+    userRefraction = 1.0
+  ): void {
+    if (this.isDestroyed) return;
+    this.initFilterElement();
+    if (!this.filterElement) return;
 
-    const refractionScale = options.refraction ?? 1.0;
-    const scale = refractionScale * 64;
+    const width = assets?.width ?? 300;
+    const height = assets?.height ?? 80;
+    const samplingMargin = material.samplingMargin || 24;
+    const x = -samplingMargin;
+    const y = -samplingMargin;
+    const w = width + 2 * samplingMargin;
+    const h = height + 2 * samplingMargin;
 
-    return {
-      filterId: this.filterId,
-      backdropFilterCss: `url(#${this.filterId})`,
-      scale,
-    };
+    // Exact userSpaceOnUse dimensions to avoid clipping
+    this.filterElement.setAttribute('filterUnits', 'userSpaceOnUse');
+    this.filterElement.setAttribute('primitiveUnits', 'userSpaceOnUse');
+    this.filterElement.setAttribute('x', `${x}`);
+    this.filterElement.setAttribute('y', `${y}`);
+    this.filterElement.setAttribute('width', `${w}`);
+    this.filterElement.setAttribute('height', `${h}`);
+
+    this.filterElement.innerHTML = SvgFilterBuilder.build(material, assets, userRefraction);
   }
 
   public destroy(): void {
-    if (this.isDestroyed) return;
     this.isDestroyed = true;
     if (this.filterElement && this.filterElement.parentNode) {
       this.filterElement.parentNode.removeChild(this.filterElement);
-      this.filterElement = null;
     }
+    this.filterElement = null;
+    this.defsContainer = null;
   }
 }
-

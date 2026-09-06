@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { clamp, lerp } from '../src/utils/math';
 import { hexToRgb } from '../src/utils/color';
-import { supportsWebGLRenderer, supportsSvgRenderer } from '../src/utils/browser';
+import { supportsSvgRenderer } from '../src/utils/browser';
 
 describe('utils/math', () => {
   it('clamps values within bounds', () => {
@@ -36,7 +36,6 @@ describe('utils/color', () => {
 
 describe('utils/browser', () => {
   it('checks browser capabilities safely without crashing in test env', () => {
-    expect(typeof supportsWebGLRenderer()).toBe('boolean');
     expect(typeof supportsSvgRenderer()).toBe('boolean');
   });
 });

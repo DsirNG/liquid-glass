@@ -41,6 +41,8 @@ const params = reactive<LiquidGlassMaterialOptions>({
 
 // Control panel visibility
 const isPanelOpen = ref(true);
+const calibrationMode = ref(false);
+const contentMode = ref<'auto' | 'pure' | 'music'>('auto');
 
 // 4 Standard Presets (Material only)
 function applyPreset(presetKey: GlassPreset) {
@@ -48,7 +50,16 @@ function applyPreset(presetKey: GlassPreset) {
   Object.assign(params, preset);
 }
 
+function handleApplyMatrix(w: number, h: number, r: number, b: number, shape?: string) {
+  glassWidth.value = w;
+  glassHeight.value = h;
+  params.radius = r;
+  params.bezel = b;
+  params.shape = (shape as any) || 'roundedRect';
+}
+
 // Stage LiquidGlass reference
+
 const domGlassRef = ref<InstanceType<typeof LiquidGlass> | null>(null);
 
 // Card Drag & Free Movement
@@ -111,92 +122,136 @@ const rootStyle = computed(() => {
       :params="params"
       :backgrounds="backgrounds"
       @apply-preset="applyPreset"
+      @apply-matrix="handleApplyMatrix"
       @update-param="(key, val) => ((params as Record<string, unknown>)[key] = val)"
     />
 
+
     <!-- Central Showcase Stage -->
-    <main class="showcase-stage">
-      <!-- Minimalist Real DOM Typography Backdrop (Refracted by LiquidGlass) -->
-      <StageBackdrop :is-light="isLightBg" />
+    <main class="showcase-stage" :class="{ 'drawer-open': isPanelOpen }">
+      <div class="stage-viewport">
+        <!-- Minimalist Real DOM Typography or Optical Test Chart Backdrop -->
+        <StageBackdrop :is-light="isLightBg" :calibration-mode="calibrationMode" />
 
-      <!-- Center Stage: Unified LiquidGlass Engine -->
-      <div class="stage-center">
-        <!-- Live Status Pill -->
-        <div class="engine-indicator-pill">
-          <span class="pulse-dot" />
-          <span class="indicator-text"> Engine: <strong>LiquidGlass Native Optics</strong> </span>
-          <button
-            v-if="cardPos.x !== 0 || cardPos.y !== 0"
-            class="reset-pos-btn"
-            :title="t.resetPosition"
-            @click="resetPosition"
+        <!-- Center Stage: Unified LiquidGlass Engine -->
+        <div class="stage-center">
+          <!-- Live Status & Mode Switcher Pill -->
+          <div class="engine-indicator-pill">
+            <span class="pulse-dot" />
+            <span class="indicator-text"> LiquidGlass Native Optics </span>
+            <button
+              class="reset-pos-btn"
+              :style="{ background: calibrationMode ? '#38bdf8' : '', color: calibrationMode ? '#0f172a' : '' }"
+              @click="calibrationMode = !calibrationMode"
+            >
+              🎯 {{ calibrationMode ? 'Normal Backdrop' : 'Test Chart' }}
+            </button>
+            <button
+              class="reset-pos-btn"
+              :style="{ background: contentMode === 'pure' ? '#a855f7' : '', color: contentMode === 'pure' ? '#fff' : '' }"
+              :title="'Switch between card, button pill, and pure naked glass'"
+              @click="
+                contentMode =
+                  contentMode === 'auto'
+                    ? 'pure'
+                    : contentMode === 'pure'
+                      ? 'music'
+                      : 'auto'
+              "
+            >
+              🪟 {{ contentMode === 'pure' ? 'Pure Optics (Naked)' : contentMode === 'auto' ? 'Auto Content' : 'Music Card' }}
+            </button>
+            <button
+              v-if="cardPos.x !== 0 || cardPos.y !== 0"
+              class="reset-pos-btn"
+              :title="t.resetPosition"
+              @click="resetPosition"
+            >
+              ↺ {{ t.resetPosition }}
+            </button>
+          </div>
+
+          <!-- The Single Interactive Liquid Glass Card -->
+          <div
+            class="glass-stage-card-wrapper"
+            :class="{ dragging: isDragging }"
+            :style="{
+              width: `${glassWidth}px`,
+              height: `${glassHeight}px`,
+              transform: `translate3d(${cardPos.x}px, ${cardPos.y}px, 0)`,
+            }"
+            :title="t.dragHint"
+            @pointerdown="handlePointerDown"
+            @pointermove="handlePointerMove"
+            @pointerup="handlePointerUp"
+            @pointercancel="handlePointerUp"
+            @dblclick="resetPosition"
           >
-            ↺ {{ t.resetPosition }}
-          </button>
-        </div>
+            <LiquidGlass
+              ref="domGlassRef"
+              :options="params"
+              :interactive="true"
+              style="width: 100%; height: 100%"
+            >
+              <!-- 1. Pure Optics Mode (Zero obstruction to observe live backdrop refraction) -->
+              <div v-if="contentMode === 'pure'" class="pure-glass-container" />
 
-        <!-- The Single Interactive Liquid Glass Card -->
-        <div
-          class="glass-stage-card-wrapper"
-          :class="{ dragging: isDragging }"
-          :style="{
-            width: `${glassWidth}px`,
-            height: `${glassHeight}px`,
-            transform: `translate3d(${cardPos.x}px, ${cardPos.y}px, 0)`,
-          }"
-          :title="t.dragHint"
-          @pointerdown="handlePointerDown"
-          @pointermove="handlePointerMove"
-          @pointerup="handlePointerUp"
-          @pointercancel="handlePointerUp"
-          @dblclick="resetPosition"
-        >
-          <LiquidGlass
-            ref="domGlassRef"
-            :options="params"
-            :interactive="true"
-            style="width: 100%; height: 100%"
-          >
-            <MusicPlayerCard />
-          </LiquidGlass>
-        </div>
-
-        <!-- GlassButton Component Showcase Row: Variants -->
-<!--        <div class="glass-buttons-row">-->
-          <span class="row-label">BUTTON VARIANTS:</span>
-          <GlassButton size="md" variant="default">Default</GlassButton>
-          <GlassButton size="md" variant="primary">Primary</GlassButton>
-          <GlassButton size="md" variant="ghost">Ghost</GlassButton>
-          <GlassButton size="md" variant="danger">Danger</GlassButton>
-          <GlassButton size="md" :disabled="true">Disabled</GlassButton>
-<!--        </div>-->
-
-        <!-- GlassButton Component Showcase Row: Sizes & Icons -->
-<!--        <div class="glass-buttons-row">-->
-          <span class="row-label">SIZES & ICONS:</span>
-          <GlassButton size="sm" variant="default">Small</GlassButton>
-          <GlassButton size="md" variant="primary">Medium</GlassButton>
-          <GlassButton size="lg" variant="primary">Large Action</GlassButton>
-          <GlassButton size="md" variant="default">
-            <span style="display: inline-flex; align-items: center; gap: 6px">
-              Log Out
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+              <!-- 2. Small Button / Capsule (<70px height or <180px width) -->
+              <div
+                v-else-if="contentMode === 'pill' || glassHeight < 70 || glassWidth < 180"
+                class="glass-pill-content"
               >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </span>
-          </GlassButton>
-<!--        </div>-->
+                <span class="pill-dot" />
+                <span class="pill-label">
+                  {{ params.shape === 'circle' ? '✦' : 'Liquid Glass' }}
+                </span>
+              </div>
+
+              <!-- 3. Full Music Player Card -->
+              <MusicPlayerCard v-else />
+            </LiquidGlass>
+          </div>
+
+          <!-- Compact Geometry Presets Quick-Switch Row -->
+          <div class="glass-buttons-row">
+            <span class="row-label">MATRIX:</span>
+            <button
+              class="stage-geo-btn"
+              :class="{ active: glassWidth === 100 && glassHeight === 40 }"
+              @click="handleApplyMatrix(100, 40, 16, 12, 'roundedRect')"
+            >
+              100×40 Btn
+            </button>
+            <button
+              class="stage-geo-btn"
+              :class="{ active: glassWidth === 160 && glassHeight === 52 }"
+              @click="handleApplyMatrix(160, 52, 20, 16, 'roundedRect')"
+            >
+              160×52 Dock
+            </button>
+            <button
+              class="stage-geo-btn"
+              :class="{ active: glassWidth === 320 && glassHeight === 64 }"
+              @click="handleApplyMatrix(320, 64, 24, 20, 'capsule')"
+            >
+              320×64 Bar
+            </button>
+            <button
+              class="stage-geo-btn"
+              :class="{ active: glassWidth === 360 && glassHeight === 180 }"
+              @click="handleApplyMatrix(360, 180, 28, 24, 'roundedRect')"
+            >
+              360×180 Card
+            </button>
+            <button
+              class="stage-geo-btn"
+              :class="{ active: glassWidth === 500 && glassHeight === 300 }"
+              @click="handleApplyMatrix(500, 300, 36, 32, 'roundedRect')"
+            >
+              500×300 Sheet
+            </button>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -235,18 +290,41 @@ body,
   background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  overflow: hidden;
   transition: background-image 0.4s ease;
 }
 
-/* Central Stage */
+/* Central Stage with flex-center margin auto to avoid overflow clipping */
 .showcase-stage {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 80px 24px 30px;
+  box-sizing: border-box;
+  transition: padding-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 1024px) {
+  .showcase-stage.drawer-open {
+    padding-right: 340px;
+  }
+}
+
+.stage-viewport {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 520px;
+  width: 100%;
+  max-width: 960px;
+  margin: auto;
 }
 
 .stage-center {
@@ -255,25 +333,22 @@ body,
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
+  margin: auto;
 }
 
 .engine-indicator-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  padding: 6px 16px;
+  padding: 6px 14px;
   border-radius: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 12px;
-}
-
-.indicator-sep {
-  opacity: 0.35;
-  margin: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 11px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .pulse-dot {
@@ -285,16 +360,16 @@ body,
 }
 
 .reset-pos-btn {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   font-size: 10px;
   font-weight: 600;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  margin-left: 4px;
+  margin-left: 2px;
 }
 
 .reset-pos-btn:hover {
@@ -318,32 +393,95 @@ body,
   cursor: grabbing;
 }
 
+/* Adaptive Inner Glass Content */
+.pure-glass-container {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.glass-pill-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 14px;
+  box-sizing: border-box;
+}
+
+.pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 6px #38bdf8;
+  flex-shrink: 0;
+}
+
+.pill-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* Compact Geometry Bar */
 .glass-buttons-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 8px;
   flex-wrap: wrap;
-  padding: 8px 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 28px;
+  padding: 6px 14px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Adaptations when background is bright solid color (Studio Gray, White) */
+.row-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.stage-geo-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stage-geo-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.stage-geo-btn.active {
+  background: #38bdf8;
+  color: #0f172a;
+  font-weight: 700;
+  border-color: #38bdf8;
+}
+
+/* Adaptations when background is bright solid color */
 .lab-root.is-light-stage {
   color: #0f172a;
 }
 
 .lab-root.is-light-stage .engine-indicator-pill {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.8);
   border-color: rgba(0, 0, 0, 0.12);
   color: #0f172a;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-}
-
-.lab-root.is-light-stage .engine-indicator-pill strong {
-  color: #000;
 }
 
 .lab-root.is-light-stage .reset-pos-btn {
@@ -353,26 +491,28 @@ body,
 }
 
 .lab-root.is-light-stage .glass-buttons-row {
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.7);
   border-color: rgba(0, 0, 0, 0.1);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
 }
 
-.lab-root.is-light-stage .glass-buttons-row .row-label {
+.lab-root.is-light-stage .row-label {
+  color: #475569;
+}
+
+.lab-root.is-light-stage .stage-geo-btn {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #1e293b;
+}
+
+.lab-root.is-light-stage .stage-geo-btn.active {
+  background: #0284c7;
+  color: #fff;
+  border-color: #0284c7;
+}
+
+.lab-root.is-light-stage .pill-label {
   color: #0f172a;
-}
-
-/* On light/white stage: buttons become frosted white crystal with crisp dark text */
-.lab-root.is-light-stage .lg-react-glass-capsule {
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.06);
-}
-
-.lab-root.is-light-stage .lg-react-glass-content {
-  color: #0f172a !important;
-  text-shadow: none !important;
 }
 </style>

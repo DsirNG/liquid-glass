@@ -1,6 +1,19 @@
+export type SurfaceShape = 'convex_squircle' | 'convex_circle' | 'concave' | 'lip';
+export type SurfaceProfile = 'convex_squircle' | 'convex_circle' | 'concave' | 'lip';
+export type MaterialPreset = 'pure' | 'ios';
+export type FootprintShape = 'roundedRect' | 'capsule' | 'circle';
+export type OpticalDebugMode =
+  | 'none'
+  | 'vector'
+  | 'outer'
+  | 'inner'
+  | 'body'
+  | 'coverage'
+  | 'refraction'
+  | 'final';
+
 /**
  * Optical material parameters shared by every Liquid Glass implementation.
- * Engine and framework concerns intentionally do not belong here.
  */
 export interface LiquidGlassMaterialOptions {
   blur?: number;
@@ -17,6 +30,11 @@ export interface LiquidGlassMaterialOptions {
   shadow?: number;
   shadowColor?: string;
   surfaceShape?: SurfaceShape;
+  surfaceProfile?: SurfaceProfile;
+  materialPreset?: MaterialPreset;
+  ambientLuma?: number;
+  shape?: FootprintShape;
+  capability?: 'auto' | 'full' | 'material';
+  debug?: OpticalDebugMode;
 }
 
-export type SurfaceShape = 'convex_squircle' | 'convex_circle' | 'concave' | 'lip';

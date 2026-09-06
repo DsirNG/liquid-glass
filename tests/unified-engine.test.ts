@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { createLiquidGlass } from '../src/core';
 
 describe('unified LiquidGlassEngine native implementation', () => {
@@ -24,7 +24,7 @@ describe('unified LiquidGlassEngine native implementation', () => {
     const filter = document.querySelector('svg filter');
     expect(filter).not.toBeNull();
     expect(filter?.querySelectorAll('feDisplacementMap').length).toBe(3);
-    expect(filter?.querySelector('feComponentTransfer')).not.toBeNull();
+    expect(filter?.querySelector('feComposite')).not.toBeNull();
 
     instance.destroy();
     expect(el.classList.contains('lg-svg-container')).toBe(false);

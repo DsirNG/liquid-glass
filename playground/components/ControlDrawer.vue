@@ -22,7 +22,9 @@ const emit = defineEmits<{
   (e: 'update:currentBg', value: string): void;
   (e: 'updateParam', key: keyof LiquidGlassMaterialOptions, value: unknown): void;
   (e: 'applyPreset', preset: GlassPreset): void;
+  (e: 'applyMatrix', w: number, h: number, r: number, b: number, shape?: string): void;
 }>();
+
 
 function onParamInput(key: keyof LiquidGlassMaterialOptions, e: Event, isNumber = true) {
   const target = e.target as HTMLInputElement;
@@ -51,6 +53,66 @@ function onCustomColorInput(e: Event) {
     </div>
 
     <div class="drawer-body">
+      <!-- 🔬 质检观察模式 (Inspection Modes) -->
+      <section class="ctrl-group">
+        <label class="group-title">{{ t.inspectionMode }}</label>
+        <div class="radio-pill-group" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+          <button
+            :class="{ active: (!params.debug || params.debug === 'none') && (params.refraction ?? 1) > 0 && (params.specular ?? 0.7) > 0 }"
+            style="font-size: 10px; padding: 8px 2px; font-weight: 700; text-align: center;"
+            @click="
+              emit('updateParam', 'debug', 'none');
+              if (params.opacity === 0) emit('updateParam', 'opacity', 0.08);
+              if (params.specular === 0) emit('updateParam', 'specular', 0.7);
+              if (params.shadow === 0) emit('updateParam', 'shadow', 0.35);
+              if ((params.refraction ?? 0) === 0) emit('updateParam', 'refraction', 1.0);
+            "
+          >
+            {{ t.modeFinal }}
+          </button>
+          <button
+            :class="{ active: params.debug === 'refraction' || (params.specular === 0 && params.opacity === 0 && (params.refraction ?? 1) > 0) }"
+            style="font-size: 10px; padding: 8px 2px; font-weight: 700; text-align: center; color: #38bdf8;"
+            @click="
+              emit('updateParam', 'debug', 'refraction');
+              emit('updateParam', 'opacity', 0);
+              emit('updateParam', 'specular', 0);
+              emit('updateParam', 'shadow', 0);
+              if ((params.refraction ?? 0) === 0) emit('updateParam', 'refraction', 1.0);
+            "
+          >
+            {{ t.modePureRefraction }}
+          </button>
+          <button
+            :class="{ active: params.refraction === 0 }"
+            style="font-size: 10px; padding: 8px 2px; font-weight: 700; text-align: center;"
+            @click="
+              emit('updateParam', 'debug', 'none');
+              emit('updateParam', 'refraction', 0);
+              emit('updateParam', 'blur', 8.0);
+              emit('updateParam', 'opacity', 0.12);
+              emit('updateParam', 'specular', 0.5);
+              emit('updateParam', 'shadow', 0.35);
+            "
+          >
+            {{ t.modeFrosted }}
+          </button>
+        </div>
+      </section>
+
+      <!-- Visual Calibration Matrix (100x40 to 500x300) -->
+      <section class="ctrl-group">
+        <label class="group-title">📐 Geometry Calibration Matrix</label>
+        <div class="preset-buttons" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+          <button @click="emit('applyMatrix', 100, 40, 16, 12, 'roundedRect')">100×40 Btn</button>
+          <button @click="emit('applyMatrix', 160, 52, 20, 16, 'roundedRect')">160×52 Dock</button>
+          <button @click="emit('applyMatrix', 320, 64, 24, 20, 'capsule')">320×64 Bar</button>
+          <button @click="emit('applyMatrix', 360, 180, 28, 24, 'roundedRect')">360×180 Card</button>
+          <button @click="emit('applyMatrix', 500, 300, 36, 32, 'roundedRect')">500×300 Sheet</button>
+          <button @click="emit('applyMatrix', 80, 80, 40, 20, 'circle')">80×80 Circ</button>
+        </div>
+      </section>
+
       <!-- Quality Tier -->
       <section class="ctrl-group">
         <label class="group-title">{{ t.qualityTier }}</label>
@@ -93,6 +155,7 @@ function onCustomColorInput(e: Event) {
         </div>
       </section>
 
+
       <!-- Geometry -->
       <section class="ctrl-group">
         <label class="group-title">{{ t.geometryTitle }}</label>
@@ -101,7 +164,7 @@ function onCustomColorInput(e: Event) {
           <input
             :value="glassWidth"
             type="range"
-            min="260"
+            min="80"
             max="680"
             step="10"
             @input="emit('update:glassWidth', Number(($event.target as HTMLInputElement).value))"
@@ -113,15 +176,18 @@ function onCustomColorInput(e: Event) {
           <input
             :value="glassHeight"
             type="range"
-            min="160"
+            min="40"
             max="520"
             step="10"
             @input="emit('update:glassHeight', Number(($event.target as HTMLInputElement).value))"
           />
           <span class="val">{{ glassHeight }}px</span>
         </div>
-        <div class="slider-row">
-          <span>{{ t.radius }}</span>
+        <div class="slider-row-block">
+          <div class="slider-header">
+            <span>{{ t.radius }}</span>
+            <span class="val">{{ params.radius }}px</span>
+          </div>
           <input
             :value="params.radius"
             type="range"
@@ -129,10 +195,12 @@ function onCustomColorInput(e: Event) {
             max="100"
             @input="onParamInput('radius', $event)"
           />
-          <span class="val">{{ params.radius }}px</span>
         </div>
-        <div class="slider-row">
-          <span>{{ t.bezel }}</span>
+        <div class="slider-row-block">
+          <div class="slider-header">
+            <span>{{ t.bezel }}</span>
+            <span class="val">{{ params.bezel }}px</span>
+          </div>
           <input
             :value="params.bezel"
             type="range"
@@ -140,15 +208,33 @@ function onCustomColorInput(e: Event) {
             max="70"
             @input="onParamInput('bezel', $event)"
           />
-          <span class="val">{{ params.bezel }}px</span>
+          <small class="param-hint">{{ t.bezelHint }}</small>
         </div>
       </section>
 
       <!-- Optics & Physics -->
       <section class="ctrl-group">
         <label class="group-title">{{ t.opticsTitle }}</label>
-        <div class="slider-row">
-          <span>{{ t.thickness }}</span>
+        <div class="slider-row-block">
+          <div class="slider-header">
+            <span>{{ t.refraction }}</span>
+            <span class="val">{{ (params.refraction ?? 1.0).toFixed(1) }}x</span>
+          </div>
+          <input
+            :value="params.refraction"
+            type="range"
+            min="0.0"
+            max="3.0"
+            step="0.1"
+            @input="onParamInput('refraction', $event)"
+          />
+          <small class="param-hint">{{ t.refractionHint }}</small>
+        </div>
+        <div class="slider-row-block">
+          <div class="slider-header">
+            <span>{{ t.thickness }}</span>
+            <span class="val">{{ params.thickness }}</span>
+          </div>
           <input
             :value="params.thickness"
             type="range"
@@ -156,10 +242,13 @@ function onCustomColorInput(e: Event) {
             max="150"
             @input="onParamInput('thickness', $event)"
           />
-          <span class="val">{{ params.thickness }}</span>
+          <small class="param-hint">{{ t.thicknessHint }}</small>
         </div>
-        <div class="slider-row">
-          <span>{{ t.ior }}</span>
+        <div class="slider-row-block">
+          <div class="slider-header">
+            <span>{{ t.ior }}</span>
+            <span class="val">{{ params.ior?.toFixed(2) }}</span>
+          </div>
           <input
             :value="params.ior"
             type="range"
@@ -168,22 +257,28 @@ function onCustomColorInput(e: Event) {
             step="0.05"
             @input="onParamInput('ior', $event)"
           />
-          <span class="val">{{ params.ior?.toFixed(2) }}</span>
+          <small class="param-hint">{{ t.iorHint }}</small>
         </div>
-        <div class="slider-row">
-          <span>{{ t.dispersion }}</span>
+        <div class="slider-row-block">
+          <div class="slider-header">
+            <span>{{ t.dispersion }}</span>
+            <span class="val">{{ (params.dispersion ?? 1.0).toFixed(1) }}x</span>
+          </div>
           <input
             :value="params.dispersion"
             type="range"
             min="0.0"
-            max="0.09"
-            step="0.005"
+            max="4.0"
+            step="0.1"
             @input="onParamInput('dispersion', $event)"
           />
-          <span class="val">{{ ((params.dispersion ?? 0) * 100).toFixed(1) }}%</span>
+          <small class="param-hint">{{ t.dispersionHint }}</small>
         </div>
-        <div class="slider-row">
-          <span>{{ t.blur }}</span>
+        <div class="slider-row-block">
+          <div class="slider-header">
+            <span>{{ t.blur }}</span>
+            <span class="val">{{ params.blur?.toFixed(1) }}px</span>
+          </div>
           <input
             :value="params.blur"
             type="range"
@@ -192,10 +287,13 @@ function onCustomColorInput(e: Event) {
             step="0.2"
             @input="onParamInput('blur', $event)"
           />
-          <span class="val">{{ params.blur?.toFixed(1) }}px</span>
+          <small class="param-hint">{{ t.blurHint }}</small>
         </div>
-        <div class="slider-row">
-          <span>{{ t.specular }}</span>
+        <div class="slider-row-block">
+          <div class="slider-header">
+            <span>{{ t.specular }}</span>
+            <span class="val">{{ params.specular?.toFixed(2) }}</span>
+          </div>
           <input
             :value="params.specular"
             type="range"
@@ -204,7 +302,7 @@ function onCustomColorInput(e: Event) {
             step="0.05"
             @input="onParamInput('specular', $event)"
           />
-          <span class="val">{{ params.specular?.toFixed(2) }}</span>
+          <small class="param-hint">{{ t.specularHint }}</small>
         </div>
       </section>
 
@@ -215,8 +313,11 @@ function onCustomColorInput(e: Event) {
           <span>{{ t.tintColor }}</span>
           <input :value="params.tint" type="color" @input="onParamInput('tint', $event, false)" />
         </div>
-        <div class="slider-row">
-          <span>{{ t.tintOpacity }}</span>
+        <div class="slider-row-block">
+          <div class="slider-header">
+            <span>{{ t.tintOpacity }}</span>
+            <span class="val">{{ Math.round((params.opacity ?? 0) * 100) }}%</span>
+          </div>
           <input
             :value="params.opacity"
             type="range"
@@ -225,10 +326,13 @@ function onCustomColorInput(e: Event) {
             step="0.02"
             @input="onParamInput('opacity', $event)"
           />
-          <span class="val">{{ Math.round((params.opacity ?? 0) * 100) }}%</span>
+          <small class="param-hint">{{ t.tintOpacityHint }}</small>
         </div>
-        <div class="slider-row">
-          <span>{{ t.shadowDepth }}</span>
+        <div class="slider-row-block">
+          <div class="slider-header">
+            <span>{{ t.shadowDepth }}</span>
+            <span class="val">{{ params.shadow?.toFixed(2) }}</span>
+          </div>
           <input
             :value="params.shadow"
             type="range"
@@ -237,7 +341,7 @@ function onCustomColorInput(e: Event) {
             step="0.05"
             @input="onParamInput('shadow', $event)"
           />
-          <span class="val">{{ params.shadow?.toFixed(2) }}</span>
+          <small class="param-hint">{{ t.shadowDepthHint }}</small>
         </div>
       </section>
 

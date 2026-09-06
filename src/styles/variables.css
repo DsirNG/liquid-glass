@@ -6,4 +6,9 @@
   --lg-shadow-spread: -6px;
   --lg-shadow-color: rgba(255, 255, 255, 0.45);
   --lg-outer-shadow-blur: 24px;
+  --lg-shadow-opacity: 1;
+  --lg-press-scale: 0.97;
+  --lg-pressed: 0;
+  --lg-hover: 0;
+  --lg-fresnel-gain: 1;
 }

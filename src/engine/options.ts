@@ -22,7 +22,7 @@ export function normalizeOptions(
     thickness: sanitizeNumber(o.thickness, d.thickness, 0, 200),
     ior: sanitizeNumber(o.ior, d.ior, 1.0, 3.5),
     refraction: sanitizeNumber(o.refraction, d.refraction, 0, 5),
-    dispersion: sanitizeNumber(o.dispersion, d.dispersion, 0, 0.2),
+    dispersion: sanitizeNumber(o.dispersion, d.dispersion, 0, 5),
     saturation: sanitizeNumber(o.saturation, d.saturation, 0, 5),
     tint: typeof o.tint === 'string' && o.tint.trim().length > 0 ? o.tint : d.tint,
     radius: sanitizeNumber(o.radius, d.radius, 0, 1000),
@@ -34,6 +34,13 @@ export function normalizeOptions(
         ? o.shadowColor
         : d.shadowColor,
     surfaceShape: o.surfaceShape ?? d.surfaceShape,
+    surfaceProfile: o.surfaceProfile ?? (o.surfaceShape as any) ?? d.surfaceProfile,
+    materialPreset: o.materialPreset ?? d.materialPreset,
+    ambientLuma: sanitizeNumber(o.ambientLuma, d.ambientLuma, 0, 1),
+    shape: o.shape ?? d.shape,
+    capability: o.capability ?? d.capability,
+    debug: o.debug ?? d.debug,
     interactive: typeof o.interactive === 'boolean' ? o.interactive : d.interactive,
   };
+
 }

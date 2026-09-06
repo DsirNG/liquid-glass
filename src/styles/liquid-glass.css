@@ -14,10 +14,10 @@
   display: inline-flex;
   isolation: isolate;
   border-radius: var(--lg-radius, 40px);
-  box-shadow: 0 8px var(--lg-outer-shadow-blur, 24px) rgba(0, 0, 0, 0.22);
-  transition:
-    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.2s ease;
+  box-shadow: 0 8px var(--lg-outer-shadow-blur, 24px) rgba(0, 0, 0, calc(0.22 * var(--lg-shadow-opacity, 1)));
+  transform: scale(calc(1 - (1 - var(--lg-press-scale, 0.97)) * var(--lg-pressed, 0)));
+  transition: box-shadow 0.2s ease;
+  will-change: transform;
   box-sizing: border-box;
 }
 
@@ -56,6 +56,7 @@
   z-index: 2;
   box-sizing: border-box;
   padding: 1.5px;
+  opacity: var(--lg-fresnel-gain, 1);
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
@@ -68,15 +69,21 @@
   mask-composite: exclude;
 }
 
-/* Specular Highlight Border 1 (Screen Blend - Ambient Rim) */
+/* Specular Highlight Border 1 (Screen Blend - Ambient Environmental Light Rim) */
 .lg-border-screen {
-  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  background: var(
+    --lg-border-screen-bg,
+    linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.5) 100%)
+  );
   mix-blend-mode: screen;
 }
 
-/* Specular Highlight Border 2 (Overlay Blend - Intense Reflection Line) */
+/* Specular Highlight Border 2 (Overlay Blend - Intense Directional Glint Line) */
 .lg-border-overlay {
-  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  background: var(
+    --lg-border-overlay-bg,
+    linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.05) 60%, rgba(255, 255, 255, 0.35) 100%)
+  );
   mix-blend-mode: overlay;
 }
 

@@ -7,7 +7,7 @@ export const DEFAULT_GLASS_OPTIONS: Readonly<NormalizedLiquidGlassOptions> = Obj
   thickness: 45,
   ior: 2.2,
   refraction: 1.0,
-  dispersion: 0.018,
+  dispersion: 1.5,
   saturation: 1.3,
   tint: '#ffffff',
   radius: 40,
@@ -16,5 +16,12 @@ export const DEFAULT_GLASS_OPTIONS: Readonly<NormalizedLiquidGlassOptions> = Obj
   shadow: 0.4,
   shadowColor: 'rgba(255, 255, 255, 0.45)',
   surfaceShape: 'convex_squircle',
+  surfaceProfile: 'convex_squircle',
+  materialPreset: 'ios',
+  ambientLuma: 0.5,
+  shape: 'roundedRect',
+  capability: 'auto',
+  debug: 'none',
   interactive: true,
 });
+

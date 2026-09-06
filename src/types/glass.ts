@@ -1,6 +1,14 @@
 import type { LiquidGlassMaterialOptions } from './material';
 
-export type { LiquidGlassMaterialOptions, SurfaceShape } from './material';
+export type {
+  LiquidGlassMaterialOptions,
+  SurfaceShape,
+  SurfaceProfile,
+  MaterialPreset,
+  FootprintShape,
+  OpticalDebugMode,
+} from './material';
+
 
 export type GlassPreset = 'ios-like' | 'clear' | 'vivid' | 'heavy';
 
@@ -16,7 +24,7 @@ export type LiquidGlassOptions = LiquidGlassCreateOptions;
 /** Material parameters are the only values that can change after creation. */
 export type LiquidGlassUpdateOptions = Partial<LiquidGlassMaterialOptions>;
 
-/** Normalized options shared by the DOM engine and optional WebGL extension. */
+/** Normalized options shared across engines. */
 export interface NormalizedLiquidGlassOptions extends Required<LiquidGlassMaterialOptions> {
   interactive: boolean;
 }

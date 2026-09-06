@@ -34,10 +34,15 @@ export function ensureGlobalSvgDefs(rootId = 'liquid-glass-svg-root'): SVGDefsEl
   if (!svgRoot) {
     svgRoot = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svgRoot.id = rootId;
-    svgRoot.setAttribute('width', '0');
-    svgRoot.setAttribute('height', '0');
+    svgRoot.setAttribute('width', '1');
+    svgRoot.setAttribute('height', '1');
+    svgRoot.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svgRoot.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
     svgRoot.style.position = 'absolute';
-    svgRoot.style.overflow = 'hidden';
+    svgRoot.style.left = '-9999px';
+    svgRoot.style.top = '-9999px';
+    svgRoot.style.width = '1px';
+    svgRoot.style.height = '1px';
     svgRoot.style.pointerEvents = 'none';
     svgRoot.setAttribute('color-interpolation-filters', 'sRGB');
     document.body.appendChild(svgRoot);

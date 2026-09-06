@@ -1,0 +1,305 @@
+import type { FootprintGeometry } from './geometry/sdf';
+import { evaluateFootprintSdf, calculateCoverage } from './geometry/sdf';
+import { evaluateFootprintNormal } from './geometry/normals';
+import type { SurfaceProfile } from './geometry/surfaceProfiles';
+import {
+  SURFACE_PROFILES,
+  calculateRefractionProfile,
+  calculateMaxAbsRefraction,
+  sampleRefractionProfile,
+} from './geometry/surfaceProfiles';
+import type { OpticalFieldAssets } from './OpticalFieldAssets';
+import { ManagedOpticalFieldAssets } from './OpticalFieldAssets';
+
+export interface BasisConfig {
+  outerEnd: number;
+  bodyStart: number;
+}
+
+export const DEFAULT_BASIS_CONFIG: BasisConfig = {
+  outerEnd: 0.18,
+  bodyStart: 0.72,
+};
+
+export interface OpticalFieldParams {
+  geometry: FootprintGeometry;
+  bezel: number;
+  thickness: number;
+  ior: number;
+  surfaceProfile?: SurfaceProfile;
+  basis?: BasisConfig;
+  revision?: number;
+  maxFieldDimension?: number;
+}
+
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+/**
+ * Analytical partition-of-unity basis calculator satisfying:
+ * outer + inner + body == coverage at every coordinate.
+ */
+export function evaluatePartitionOfUnityBasis(
+  inwardDist: number,
+  bezel: number,
+  coverage: number,
+  config: BasisConfig = DEFAULT_BASIS_CONFIG
+): { outer: number; inner: number; body: number; coverage: number } {
+  if (coverage <= 0.001) {
+    return { outer: 0, inner: 0, body: 0, coverage: 0 };
+  }
+  const effectiveBezel = Math.max(1, bezel);
+  const dNorm = Math.max(0, Math.min(1, inwardDist / effectiveBezel));
+  const outerEnd = Math.max(0.01, Math.min(0.98, config.outerEnd));
+  const bodyStart = Math.max(outerEnd + 0.01, Math.min(0.99, config.bodyStart));
+
+  const outerVal = 1 - smoothstep(0.00, outerEnd, dNorm);
+  const bodyVal = smoothstep(bodyStart, 1.00, dNorm);
+  const innerVal = Math.max(0, 1 - outerVal - bodyVal);
+
+  return {
+    outer: outerVal * coverage,
+    inner: innerVal * coverage,
+    body: bodyVal * coverage,
+    coverage,
+  };
+}
+
+
+
+// 1x1 transparent PNG fallback for non-browser/jsdom environments
+const FALLBACK_PNG_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+async function canvasToBlobUrl(
+  canvas: HTMLCanvasElement | OffscreenCanvas
+): Promise<string> {
+  if (typeof OffscreenCanvas !== 'undefined' && canvas instanceof OffscreenCanvas) {
+    if (typeof canvas.convertToBlob === 'function') {
+      try {
+        const blob = await canvas.convertToBlob({ type: 'image/png' });
+        if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+          return URL.createObjectURL(blob);
+        }
+      } catch {
+        // Continue to fallback
+      }
+    }
+  }
+
+  if (typeof HTMLCanvasElement !== 'undefined' && canvas instanceof HTMLCanvasElement) {
+    const isJsdom = typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent);
+    if (!isJsdom && typeof canvas.toBlob === 'function' && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      try {
+        const blobPromise = new Promise<string | null>((resolve) => {
+          const timeout = setTimeout(() => resolve(null), 100);
+          canvas.toBlob((blob) => {
+            clearTimeout(timeout);
+            if (blob) {
+              try {
+                resolve(URL.createObjectURL(blob));
+              } catch {
+                resolve(null);
+              }
+            } else {
+              resolve(null);
+            }
+          }, 'image/png');
+        });
+        const url = await blobPromise;
+        if (url) return url;
+      } catch {
+        // Continue to toDataURL
+      }
+    }
+    if (typeof canvas.toDataURL === 'function') {
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        if (dataUrl && dataUrl.startsWith('data:image/png')) {
+          return dataUrl;
+        }
+      } catch {
+        // Fallback below
+      }
+    }
+  }
+
+  return FALLBACK_PNG_DATA_URL;
+}
+
+
+class Memory2DContext {
+  public canvas: any;
+  constructor(canvas: any) {
+    this.canvas = canvas;
+  }
+  createImageData(w: number, h: number): ImageData {
+    return {
+      width: w,
+      height: h,
+      data: new Uint8ClampedArray(w * h * 4),
+      colorSpace: 'srgb',
+    };
+  }
+  putImageData(_imgData: any, _x: number, _y: number) {}
+}
+
+
+function createOffscreenBuffer(
+  w: number,
+  h: number
+): {
+  canvas: HTMLCanvasElement | OffscreenCanvas;
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | Memory2DContext;
+} {
+  if (typeof OffscreenCanvas !== 'undefined') {
+    try {
+      const off = new OffscreenCanvas(w, h);
+      const ctx = off.getContext('2d') as OffscreenCanvasRenderingContext2D | null;
+      if (ctx) return { canvas: off, ctx };
+    } catch {
+      // Fallback below
+    }
+  }
+
+  if (typeof document !== 'undefined') {
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    let ctx: CanvasRenderingContext2D | null = null;
+    try {
+      ctx = c.getContext('2d');
+    } catch {
+      // jsdom without canvas package
+    }
+    if (ctx) return { canvas: c, ctx };
+    return { canvas: c, ctx: new Memory2DContext(c) };
+  }
+
+  // Pure memory fallback
+  const mockCanvas: any = { width: w, height: h };
+  return { canvas: mockCanvas, ctx: new Memory2DContext(mockCanvas) };
+}
+
+/**
+ * Mathematical dynamic optical field generator.
+ * Computes:
+ * 1. Normalized optical vector field (R=dx, G=dy, B=128, A=255)
+ * 2. Continuous partition-of-unity basis field (R=outer, G=inner, B=body, A=coverage)
+ */
+export class OpticalFieldGenerator {
+  public static async generate(params: OpticalFieldParams): Promise<OpticalFieldAssets> {
+    const { geometry, bezel, thickness, ior } = params;
+    const revision = params.revision ?? 0;
+    const maxDim = params.maxFieldDimension ?? 512;
+    const shape = geometry.shape || 'roundedRect';
+
+    const cssW = Math.max(8, geometry.width);
+    const cssH = Math.max(8, geometry.height);
+
+    // Compute field resolution while maintaining CSS geometry coordinate space
+    const fieldScale = Math.min(1.0, maxDim / Math.max(cssW, cssH));
+    const fieldW = Math.max(4, Math.round(cssW * fieldScale));
+    const fieldH = Math.max(4, Math.round(cssH * fieldScale));
+
+    const profileName = params.surfaceProfile || 'convex_squircle';
+    const profileFn = SURFACE_PROFILES[profileName] || SURFACE_PROFILES.convex_squircle;
+    const profile = calculateRefractionProfile(thickness, bezel, profileFn, ior);
+    const maxAbs = calculateMaxAbsRefraction(profile);
+
+    const vectorBuf = createOffscreenBuffer(fieldW, fieldH);
+    const basisBuf = createOffscreenBuffer(fieldW, fieldH);
+
+    const vectorImg = vectorBuf.ctx.createImageData(fieldW, fieldH);
+    const basisImg = basisBuf.ctx.createImageData(fieldW, fieldH);
+    const vecData = vectorImg.data;
+    const basData = basisImg.data;
+
+    const cssGeom = {
+      shape,
+      width: cssW,
+      height: cssH,
+      radius: geometry.radius,
+    };
+
+    const effectiveBezel = Math.max(1, bezel);
+
+    for (let fy = 0; fy < fieldH; fy++) {
+      const cssY = (fy + 0.5) / fieldScale;
+      for (let fx = 0; fx < fieldW; fx++) {
+        const cssX = (fx + 0.5) / fieldScale;
+
+        const sdf = evaluateFootprintSdf(cssX, cssY, cssGeom);
+        const coverage = calculateCoverage(sdf, 1.0 / fieldScale);
+        const inwardDist = -sdf;
+
+        const idx = (fy * fieldW + fx) * 4;
+
+        if (coverage <= 0.001) {
+          // Outside glass
+          vecData[idx] = 128;
+          vecData[idx + 1] = 128;
+          vecData[idx + 2] = 128;
+          vecData[idx + 3] = 255;
+
+          basData[idx] = 0;
+          basData[idx + 1] = 0;
+          basData[idx + 2] = 0;
+          basData[idx + 3] = 0;
+          continue;
+        }
+
+        const basisConfig = params.basis || DEFAULT_BASIS_CONFIG;
+        const basis = evaluatePartitionOfUnityBasis(inwardDist, effectiveBezel, coverage, basisConfig);
+
+        basData[idx] = Math.round(basis.outer * 255);
+        basData[idx + 1] = Math.round(basis.inner * 255);
+        basData[idx + 2] = Math.round(basis.body * 255);
+        basData[idx + 3] = Math.round(basis.coverage * 255);
+
+        // Vector Field: Deflect along surface normal scaled by continuous profile
+        const dNorm = Math.max(0, Math.min(1, inwardDist / effectiveBezel));
+        if (dNorm < 1.0 && basis.body < 0.999 * coverage) {
+          const normal = evaluateFootprintNormal(cssX, cssY, cssGeom);
+          const refraction = sampleRefractionProfile(profile, dNorm);
+          const normalizedMag = maxAbs > 0 ? refraction / maxAbs : 0;
+          // Body does not displace; inner and outer carry deflection
+          const deflectionWeight = (coverage - basis.body);
+          const normDx = -normal.x * normalizedMag * deflectionWeight;
+          const normDy = -normal.y * normalizedMag * deflectionWeight;
+
+          vecData[idx] = Math.round(128 + Math.max(-1, Math.min(1, normDx)) * 127);
+          vecData[idx + 1] = Math.round(128 + Math.max(-1, Math.min(1, normDy)) * 127);
+          vecData[idx + 2] = 128;
+          vecData[idx + 3] = 255;
+        } else {
+          vecData[idx] = 128;
+          vecData[idx + 1] = 128;
+          vecData[idx + 2] = 128;
+          vecData[idx + 3] = 255;
+        }
+
+      }
+    }
+
+    vectorBuf.ctx.putImageData(vectorImg, 0, 0);
+    basisBuf.ctx.putImageData(basisImg, 0, 0);
+
+    const [vectorUrl, basisUrl] = await Promise.all([
+      canvasToBlobUrl(vectorBuf.canvas),
+      canvasToBlobUrl(basisBuf.canvas),
+    ]);
+
+    return new ManagedOpticalFieldAssets({
+      vectorUrl,
+      basisUrl,
+      physicalAmplitude: maxAbs,
+      width: cssW,
+      height: cssH,
+      fieldScale,
+      revision,
+    });
+  }
+}

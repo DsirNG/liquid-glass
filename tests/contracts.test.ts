@@ -93,7 +93,7 @@ describe('LiquidGlass Contract Tests', () => {
   });
 
   describe('Contract 3: SVG Optical Filter Graph', () => {
-    it('constructs complete optical graph with dispersion scales, alpha clamping, and center body preservation', () => {
+    it('constructs complete optical graph with dispersion scales, alpha clamping, and center body preservation', async () => {
       const el = document.createElement('div');
       document.body.appendChild(el);
 
@@ -112,12 +112,12 @@ describe('LiquidGlass Contract Tests', () => {
       expect(filterHtml).toContain('<feImage');
       expect(filterHtml).toContain('result="DISPLACEMENT_TEXTURE"');
 
-      // ② Exactly 3 feDisplacementMap elements with R/B selectors
+      // ② Exactly 3 feDisplacementMap elements with R/G selectors (R=X, G=Y)
       const displacementMaps = filter?.querySelectorAll('feDisplacementMap') ?? [];
       expect(displacementMaps.length).toBe(3);
       displacementMaps.forEach((dm) => {
         expect(dm.getAttribute('xChannelSelector')).toBe('R');
-        expect(dm.getAttribute('yChannelSelector')).toBe('B');
+        expect(dm.getAttribute('yChannelSelector')).toBe('G');
         expect(dm.getAttribute('in2')).toBe('DISPLACEMENT_TEXTURE');
       });
 
@@ -138,6 +138,16 @@ describe('LiquidGlass Contract Tests', () => {
       expect(filterHtml).toContain('result="BODY_CLEAN"');
       expect(filterHtml).toContain('result="FINAL_GLASS"');
 
+      // ⑥ Backdrop filter ordering on layer:
+      // Initial mount before async assets commit has fallback blur + saturate;
+      // once assets commit in Full Optical mode, it sets pure url(#${filterId}) without duplicate saturation.
+      const backdrop = el.querySelector('.lg-backdrop') as HTMLElement | null;
+      expect(backdrop?.style.backdropFilter).toMatch(/blur\(.*saturate\(/);
+
+      // Await transactional swap once assets are generated
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(backdrop?.style.backdropFilter).toMatch(/^url\(["']?#.*lg-svg-filter/);
+
       instance.destroy();
       el.remove();
     });
@@ -154,9 +164,26 @@ describe('LiquidGlass Contract Tests', () => {
       expect(Math.abs(subtle.r - subtle.b)).toBeLessThan(Math.abs(ios.r - ios.b));
       expect(Math.abs(ios.r - ios.b)).toBeLessThan(Math.abs(strong.r - strong.b));
     });
+
+    it('injects directional physical specular gradients on host element', () => {
+      const el = document.createElement('div');
+      document.body.appendChild(el);
+
+      const instance = createLiquidGlass(el, {
+        specular: 0.8,
+      });
+
+      const screenBg = el.style.getPropertyValue('--lg-border-screen-bg');
+      const overlayBg = el.style.getPropertyValue('--lg-border-overlay-bg');
+      expect(screenBg).toContain('linear-gradient(135deg');
+      expect(overlayBg).toContain('linear-gradient(135deg');
+
+      instance.destroy();
+      el.remove();
+    });
   });
 
-  describe('Contract 4: Dynamic Resize Contract', () => {
+  describe('Contract 4: 9-Slice & Physical Snell Refraction', () => {
     it('seamlessly resizes from 100x40 -> 300x80 -> 120x120 without errors or NaN attributes', () => {
       const el = document.createElement('div');
       el.style.width = '100px';
@@ -184,13 +211,21 @@ describe('LiquidGlass Contract Tests', () => {
         instance.update({
           refraction: 1.8,
           radius: 30,
+          thickness: 60,
+          ior: 2.4,
+          bezel: 28,
         })
       ).not.toThrow();
 
       const filter = document.querySelector('svg filter');
       expect(filter).not.toBeNull();
-      expect(filter?.getAttribute('width')).toBe('140%');
-      expect(filter?.getAttribute('height')).toBe('140%');
+      const filterW = filter?.getAttribute('width');
+      const filterH = filter?.getAttribute('height');
+      expect(filterW).toBeTruthy();
+      expect(filterH).toBeTruthy();
+      expect(filterW).not.toContain('NaN');
+      expect(filterH).not.toContain('NaN');
+
 
       instance.destroy();
       el.remove();

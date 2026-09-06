@@ -92,9 +92,11 @@ const emit = defineEmits<{
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 10px 24px;
-  min-width: 800px;
+  padding: 8px 20px;
+  width: max-content;
+  max-width: min(92vw, 840px);
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .logo {
