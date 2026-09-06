@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { GlassPreset, LiquidGlassMaterialOptions } from '../../src/core';
 import type { BackgroundItem, DemoEngine, QualityTier } from '../types';
+import { DEFAULT_SOLID_COLORS } from '../types';
 import { t } from '../locales';
 
 defineProps<{
@@ -29,6 +30,15 @@ function onParamInput(key: keyof LiquidGlassMaterialOptions, e: Event, isNumber 
   const target = e.target as HTMLInputElement;
   const val = isNumber ? Number(target.value) : target.value;
   emit('updateParam', key, val);
+}
+
+function isSolidColor(val: string): boolean {
+  return typeof val === 'string' && (val.startsWith('#') || val.startsWith('rgb'));
+}
+
+function onCustomColorInput(e: Event) {
+  const target = e.target as HTMLInputElement;
+  emit('update:currentBg', target.value);
 }
 </script>
 
@@ -252,9 +262,22 @@ function onParamInput(key: keyof LiquidGlassMaterialOptions, e: Event, isNumber 
         </div>
       </section>
 
-      <!-- Background Wallpaper -->
+      <!-- Background Wallpaper & Solid Colors -->
       <section class="ctrl-group">
-        <label class="group-title">{{ t.wallpapersTitle }}</label>
+        <div class="group-title-row">
+          <label class="group-title">{{ t.wallpapersTitle }}</label>
+          <div class="custom-color-picker-wrap">
+            <span class="custom-color-label">自定义纯色:</span>
+            <input
+              type="color"
+              :value="isSolidColor(currentBg) ? currentBg : '#0f172a'"
+              class="custom-color-input"
+              @input="onCustomColorInput"
+            />
+          </div>
+        </div>
+
+        <label class="subgroup-title">图片壁纸</label>
         <div class="bg-grid">
           <button
             v-for="bg in backgrounds"
@@ -265,6 +288,26 @@ function onParamInput(key: keyof LiquidGlassMaterialOptions, e: Event, isNumber 
             @click="emit('update:currentBg', bg.url)"
           >
             <span>{{ bg.name }}</span>
+          </button>
+        </div>
+
+        <label class="subgroup-title" style="margin-top: 14px">纯色背景</label>
+        <div class="solid-colors-grid">
+          <button
+            v-for="solid in DEFAULT_SOLID_COLORS"
+            :key="solid.id"
+            class="solid-color-card"
+            :class="{ active: currentBg === solid.color }"
+            :style="{ backgroundColor: solid.color }"
+            :title="solid.name"
+            @click="emit('update:currentBg', solid.color)"
+          >
+            <span
+              class="solid-color-name"
+              :class="{ 'dark-text': solid.color === '#ffffff' || solid.color === '#e2e8f0' }"
+            >
+              {{ solid.name }}
+            </span>
           </button>
         </div>
       </section>
@@ -469,5 +512,84 @@ function onParamInput(key: keyof LiquidGlassMaterialOptions, e: Event, isNumber 
 
 .bg-card.active {
   border-color: #8b7cf7;
+}
+
+.group-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.subgroup-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 6px;
+}
+
+.custom-color-picker-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.custom-color-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.custom-color-input {
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.solid-colors-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.solid-color-card {
+  height: 38px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition:
+    transform 0.15s,
+    border-color 0.15s;
+}
+
+.solid-color-card:hover {
+  transform: scale(1.02);
+}
+
+.solid-color-card.active {
+  border-color: #8b7cf7;
+  box-shadow: 0 0 8px rgba(139, 124, 247, 0.5);
+}
+
+.solid-color-name {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  text-align: center;
+  line-height: 1.1;
+}
+
+.solid-color-name.dark-text {
+  color: #1e293b;
+  text-shadow: none;
 }
 </style>

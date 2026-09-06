@@ -1,9 +1,11 @@
 <script setup lang="ts">
-// Pure presentation component representing the native DOM typography refracted by Liquid Glass
+defineProps<{
+  isLight?: boolean;
+}>();
 </script>
 
 <template>
-  <div class="stage-backdrop-dom">
+  <div class="stage-backdrop-dom" :class="{ 'is-light': isLight }">
     <span class="backdrop-label">NEXT-GEN OPTICS</span>
     <h1 class="backdrop-title">Liquid Glass</h1>
     <p class="backdrop-subtitle">Native Real-Time DOM Backdrop Refraction</p>
@@ -34,6 +36,7 @@
   text-transform: uppercase;
   color: rgba(167, 139, 250, 0.85);
   margin-bottom: 8px;
+  transition: color 0.3s;
 }
 
 .backdrop-title {
@@ -50,6 +53,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;
+  transition: all 0.3s;
 }
 
 .backdrop-subtitle {
@@ -58,5 +62,26 @@
   letter-spacing: 0.05em;
   color: rgba(255, 255, 255, 0.5);
   margin-top: 14px;
+  transition: color 0.3s;
+}
+
+/* Light Background Adaptation */
+.stage-backdrop-dom.is-light .backdrop-label {
+  color: #6366f1;
+}
+
+.stage-backdrop-dom.is-light .backdrop-title {
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.95) 20%,
+    rgba(79, 70, 229, 0.85) 60%,
+    rgba(14, 165, 233, 0.75) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stage-backdrop-dom.is-light .backdrop-subtitle {
+  color: rgba(30, 41, 59, 0.75);
 }
 </style>

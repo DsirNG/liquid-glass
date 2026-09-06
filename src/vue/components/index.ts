@@ -4,4 +4,4 @@ export {
   type GlassButtonSize,
   type GlassButtonVariant,
 } from './GlassButton/index.vue';
-
+export { default as LiquidGlassReactButton } from './LiquidGlassReactButton/index.vue';

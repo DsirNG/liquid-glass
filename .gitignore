@@ -28,3 +28,6 @@ temp-pack
 *.sw?
 smoke-test/**/node_modules
 smoke-test/**/dist
+
+.pnpm-store
+liquid-glass-react/

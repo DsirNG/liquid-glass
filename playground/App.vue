@@ -2,7 +2,7 @@
 import { ref, reactive, computed } from 'vue';
 import type { GlassPreset, LiquidGlassMaterialOptions } from '../src/core';
 import { GLASS_PRESETS } from '../src/core';
-import { LiquidGlass, GlassButton } from '../src/vue';
+import { LiquidGlass, GlassButton, LiquidGlassReactButton } from '../src/vue';
 import { WebGLLiquidGlass } from '../src/vue-webgl';
 
 import { t } from './locales';
@@ -71,10 +71,48 @@ const {
   domGlassRef.value?.resize();
   webglGlassRef.value?.resize();
 });
+
+// Solid color background detection & adaptation
+const isSolidColor = computed(() => {
+  const bg = currentBg.value;
+  return typeof bg === 'string' && (bg.startsWith('#') || bg.startsWith('rgb'));
+});
+
+const isLightBg = computed(() => {
+  if (!isSolidColor.value) return false;
+  const hex = currentBg.value.replace('#', '');
+  if (hex.length === 6) {
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+    return luma > 175;
+  }
+  return false;
+});
+
+const rootStyle = computed(() => {
+  if (isSolidColor.value) {
+    return {
+      backgroundColor: currentBg.value,
+      backgroundImage: 'none',
+    };
+  }
+  return {
+    backgroundImage: `url(${currentBg.value})`,
+    backgroundColor: '#0b0d14',
+  };
+});
+
+const webglBgUrl = computed(() => {
+  if (!isSolidColor.value) return currentBg.value;
+  const color = encodeURIComponent(currentBg.value);
+  return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="${color}"/></svg>`;
+});
 </script>
 
 <template>
-  <div class="lab-root" :style="{ backgroundImage: `url(${currentBg})` }">
+  <div class="lab-root" :style="rootStyle" :class="{ 'is-light-stage': isLightBg }">
     <!-- Top Floating Glass Navbar -->
     <TopNavbar v-model:selected-engine="selectedEngine" v-model:is-panel-open="isPanelOpen" />
 
@@ -95,7 +133,7 @@ const {
     <!-- Central Showcase Stage -->
     <main class="showcase-stage">
       <!-- Minimalist Real DOM Typography Backdrop (Refracted by LiquidGlass) -->
-      <StageBackdrop />
+      <StageBackdrop :is-light="isLightBg" />
 
       <!-- Center Stage: The ONE and ONLY LiquidGlass -->
       <div class="stage-center">
@@ -146,7 +184,7 @@ const {
             v-else
             ref="webglGlassRef"
             :options="params"
-            :background-url="currentBg"
+            :background-url="webglBgUrl"
             :interactive="true"
             style="width: 100%; height: 100%"
           >
@@ -162,11 +200,44 @@ const {
           <GlassButton size="md" variant="danger">Danger</GlassButton>
           <GlassButton size="sm" :disabled="true">Disabled</GlassButton>
         </div>
+
+        <!-- 1:1 Liquid Glass React Buttons (Pure SVG UI Reproduction) -->
+        <div class="glass-buttons-row">
+          <span
+            class="row-label"
+            style="font-size: 11px; opacity: 0.7; letter-spacing: 0.5px; margin-right: 4px"
+            >SVG 1:1 REPRO:</span
+          >
+          <LiquidGlassReactButton>
+            <span>Click Me</span>
+          </LiquidGlassReactButton>
+          <LiquidGlassReactButton>
+            <span style="display: inline-flex; align-items: center; gap: 6px">
+              Log Out
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </span>
+          </LiquidGlassReactButton>
+          <LiquidGlassReactButton :displacement-scale="85" :saturation="160">
+            <span>Vivid Pill</span>
+          </LiquidGlassReactButton>
+        </div>
       </div>
     </main>
   </div>
 </template>
-
 
 <style>
 /* Global resets & typography */
@@ -295,5 +366,50 @@ body,
   border-radius: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
-</style>
 
+/* Adaptations when background is bright solid color (Studio Gray, White) */
+.lab-root.is-light-stage {
+  color: #0f172a;
+}
+
+.lab-root.is-light-stage .engine-indicator-pill {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #0f172a;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.lab-root.is-light-stage .engine-indicator-pill strong {
+  color: #000;
+}
+
+.lab-root.is-light-stage .reset-pos-btn {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #0f172a;
+}
+
+.lab-root.is-light-stage .glass-buttons-row {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+}
+
+.lab-root.is-light-stage .glass-buttons-row .row-label {
+  color: #0f172a;
+}
+
+/* On light/white stage: buttons become frosted white crystal with crisp dark text */
+.lab-root.is-light-stage .lg-react-glass-capsule {
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.lab-root.is-light-stage .lg-react-glass-content {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+</style>
