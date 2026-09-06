@@ -28,14 +28,17 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.options = { ...options };
     this.svgEngine = new SvgGlassEngine();
 
-    // Setup host classes
+    // Setup host classes: standardized .lg-root and backward-compatible .lg-svg-container
+    if (!this.element.classList.contains('lg-root')) {
+      this.element.classList.add('lg-root');
+    }
     if (!this.element.classList.contains('lg-svg-container')) {
       this.element.classList.add('lg-svg-container');
     }
 
-    // Create refraction warp layer
+    // 1. Optical Refraction Layer (backdrop only)
     this.refractionLayer = document.createElement('div');
-    this.refractionLayer.className = 'lg-svg-refraction';
+    this.refractionLayer.className = 'lg-backdrop lg-svg-refraction';
     this.refractionLayer.style.position = 'absolute';
     this.refractionLayer.style.inset = '0';
     this.refractionLayer.style.borderRadius = 'inherit';
@@ -43,33 +46,35 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.refractionLayer.style.pointerEvents = 'none';
     this.refractionLayer.style.overflow = 'hidden';
 
-    // Create tint body layer
+    // 2. Physical Material Tint / Glass Fill Layer
     this.tintLayer = document.createElement('div');
-    this.tintLayer.className = 'lg-svg-tint';
+    this.tintLayer.className = 'lg-material lg-svg-tint';
     this.tintLayer.style.position = 'absolute';
     this.tintLayer.style.inset = '0';
     this.tintLayer.style.borderRadius = 'inherit';
     this.tintLayer.style.zIndex = '1';
     this.tintLayer.style.pointerEvents = 'none';
 
-    // Create dual specular highlight borders
+    // 3. Specular Highlight Border 1 (Ambient environmental light rim)
     this.borderScreenLayer = document.createElement('div');
-    this.borderScreenLayer.className = 'lg-border-screen';
+    this.borderScreenLayer.className = 'lg-border lg-border-screen';
     this.borderScreenLayer.style.position = 'absolute';
     this.borderScreenLayer.style.inset = '0';
     this.borderScreenLayer.style.borderRadius = 'inherit';
     this.borderScreenLayer.style.zIndex = '2';
     this.borderScreenLayer.style.pointerEvents = 'none';
 
+    // 4. Specular Highlight Border 2 (Intense reflection line)
     this.borderOverlayLayer = document.createElement('div');
-    this.borderOverlayLayer.className = 'lg-border-overlay';
+    this.borderOverlayLayer.className = 'lg-border lg-border-overlay';
     this.borderOverlayLayer.style.position = 'absolute';
     this.borderOverlayLayer.style.inset = '0';
     this.borderOverlayLayer.style.borderRadius = 'inherit';
     this.borderOverlayLayer.style.zIndex = '2';
     this.borderOverlayLayer.style.pointerEvents = 'none';
 
-    // Insert layers before existing children so slots / content remain on top (z-index: 3)
+    // Insert layers in standard stacking order:
+    // backdrop (1) -> material (1) -> borderScreen (2) -> borderOverlay (2) -> real DOM content (3)
     this.element.insertBefore(this.borderOverlayLayer, this.element.firstChild);
     this.element.insertBefore(this.borderScreenLayer, this.borderOverlayLayer);
     this.element.insertBefore(this.tintLayer, this.borderScreenLayer);
@@ -182,6 +187,6 @@ export class SvgRendererWrapper implements RendererDelegate {
       this.borderOverlayLayer.parentNode.removeChild(this.borderOverlayLayer);
     }
 
-    this.element.classList.remove('lg-svg-container');
+    this.element.classList.remove('lg-root', 'lg-svg-container');
   }
 }

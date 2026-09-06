@@ -1,10 +1,4 @@
-export type {
-  RendererType,
-  ResolvedRendererType,
-  LiquidGlassEngineType,
-  LiquidGlassInstance,
-  RendererDelegate,
-} from './renderer';
+export type { LiquidGlassInstance, RendererDelegate } from './renderer';
 
 export type {
   GlassPreset,

@@ -21,6 +21,8 @@
   box-sizing: border-box;
 }
 
+/* 2. Optical Refraction Layer (backdrop only) */
+.lg-backdrop,
 .lg-svg-refraction {
   position: absolute;
   inset: 0;
@@ -30,6 +32,8 @@
   overflow: hidden;
 }
 
+/* 3. Physical Material Tint / Glass Fill Layer */
+.lg-material,
 .lg-svg-tint {
   position: absolute;
   inset: 0;
@@ -43,16 +47,15 @@
   background-color: rgba(var(--lg-tint-rgb, 255, 255, 255), var(--lg-tint-alpha, 0.08));
 }
 
-/* Specular Highlight Border 1 (Screen Blend - Ambient Rim) */
-.lg-border-screen {
+/* 4. Specular Highlight Borders (Shared Base) */
+.lg-border {
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
   z-index: 2;
   box-sizing: border-box;
-  border: 1.5px solid rgba(255, 255, 255, 0.75);
-  mix-blend-mode: screen;
+  padding: 1.5px;
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
@@ -63,30 +66,18 @@
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   mask-composite: exclude;
-  padding: 1.5px;
+}
+
+/* Specular Highlight Border 1 (Screen Blend - Ambient Rim) */
+.lg-border-screen {
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  mix-blend-mode: screen;
 }
 
 /* Specular Highlight Border 2 (Overlay Blend - Intense Reflection Line) */
 .lg-border-overlay {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 2;
-  box-sizing: border-box;
   border: 1.5px solid rgba(255, 255, 255, 0.9);
   mix-blend-mode: overlay;
-  /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  padding: 1.5px;
 }
 
 /* Common Content Slot */

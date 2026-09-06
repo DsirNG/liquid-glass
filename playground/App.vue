@@ -162,17 +162,17 @@ const rootStyle = computed(() => {
         </div>
 
         <!-- GlassButton Component Showcase Row: Variants -->
-        <div class="glass-buttons-row">
+<!--        <div class="glass-buttons-row">-->
           <span class="row-label">BUTTON VARIANTS:</span>
           <GlassButton size="md" variant="default">Default</GlassButton>
           <GlassButton size="md" variant="primary">Primary</GlassButton>
           <GlassButton size="md" variant="ghost">Ghost</GlassButton>
           <GlassButton size="md" variant="danger">Danger</GlassButton>
           <GlassButton size="md" :disabled="true">Disabled</GlassButton>
-        </div>
+<!--        </div>-->
 
         <!-- GlassButton Component Showcase Row: Sizes & Icons -->
-        <div class="glass-buttons-row">
+<!--        <div class="glass-buttons-row">-->
           <span class="row-label">SIZES & ICONS:</span>
           <GlassButton size="sm" variant="default">Small</GlassButton>
           <GlassButton size="md" variant="primary">Medium</GlassButton>
@@ -196,7 +196,7 @@ const rootStyle = computed(() => {
               </svg>
             </span>
           </GlassButton>
-        </div>
+<!--        </div>-->
       </div>
     </main>
   </div>
@@ -235,7 +235,7 @@ body,
   background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
   transition: background-image 0.4s ease;
 }
 
@@ -246,7 +246,7 @@ body,
   align-items: center;
   justify-content: center;
   position: relative;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .stage-center {
