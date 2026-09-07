@@ -249,6 +249,7 @@ export class OpticalFieldGenerator {
     };
 
     const effectiveBezel = Math.max(1, bezel);
+    const rimWidthPx = Math.max(1.25, Math.min(3.0, effectiveBezel * 0.06));
 
     for (let fy = 0; fy < fieldH; fy++) {
       const cssY = (fy + 0.5) / fieldScale;
@@ -292,10 +293,11 @@ export class OpticalFieldGenerator {
         basData[idx + 2] = Math.round(basis.body * 255);
         basData[idx + 3] = Math.round(basis.coverage * 255);
 
-        // The highlight mask shares the same SDF-derived outer/inner geometry
-        // as refraction. It covers the bevel transition, while the gradient
-        // direction remains a CSS fast path driven by pointer interaction.
-        const fresnel = Math.min(1, basis.outer + basis.inner);
+        // The highlight mask shares the same SDF geometry as refraction, but
+        // remains a thin physical rim instead of illuminating the whole bevel.
+        // The gradient direction remains a CSS fast path driven by interaction.
+        const rim = 1 - smoothstep(0, rimWidthPx, inwardDist);
+        const fresnel = rim * coverage;
         fresnelData[idx] = 255;
         fresnelData[idx + 1] = 255;
         fresnelData[idx + 2] = 255;

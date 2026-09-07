@@ -134,7 +134,9 @@ describe('LiquidGlass Contract Tests', () => {
       // ⑤ Body mask hierarchy and center preservation
       expect(filterHtml).toContain('result="EDGE_MASK"');
       expect(filterHtml).toContain('result="BODY_MASK"');
-      expect(filterHtml).toContain('result="EDGE_REFRACTED"');
+      expect(filterHtml).toContain('result="REFRACTION_MASK"');
+      expect(filterHtml).toContain('result="BEVEL_REFRACTED"');
+      expect(filterHtml).not.toContain('result="OUTER_PASS"');
       expect(filterHtml).toContain('result="BODY_CLEAN"');
       expect(filterHtml).toContain('result="FINAL_GLASS"');
 

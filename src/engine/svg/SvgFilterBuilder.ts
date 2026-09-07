@@ -129,6 +129,16 @@ export class SvgFilterBuilder {
                 0 0 0 1 0"
         result="COVERAGE_MASK"
       />
+      <!-- Outer + inner are the complete refractive bevel. -->
+      <feColorMatrix
+        in="BASIS_FIELD"
+        type="matrix"
+        values="1 1 0 0 0
+                1 1 0 0 0
+                1 1 0 0 0
+                1 1 0 0 0"
+        result="REFRACTION_MASK"
+      />
 
       <!-- 3. Body Material Pass (Mild scattering blur & saturation, zero displacement) -->
       ${bodyBlur > 0.01 ? `<feGaussianBlur in="SourceGraphic" stdDeviation="${bodyBlur}" result="BODY_BLURRED" />` : `<feOffset in="SourceGraphic" dx="0" dy="0" result="BODY_BLURRED" />`}
@@ -199,12 +209,9 @@ export class SvgFilterBuilder {
       <feBlend in="RG_COMBINED" in2="BLUE_CHANNEL" mode="screen" result="RGB_COMBINED" />
       <!-- Alpha clamping to SourceGraphic to eliminate anti-aliasing white halos -->
       <feComposite in="RGB_COMBINED" in2="SourceGraphic" operator="in" result="RGB_ALPHA_PRESERVED" />
-      <feComposite in="RGB_ALPHA_PRESERVED" in2="EDGE_MASK" operator="in" result="EDGE_REFRACTED" />
+      <feComposite in="RGB_ALPHA_PRESERVED" in2="REFRACTION_MASK" operator="in" result="BEVEL_REFRACTED" />
 
-      <!-- 5. Outer Rim Transmission Pass (Sharp boundary definition & Fresnel reflection) -->
-      <feComposite in="SourceGraphic" in2="OUTER_MASK" operator="in" result="OUTER_PASS" />
-
-      <!-- 6. Optical Recombination or Debug Mode Inspection Output -->
+      <!-- 5. Optical Recombination or Debug Mode Inspection Output -->
       ${
         material.debug === 'vector'
           ? `<feOffset in="DISPLACEMENT_TEXTURE" dx="0" dy="0" result="FINAL_GLASS" />`
@@ -217,10 +224,9 @@ export class SvgFilterBuilder {
                 : material.debug === 'coverage'
                   ? `<feColorMatrix in="BASIS_FIELD" type="matrix" values="0 0 0 1 0  0 0 0 1 0  0 0 0 1 0  0 0 0 1 0" result="FINAL_GLASS" />`
                   : material.debug === 'refraction'
-                    ? `<feComposite in="RGB_ALPHA_PRESERVED" in2="COVERAGE_MASK" operator="in" result="FINAL_GLASS" />`
+                    ? `<feComposite in="RGB_ALPHA_PRESERVED" in2="REFRACTION_MASK" operator="in" result="FINAL_GLASS" />`
                     : `<!-- Standard Material Composite: Outer + Inner + Body = Coverage -->
-                       <feComposite in="EDGE_REFRACTED" in2="BODY_CLEAN" operator="over" result="INNER_BODY_COMBINED" />
-                       <feComposite in="OUTER_PASS" in2="INNER_BODY_COMBINED" operator="over" result="OPTICAL_COMBINED" />
+                       <feComposite in="BEVEL_REFRACTED" in2="BODY_CLEAN" operator="over" result="OPTICAL_COMBINED" />
                        <feComposite in="OPTICAL_COMBINED" in2="COVERAGE_MASK" operator="in" result="FINAL_GLASS" />`
       }
 
