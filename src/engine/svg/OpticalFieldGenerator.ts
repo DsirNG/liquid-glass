@@ -227,7 +227,11 @@ export class OpticalFieldGenerator {
 
     const profileName = params.surfaceProfile || 'convex_squircle';
     const profileFn = SURFACE_PROFILES[profileName] || SURFACE_PROFILES.convex_squircle;
-    const profile = calculateRefractionProfile(thickness, bezel, profileFn, ior);
+    const isFluid = profileName === 'fluid_dome' || profileName === 'viscous_meniscus';
+    const fluidRadius = Math.max(bezel, Math.min(cssW, cssH) * 0.5);
+    const effectiveBezel = Math.max(1, isFluid ? fluidRadius : bezel);
+
+    const profile = calculateRefractionProfile(thickness, effectiveBezel, profileFn, ior);
     const maxAbs = calculateMaxAbsRefraction(profile);
 
     const vectorBuf = createOffscreenBuffer(fieldW, fieldH);
@@ -248,7 +252,6 @@ export class OpticalFieldGenerator {
       radius: geometry.radius,
     };
 
-    const effectiveBezel = Math.max(1, bezel);
     const rimWidthPx = Math.max(1.25, Math.min(3.0, effectiveBezel * 0.06));
 
     for (let fy = 0; fy < fieldH; fy++) {
@@ -305,14 +308,17 @@ export class OpticalFieldGenerator {
 
         // Vector Field: Deflect along surface normal scaled by continuous profile
         const dNorm = Math.max(0, Math.min(1, inwardDist / effectiveBezel));
-        if (dNorm < 1.0 && basis.body < 0.999 * coverage) {
+        const canRefract = isFluid ? dNorm < 1.0 : dNorm < 1.0 && basis.body < 0.999 * coverage;
+        if (canRefract) {
           const normal = evaluateFootprintNormal(cssX, cssY, cssGeom);
           const rawRefractionPx = sampleRefractionProfile(profile, dNorm);
 
           // Snell geometry can produce very large shifts near a steep
           // silhouette. Keep the physical profile intact for calibration, but
           // bound the rendered transmission displacement for visual stability.
-          const maxRenderableShiftPx = Math.max(6, Math.min(24, effectiveBezel * 0.55));
+          const maxRenderableShiftPx = isFluid
+            ? Math.max(10, Math.min(36, effectiveBezel * 0.45))
+            : Math.max(6, Math.min(24, effectiveBezel * 0.55));
           const boundedRefractionPx = Math.max(
             -maxRenderableShiftPx,
             Math.min(maxRenderableShiftPx, rawRefractionPx)
@@ -322,7 +328,9 @@ export class OpticalFieldGenerator {
           // entry into refractive displacement. The outer basis remains the
           // silhouette/Fresnel transition and does not jump the backdrop.
           const inner01 = coverage > 0.0001 ? Math.max(0, Math.min(1, basis.inner / coverage)) : 0;
-          const transmissionGate = smoothstep(0.05, 0.95, inner01);
+          const transmissionGate = isFluid
+            ? smoothstep(0.0, 0.15, coverage) * (1 - Math.pow(dNorm, 4) * 0.15)
+            : smoothstep(0.05, 0.95, inner01);
           const normalizedMag = maxAbs > 0 ? boundedRefractionPx / maxAbs : 0;
           const deflectionWeight = coverage * transmissionGate;
           const normDx = -normal.x * normalizedMag * deflectionWeight;

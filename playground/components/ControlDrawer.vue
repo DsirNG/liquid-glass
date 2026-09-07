@@ -253,6 +253,59 @@ function onCustomColorInput(e: Event) {
           />
           <small class="param-hint">{{ t.bezelHint }}</small>
         </div>
+
+        <!-- 💧 曲面流体形态切换 (Lens Profile) -->
+        <div class="profile-mode-box" style="margin-top: 14px">
+          <div class="slider-header" style="margin-bottom: 6px">
+            <span style="font-weight: 600; font-size: 11px">{{ t.lensProfileTitle }}</span>
+          </div>
+          <div
+            class="radio-pill-group"
+            style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px"
+          >
+            <button
+              :class="{
+                active:
+                  !params.surfaceProfile ||
+                  params.surfaceProfile === 'convex_squircle' ||
+                  params.surfaceProfile === 'convex_circle',
+              }"
+              style="font-size: 10px; padding: 7px 2px; font-weight: 700; text-align: center"
+              @click="emit('updateParam', 'surfaceProfile', 'convex_squircle')"
+            >
+              {{ t.profileChamfer }}
+            </button>
+            <button
+              :class="{ active: params.surfaceProfile === 'fluid_dome' }"
+              style="
+                font-size: 10px;
+                padding: 7px 2px;
+                font-weight: 700;
+                text-align: center;
+                color: #38bdf8;
+              "
+              @click="emit('updateParam', 'surfaceProfile', 'fluid_dome')"
+            >
+              {{ t.profileFluidDome }}
+            </button>
+            <button
+              :class="{ active: params.surfaceProfile === 'viscous_meniscus' }"
+              style="
+                font-size: 10px;
+                padding: 7px 2px;
+                font-weight: 700;
+                text-align: center;
+                color: #a855f7;
+              "
+              @click="emit('updateParam', 'surfaceProfile', 'viscous_meniscus')"
+            >
+              {{ t.profileViscous }}
+            </button>
+          </div>
+          <small class="param-hint" style="display: block; margin-top: 5px; line-height: 1.4">
+            {{ t.profileHint }}
+          </small>
+        </div>
       </section>
 
       <!-- Optics & Physics -->

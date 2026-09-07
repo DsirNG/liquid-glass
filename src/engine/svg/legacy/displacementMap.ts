@@ -10,17 +10,9 @@ export const LEGACY_REFERENCE_DISPLACEMENT_MAP =
 
 export const DEFAULT_DISPLACEMENT_MAP_URL = LEGACY_REFERENCE_DISPLACEMENT_MAP;
 
-export const SURFACE_FNS: Record<SurfaceShape, (x: number) => number> = {
-  convex_squircle: (x: number) => Math.pow(Math.max(0, 1 - Math.pow(1 - x, 4)), 0.25),
-  convex_circle: (x: number) => Math.sqrt(Math.max(0, 1 - (1 - x) * (1 - x))),
-  concave: (x: number) => 1 - Math.sqrt(Math.max(0, 1 - (1 - x) * (1 - x))),
-  lip: (x: number) => {
-    const convex = Math.pow(Math.max(0, 1 - Math.pow(1 - Math.min(x * 2, 1), 4)), 0.25);
-    const concave = 1 - Math.sqrt(Math.max(0, 1 - (1 - x) * (1 - x))) + 0.1;
-    const t = 6 * x ** 5 - 15 * x ** 4 + 10 * x ** 3;
-    return convex * (1 - t) + concave * t;
-  },
-};
+import { SURFACE_PROFILES } from '../geometry/surfaceProfiles';
+
+export const SURFACE_FNS: Record<SurfaceShape, (x: number) => number> = SURFACE_PROFILES;
 
 export function buildNineSliceDisplacementMap(
   w: number,

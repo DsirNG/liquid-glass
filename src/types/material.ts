@@ -1,5 +1,11 @@
-export type SurfaceShape = 'convex_squircle' | 'convex_circle' | 'concave' | 'lip';
-export type SurfaceProfile = 'convex_squircle' | 'convex_circle' | 'concave' | 'lip';
+export type SurfaceShape =
+  | 'convex_squircle'
+  | 'convex_circle'
+  | 'concave'
+  | 'lip'
+  | 'fluid_dome'
+  | 'viscous_meniscus';
+export type SurfaceProfile = SurfaceShape;
 export type MaterialPreset = 'pure' | 'ios';
 export type FootprintShape = 'roundedRect' | 'capsule' | 'circle';
 export type LiquidGlassQuality = 'low' | 'medium' | 'high' | 'ultra';

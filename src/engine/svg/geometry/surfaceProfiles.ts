@@ -1,4 +1,10 @@
-export type SurfaceProfile = 'convex_squircle' | 'convex_circle' | 'concave' | 'lip';
+export type SurfaceProfile =
+  | 'convex_squircle'
+  | 'convex_circle'
+  | 'concave'
+  | 'lip'
+  | 'fluid_dome'
+  | 'viscous_meniscus';
 
 export const SURFACE_PROFILES: Record<SurfaceProfile, (x: number) => number> = {
   convex_squircle: (x: number) => Math.pow(Math.max(0, 1 - Math.pow(1 - x, 4)), 0.25),
@@ -9,6 +15,13 @@ export const SURFACE_PROFILES: Record<SurfaceProfile, (x: number) => number> = {
     const concave = 1 - Math.sqrt(Math.max(0, 1 - (1 - x) * (1 - x))) + 0.1;
     const t = 6 * x ** 5 - 15 * x ** 4 + 10 * x ** 3;
     return convex * (1 - t) + concave * t;
+  },
+  // 💧 液态饱满水滴全曲面：平滑凸透镜球面，从边缘到中心无断点渐变
+  fluid_dome: (x: number) => Math.sin((Math.PI / 2) * Math.pow(Math.max(0, Math.min(1, x)), 0.82)),
+  // 🌊 表面张力弯月面：C^2 连续平滑吸附水膜，边缘无任何生硬折角
+  viscous_meniscus: (x: number) => {
+    const c = Math.max(0, Math.min(1, x));
+    return c * c * c * (c * (c * 6 - 15) + 10);
   },
 };
 

@@ -34,6 +34,11 @@ export default {
   radius: '圆角半径 (Radius)',
   bezel: '透镜斜切区 (Bezel)',
   bezelHint: '从边缘向内弯曲的区域宽度（透镜边缘厚度）',
+  lensProfileTitle: '曲面形态 (Lens Profile)',
+  profileChamfer: '📐 机械斜切',
+  profileFluidDome: '💧 饱满水滴',
+  profileViscous: '🌊 弯月流体',
+  profileHint: '水滴与流体模式消除平板边缘斜切分界线，实现全曲面连续流体透镜',
 
   opticsTitle: '光学与物理',
   refraction: '折射强度 (Refraction)',
