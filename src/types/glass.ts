@@ -6,9 +6,9 @@ export type {
   SurfaceProfile,
   MaterialPreset,
   FootprintShape,
+  LiquidGlassQuality,
   OpticalDebugMode,
 } from './material';
-
 
 export type GlassPreset = 'ios-like' | 'clear' | 'vivid' | 'heavy';
 

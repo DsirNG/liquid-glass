@@ -4,6 +4,7 @@ import type {
   LiquidGlassCreateOptions,
   LiquidGlassMaterialOptions,
   SurfaceShape,
+  LiquidGlassQuality,
 } from '../../../types';
 import { useLiquidGlass } from '../../composables/useLiquidGlass';
 
@@ -31,6 +32,7 @@ const props = withDefaults(
     shadow?: number;
     shadowColor?: string;
     surfaceShape?: SurfaceShape;
+    quality?: LiquidGlassQuality;
     options?: LiquidGlassMaterialOptions;
   }>(),
   {
@@ -122,6 +124,7 @@ const createOptions = computed<LiquidGlassCreateOptions>(() => {
   if (props.shadow !== undefined) baseOptions.shadow = props.shadow;
   if (props.shadowColor !== undefined) baseOptions.shadowColor = props.shadowColor;
   if (props.surfaceShape !== undefined) baseOptions.surfaceShape = props.surfaceShape;
+  if (props.quality !== undefined) baseOptions.quality = props.quality;
 
   return baseOptions;
 });

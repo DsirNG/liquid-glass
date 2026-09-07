@@ -3,7 +3,6 @@ import { createLiquidGlass } from '../src/core';
 import {
   evaluateFootprintSdf,
   evaluateFootprintNormal,
-  calculateCoverage,
   SURFACE_PROFILES,
   calculateRefractionProfile,
   calculateMaxAbsRefraction,
@@ -13,7 +12,7 @@ import {
   CapabilityResolver,
 
   MaterialResolver,
-  InteractionController,
+  resolveOpticalFieldDimension,
 } from '../src/engine/svg';
 
 describe('Liquid Glass Optical Engine v2.1 Architecture Contracts', () => {
@@ -270,5 +269,73 @@ describe('Liquid Glass Optical Engine v2.1 Architecture Contracts', () => {
       el.remove();
     });
   });
-});
 
+  describe('Contract 8: Live Parameter Update Pipeline', () => {
+    it('rebuilds the active SVG filter synchronously when scalar parameters change', () => {
+      const el = document.createElement('div');
+      el.style.width = '320px';
+      el.style.height = '180px';
+      document.body.appendChild(el);
+
+      const instance = createLiquidGlass(el, {
+        capability: 'full',
+        blur: 0.2,
+        dispersion: 0.5,
+        refraction: 0.5,
+      });
+      const filter = document.querySelector('svg filter:last-of-type') as SVGFilterElement;
+      const before = filter.innerHTML;
+      const expectedBlur = MaterialResolver.resolve({ blur: 8 }, 300, 200).bodyBlur;
+
+      instance.update({ blur: 8, dispersion: 4, refraction: 2, debug: 'body' });
+      const activeFilter = document.querySelector(
+        'svg filter:last-of-type'
+      ) as SVGFilterElement;
+      const after = activeFilter.innerHTML;
+
+      expect(after).not.toBe(before);
+      expect(after).toContain(`stdDeviation="${expectedBlur}`);
+      expect(after).toContain('scale="-');
+      expect(after).toContain('result="FINAL_GLASS"');
+
+      instance.destroy();
+      el.remove();
+    });
+
+    it('reuses the committed optical field for scalar slider updates', async () => {
+      const el = document.createElement('div');
+      el.style.width = '320px';
+      el.style.height = '180px';
+      document.body.appendChild(el);
+
+      const generateSpy = vi.spyOn(OpticalFieldGenerator, 'generate');
+      const instance = createLiquidGlass(el, {
+        capability: 'full',
+        refraction: 1,
+        blur: 1,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const afterInitialField = generateSpy.mock.calls.length;
+
+      instance.update({ refraction: 2.5, blur: 6, dispersion: 3 });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(generateSpy.mock.calls.length).toBe(afterInitialField);
+
+      instance.update({ radius: 56 });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(generateSpy.mock.calls.length).toBeGreaterThan(afterInitialField);
+
+      generateSpy.mockRestore();
+      instance.destroy();
+      el.remove();
+    });
+
+    it('maps quality tiers to deterministic optical field resolutions', () => {
+      expect(resolveOpticalFieldDimension('low')).toBe(128);
+      expect(resolveOpticalFieldDimension('medium')).toBe(256);
+      expect(resolveOpticalFieldDimension('high')).toBe(512);
+      expect(resolveOpticalFieldDimension('ultra')).toBe(1024);
+    });
+  });
+});

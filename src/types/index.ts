@@ -6,6 +6,7 @@ export type {
   SurfaceProfile,
   MaterialPreset,
   FootprintShape,
+  LiquidGlassQuality,
   OpticalDebugMode,
   LiquidGlassMaterialOptions,
   LiquidGlassCreateOptions,

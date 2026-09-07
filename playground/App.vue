@@ -2,7 +2,7 @@
 import { ref, reactive, computed } from 'vue';
 import type { GlassPreset, LiquidGlassMaterialOptions } from '../src/core';
 import { GLASS_PRESETS } from '../src/core';
-import { LiquidGlass, GlassButton } from '../src/vue';
+import { LiquidGlass } from '../src/vue';
 
 import { t } from './locales';
 import { DEFAULT_BACKGROUNDS, type QualityTier } from './types';
@@ -16,9 +16,6 @@ import MusicPlayerCard from './components/MusicPlayerCard.vue';
 // Background Wallpapers
 const backgrounds = DEFAULT_BACKGROUNDS;
 const currentBg = ref(backgrounds[0].url);
-
-// Quality selection
-const selectedQuality = ref<QualityTier>('high');
 
 // Geometry Dimensions
 const glassWidth = ref(380);
@@ -36,7 +33,17 @@ const params = reactive<LiquidGlassMaterialOptions>({
   shadow: 0.35,
   refraction: 1.0,
   dispersion: 2.0,
-  saturation: 130,
+  saturation: 1.3,
+  quality: 'high',
+});
+
+// Quality is part of the same reactive material object consumed by the engine.
+// The drawer uses a dedicated v-model for its UI, but this computed ref keeps one source of truth.
+const selectedQuality = computed<QualityTier>({
+  get: () => params.quality ?? 'high',
+  set: (value) => {
+    params.quality = value;
+  },
 });
 
 // Control panel visibility
@@ -50,12 +57,22 @@ function applyPreset(presetKey: GlassPreset) {
   Object.assign(params, preset);
 }
 
-function handleApplyMatrix(w: number, h: number, r: number, b: number, shape?: string) {
+function handleApplyMatrix(
+  w: number,
+  h: number,
+  r: number,
+  b: number,
+  shape?: LiquidGlassMaterialOptions['shape']
+) {
   glassWidth.value = w;
   glassHeight.value = h;
   params.radius = r;
   params.bezel = b;
-  params.shape = (shape as any) || 'roundedRect';
+  params.shape = shape || 'roundedRect';
+}
+
+function updateParam(key: keyof LiquidGlassMaterialOptions, value: unknown): void {
+  (params as Record<string, unknown>)[key] = value;
 }
 
 // Stage LiquidGlass reference
@@ -123,9 +140,8 @@ const rootStyle = computed(() => {
       :backgrounds="backgrounds"
       @apply-preset="applyPreset"
       @apply-matrix="handleApplyMatrix"
-      @update-param="(key, val) => ((params as Record<string, unknown>)[key] = val)"
+      @update-param="updateParam"
     />
-
 
     <!-- Central Showcase Stage -->
     <main class="showcase-stage" :class="{ 'drawer-open': isPanelOpen }">
@@ -141,25 +157,34 @@ const rootStyle = computed(() => {
             <span class="indicator-text"> LiquidGlass Native Optics </span>
             <button
               class="reset-pos-btn"
-              :style="{ background: calibrationMode ? '#38bdf8' : '', color: calibrationMode ? '#0f172a' : '' }"
+              :style="{
+                background: calibrationMode ? '#38bdf8' : '',
+                color: calibrationMode ? '#0f172a' : '',
+              }"
               @click="calibrationMode = !calibrationMode"
             >
               🎯 {{ calibrationMode ? 'Normal Backdrop' : 'Test Chart' }}
             </button>
             <button
               class="reset-pos-btn"
-              :style="{ background: contentMode === 'pure' ? '#a855f7' : '', color: contentMode === 'pure' ? '#fff' : '' }"
+              :style="{
+                background: contentMode === 'pure' ? '#a855f7' : '',
+                color: contentMode === 'pure' ? '#fff' : '',
+              }"
               :title="'Switch between card, button pill, and pure naked glass'"
               @click="
                 contentMode =
-                  contentMode === 'auto'
-                    ? 'pure'
-                    : contentMode === 'pure'
-                      ? 'music'
-                      : 'auto'
+                  contentMode === 'auto' ? 'pure' : contentMode === 'pure' ? 'music' : 'auto'
               "
             >
-              🪟 {{ contentMode === 'pure' ? 'Pure Optics (Naked)' : contentMode === 'auto' ? 'Auto Content' : 'Music Card' }}
+              🪟
+              {{
+                contentMode === 'pure'
+                  ? 'Pure Optics (Naked)'
+                  : contentMode === 'auto'
+                    ? 'Auto Content'
+                    : 'Music Card'
+              }}
             </button>
             <button
               v-if="cardPos.x !== 0 || cardPos.y !== 0"

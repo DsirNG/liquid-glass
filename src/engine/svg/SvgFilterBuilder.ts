@@ -51,7 +51,6 @@ export class SvgFilterBuilder {
     const baseScale = physicalAmplitude * lensingGain * userRefraction * refractionGain;
     const scales = resolveDispersionScales(baseScale, dispersionGain);
 
-
     const vectorHref = assets?.vectorUrl || '';
     const basisHref = assets?.basisUrl || '';
 
@@ -132,11 +131,7 @@ export class SvgFilterBuilder {
       />
 
       <!-- 3. Body Material Pass (Mild scattering blur & saturation, zero displacement) -->
-      ${
-        bodyBlur > 0.01
-          ? `<feGaussianBlur in="SourceGraphic" stdDeviation="${bodyBlur}" result="BODY_BLURRED" />`
-          : `<feOffset in="SourceGraphic" dx="0" dy="0" result="BODY_BLURRED" />`
-      }
+      ${bodyBlur > 0.01 ? `<feGaussianBlur in="SourceGraphic" stdDeviation="${bodyBlur}" result="BODY_BLURRED" />` : `<feOffset in="SourceGraphic" dx="0" dy="0" result="BODY_BLURRED" />`}
       <feColorMatrix
         in="BODY_BLURRED"
         type="matrix"
@@ -232,7 +227,6 @@ export class SvgFilterBuilder {
     `;
   }
 }
-
 
 let filterCounter = 0;
 

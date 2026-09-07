@@ -55,8 +55,8 @@ export function evaluatePartitionOfUnityBasis(
   const outerEnd = Math.max(0.01, Math.min(0.98, config.outerEnd));
   const bodyStart = Math.max(outerEnd + 0.01, Math.min(0.99, config.bodyStart));
 
-  const outerVal = 1 - smoothstep(0.00, outerEnd, dNorm);
-  const bodyVal = smoothstep(bodyStart, 1.00, dNorm);
+  const outerVal = 1 - smoothstep(0.0, outerEnd, dNorm);
+  const bodyVal = smoothstep(bodyStart, 1.0, dNorm);
   const innerVal = Math.max(0, 1 - outerVal - bodyVal);
 
   return {
@@ -67,19 +67,27 @@ export function evaluatePartitionOfUnityBasis(
   };
 }
 
-
-
 // 1x1 transparent PNG fallback for non-browser/jsdom environments
 const FALLBACK_PNG_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
-async function canvasToBlobUrl(
-  canvas: HTMLCanvasElement | OffscreenCanvas
-): Promise<string> {
+function blobToDataUrl(blob: Blob): Promise<string | null> {
+  if (typeof FileReader === 'undefined') return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function canvasToBlobUrl(canvas: HTMLCanvasElement | OffscreenCanvas): Promise<string> {
   if (typeof OffscreenCanvas !== 'undefined' && canvas instanceof OffscreenCanvas) {
     if (typeof canvas.convertToBlob === 'function') {
       try {
         const blob = await canvas.convertToBlob({ type: 'image/png' });
+        const dataUrl = await blobToDataUrl(blob);
+        if (dataUrl) return dataUrl;
         if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
           return URL.createObjectURL(blob);
         }
@@ -91,7 +99,22 @@ async function canvasToBlobUrl(
 
   if (typeof HTMLCanvasElement !== 'undefined' && canvas instanceof HTMLCanvasElement) {
     const isJsdom = typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent);
-    if (!isJsdom && typeof canvas.toBlob === 'function' && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+    if (!isJsdom && typeof canvas.toDataURL === 'function') {
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        if (dataUrl && dataUrl.startsWith('data:image/png')) {
+          return dataUrl;
+        }
+      } catch {
+        // Continue to blob fallback
+      }
+    }
+    if (
+      !isJsdom &&
+      typeof canvas.toBlob === 'function' &&
+      typeof URL !== 'undefined' &&
+      typeof URL.createObjectURL === 'function'
+    ) {
       try {
         const blobPromise = new Promise<string | null>((resolve) => {
           const timeout = setTimeout(() => resolve(null), 100);
@@ -129,7 +152,6 @@ async function canvasToBlobUrl(
   return FALLBACK_PNG_DATA_URL;
 }
 
-
 class Memory2DContext {
   public canvas: any;
   constructor(canvas: any) {
@@ -145,7 +167,6 @@ class Memory2DContext {
   }
   putImageData(_imgData: any, _x: number, _y: number) {}
 }
-
 
 function createOffscreenBuffer(
   w: number,
@@ -252,7 +273,12 @@ export class OpticalFieldGenerator {
         }
 
         const basisConfig = params.basis || DEFAULT_BASIS_CONFIG;
-        const basis = evaluatePartitionOfUnityBasis(inwardDist, effectiveBezel, coverage, basisConfig);
+        const basis = evaluatePartitionOfUnityBasis(
+          inwardDist,
+          effectiveBezel,
+          coverage,
+          basisConfig
+        );
 
         basData[idx] = Math.round(basis.outer * 255);
         basData[idx + 1] = Math.round(basis.inner * 255);
@@ -266,7 +292,7 @@ export class OpticalFieldGenerator {
           const refraction = sampleRefractionProfile(profile, dNorm);
           const normalizedMag = maxAbs > 0 ? refraction / maxAbs : 0;
           // Body does not displace; inner and outer carry deflection
-          const deflectionWeight = (coverage - basis.body);
+          const deflectionWeight = coverage - basis.body;
           const normDx = -normal.x * normalizedMag * deflectionWeight;
           const normDy = -normal.y * normalizedMag * deflectionWeight;
 
@@ -280,7 +306,6 @@ export class OpticalFieldGenerator {
           vecData[idx + 2] = 128;
           vecData[idx + 3] = 255;
         }
-
       }
     }
 

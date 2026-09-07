@@ -7,6 +7,7 @@ import type {
   SurfaceProfile,
   MaterialPreset,
   FootprintShape,
+  LiquidGlassQuality,
   OpticalDebugMode,
 } from '../../../types';
 
@@ -31,6 +32,7 @@ const props = withDefaults(
     surfaceShape?: SurfaceShape;
     surfaceProfile?: SurfaceProfile;
     materialPreset?: MaterialPreset;
+    quality?: LiquidGlassQuality;
     shape?: FootprintShape;
     ambientLuma?: number;
     debug?: OpticalDebugMode;
@@ -62,13 +64,13 @@ const createOptions = computed<LiquidGlassCreateOptions>(() => {
   if (props.surfaceShape !== undefined) options.surfaceShape = props.surfaceShape;
   if (props.surfaceProfile !== undefined) options.surfaceProfile = props.surfaceProfile;
   if (props.materialPreset !== undefined) options.materialPreset = props.materialPreset;
+  if (props.quality !== undefined) options.quality = props.quality;
   if (props.shape !== undefined) options.shape = props.shape;
   if (props.ambientLuma !== undefined) options.ambientLuma = props.ambientLuma;
   if (props.debug !== undefined) options.debug = props.debug;
 
   return options;
 });
-
 
 const { instance, update, resize, destroy } = useLiquidGlass(containerRef, createOptions);
 

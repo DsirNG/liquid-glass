@@ -25,11 +25,46 @@ const emit = defineEmits<{
   (e: 'applyMatrix', w: number, h: number, r: number, b: number, shape?: string): void;
 }>();
 
-
 function onParamInput(key: keyof LiquidGlassMaterialOptions, e: Event, isNumber = true) {
   const target = e.target as HTMLInputElement;
   const val = isNumber ? Number(target.value) : target.value;
   emit('updateParam', key, val);
+}
+
+function setInspectionMode(mode: 'final' | 'refraction' | 'frosted'): void {
+  const modeOptions: Record<
+    'final' | 'refraction' | 'frosted',
+    Partial<LiquidGlassMaterialOptions>
+  > = {
+    final: {
+      debug: 'none',
+      refraction: 1.0,
+      blur: 0.1,
+      opacity: 0.08,
+      specular: 0.7,
+      shadow: 0.35,
+    },
+    refraction: {
+      debug: 'refraction',
+      opacity: 0,
+      specular: 0,
+      shadow: 0,
+      refraction: 1.0,
+    },
+    frosted: {
+      debug: 'none',
+      refraction: 0,
+      blur: 8.0,
+      opacity: 0.12,
+      specular: 0.5,
+      shadow: 0.35,
+    },
+  };
+
+  const nextOptions = modeOptions[mode];
+  for (const [key, value] of Object.entries(nextOptions)) {
+    emit('updateParam', key as keyof LiquidGlassMaterialOptions, value);
+  }
 }
 
 function isSolidColor(val: string): boolean {
@@ -56,44 +91,43 @@ function onCustomColorInput(e: Event) {
       <!-- 🔬 质检观察模式 (Inspection Modes) -->
       <section class="ctrl-group">
         <label class="group-title">{{ t.inspectionMode }}</label>
-        <div class="radio-pill-group" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+        <div
+          class="radio-pill-group"
+          style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px"
+        >
           <button
-            :class="{ active: (!params.debug || params.debug === 'none') && (params.refraction ?? 1) > 0 && (params.specular ?? 0.7) > 0 }"
-            style="font-size: 10px; padding: 8px 2px; font-weight: 700; text-align: center;"
-            @click="
-              emit('updateParam', 'debug', 'none');
-              if (params.opacity === 0) emit('updateParam', 'opacity', 0.08);
-              if (params.specular === 0) emit('updateParam', 'specular', 0.7);
-              if (params.shadow === 0) emit('updateParam', 'shadow', 0.35);
-              if ((params.refraction ?? 0) === 0) emit('updateParam', 'refraction', 1.0);
-            "
+            :class="{
+              active:
+                (!params.debug || params.debug === 'none') &&
+                (params.refraction ?? 1) > 0 &&
+                (params.specular ?? 0.7) > 0,
+            }"
+            style="font-size: 10px; padding: 8px 2px; font-weight: 700; text-align: center"
+            @click="setInspectionMode('final')"
           >
             {{ t.modeFinal }}
           </button>
           <button
-            :class="{ active: params.debug === 'refraction' || (params.specular === 0 && params.opacity === 0 && (params.refraction ?? 1) > 0) }"
-            style="font-size: 10px; padding: 8px 2px; font-weight: 700; text-align: center; color: #38bdf8;"
-            @click="
-              emit('updateParam', 'debug', 'refraction');
-              emit('updateParam', 'opacity', 0);
-              emit('updateParam', 'specular', 0);
-              emit('updateParam', 'shadow', 0);
-              if ((params.refraction ?? 0) === 0) emit('updateParam', 'refraction', 1.0);
+            :class="{
+              active:
+                params.debug === 'refraction' ||
+                (params.specular === 0 && params.opacity === 0 && (params.refraction ?? 1) > 0),
+            }"
+            style="
+              font-size: 10px;
+              padding: 8px 2px;
+              font-weight: 700;
+              text-align: center;
+              color: #38bdf8;
             "
+            @click="setInspectionMode('refraction')"
           >
             {{ t.modePureRefraction }}
           </button>
           <button
             :class="{ active: params.refraction === 0 }"
-            style="font-size: 10px; padding: 8px 2px; font-weight: 700; text-align: center;"
-            @click="
-              emit('updateParam', 'debug', 'none');
-              emit('updateParam', 'refraction', 0);
-              emit('updateParam', 'blur', 8.0);
-              emit('updateParam', 'opacity', 0.12);
-              emit('updateParam', 'specular', 0.5);
-              emit('updateParam', 'shadow', 0.35);
-            "
+            style="font-size: 10px; padding: 8px 2px; font-weight: 700; text-align: center"
+            @click="setInspectionMode('frosted')"
           >
             {{ t.modeFrosted }}
           </button>
@@ -103,12 +137,19 @@ function onCustomColorInput(e: Event) {
       <!-- Visual Calibration Matrix (100x40 to 500x300) -->
       <section class="ctrl-group">
         <label class="group-title">📐 Geometry Calibration Matrix</label>
-        <div class="preset-buttons" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+        <div
+          class="preset-buttons"
+          style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px"
+        >
           <button @click="emit('applyMatrix', 100, 40, 16, 12, 'roundedRect')">100×40 Btn</button>
           <button @click="emit('applyMatrix', 160, 52, 20, 16, 'roundedRect')">160×52 Dock</button>
           <button @click="emit('applyMatrix', 320, 64, 24, 20, 'capsule')">320×64 Bar</button>
-          <button @click="emit('applyMatrix', 360, 180, 28, 24, 'roundedRect')">360×180 Card</button>
-          <button @click="emit('applyMatrix', 500, 300, 36, 32, 'roundedRect')">500×300 Sheet</button>
+          <button @click="emit('applyMatrix', 360, 180, 28, 24, 'roundedRect')">
+            360×180 Card
+          </button>
+          <button @click="emit('applyMatrix', 500, 300, 36, 32, 'roundedRect')">
+            500×300 Sheet
+          </button>
           <button @click="emit('applyMatrix', 80, 80, 40, 20, 'circle')">80×80 Circ</button>
         </div>
       </section>
@@ -154,7 +195,6 @@ function onCustomColorInput(e: Event) {
           <button @click="emit('applyPreset', 'heavy')">{{ t.presetHeavy }}</button>
         </div>
       </section>
-
 
       <!-- Geometry -->
       <section class="ctrl-group">
@@ -273,6 +313,21 @@ function onCustomColorInput(e: Event) {
             @input="onParamInput('dispersion', $event)"
           />
           <small class="param-hint">{{ t.dispersionHint }}</small>
+        </div>
+        <div class="slider-row-block">
+          <div class="slider-header">
+            <span>色彩饱和度 (Saturation)</span>
+            <span class="val">{{ Math.round((params.saturation ?? 1.3) * 100) }}%</span>
+          </div>
+          <input
+            :value="params.saturation"
+            type="range"
+            min="0.0"
+            max="2.5"
+            step="0.1"
+            @input="onParamInput('saturation', $event)"
+          />
+          <small class="param-hint">调整透镜内背景颜色的强弱，100% 为原始饱和度</small>
         </div>
         <div class="slider-row-block">
           <div class="slider-header">

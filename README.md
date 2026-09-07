@@ -45,7 +45,7 @@ import 'liquid-glass/style.css';
 const glass = createLiquidGlass(document.querySelector('#card')!, {
   thickness: 45,
   ior: 2.2,
-  dispersion: 0.018,
+  dispersion: 1.5,
 });
 
 glass.update({ thickness: 52 });
@@ -64,19 +64,16 @@ import 'liquid-glass/style.css';
 </script>
 
 <template>
-  <LiquidGlass :options="{ thickness: 45, ior: 2.2, dispersion: 0.018 }">
+  <LiquidGlass :options="{ thickness: 45, ior: 2.2, dispersion: 1.5 }">
     <div>Liquid Glass Container</div>
   </LiquidGlass>
 
   <!-- Ready-to-use Liquid Glass Button -->
-  <GlassButton variant="primary" size="md" @click="handleClick">
-    Action Button
-  </GlassButton>
+  <GlassButton variant="primary" size="md" @click="handleClick"> Action Button </GlassButton>
 </template>
 ```
 
 ## Optional WebGL API
-
 
 ```ts
 import { createWebGLLiquidGlass } from 'liquid-glass/webgl';

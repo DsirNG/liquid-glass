@@ -63,4 +63,34 @@ describe('vue/useLiquidGlass and Vue Components', () => {
     app.unmount();
     root.remove();
   });
+
+  it('forwards changes from a reactive options object to the existing engine', async () => {
+    const mockInstance: LiquidGlassInstance = {
+      renderer: 'dom',
+      isDestroyed: false,
+      update: vi.fn(),
+      destroy: vi.fn(),
+      resize: vi.fn(),
+    };
+    vi.spyOn(coreModule, 'createLiquidGlass').mockReturnValue(mockInstance);
+
+    const options = reactive<LiquidGlassOptions>({ blur: 1, opacity: 0.1 });
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const app = createApp({
+      render() {
+        return h(LiquidGlass, { options });
+      },
+    });
+
+    app.mount(root);
+    await nextTick();
+    options.blur = 9;
+    await nextTick();
+
+    expect(mockInstance.update).toHaveBeenCalledWith(expect.objectContaining({ blur: 9 }));
+
+    app.unmount();
+    root.remove();
+  });
 });

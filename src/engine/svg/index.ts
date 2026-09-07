@@ -1,5 +1,9 @@
 export { SvgGlassEngine, SvgFilterBuilder } from './SvgFilterBuilder';
-export { SvgRendererWrapper } from './SvgRendererWrapper';
+export {
+  SvgRendererWrapper,
+  OPTICAL_FIELD_DIMENSIONS,
+  resolveOpticalFieldDimension,
+} from './SvgRendererWrapper';
 export { OpticalFieldGenerator, evaluatePartitionOfUnityBasis } from './OpticalFieldGenerator';
 
 export type { OpticalFieldParams } from './OpticalFieldGenerator';

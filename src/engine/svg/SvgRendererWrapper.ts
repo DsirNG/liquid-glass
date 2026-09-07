@@ -2,6 +2,7 @@ import type {
   LiquidGlassUpdateOptions,
   RendererDelegate,
   NormalizedLiquidGlassOptions,
+  LiquidGlassQuality,
 } from '../../types';
 import { getElementRect } from '../../utils/dom';
 import { SvgGlassEngine } from './SvgFilterBuilder';
@@ -11,6 +12,31 @@ import { CapabilityResolver, type OpticalCapability } from './CapabilityResolver
 import { MaterialResolver, type ResolvedMaterial } from './MaterialResolver';
 import { InteractionController } from './InteractionController';
 import type { SurfaceProfile } from './geometry/surfaceProfiles';
+
+export const OPTICAL_FIELD_DIMENSIONS: Readonly<Record<LiquidGlassQuality, number>> = Object.freeze(
+  {
+    low: 128,
+    medium: 256,
+    high: 512,
+    ultra: 1024,
+  }
+);
+
+export function resolveOpticalFieldDimension(quality: LiquidGlassQuality = 'high'): number {
+  return OPTICAL_FIELD_DIMENSIONS[quality] ?? OPTICAL_FIELD_DIMENSIONS.high;
+}
+
+const OPTICAL_FIELD_OPTION_KEYS = [
+  'radius',
+  'bezel',
+  'thickness',
+  'ior',
+  'surfaceShape',
+  'surfaceProfile',
+  'materialPreset',
+  'quality',
+  'shape',
+] as const satisfies readonly (keyof LiquidGlassUpdateOptions)[];
 
 export type ExtendedEngineOptions = NormalizedLiquidGlassOptions;
 
@@ -41,7 +67,6 @@ export class SvgRendererWrapper implements RendererDelegate {
   private fieldRevision = 0;
   private currentAssets: OpticalFieldAssets | null = null;
   private updateScheduled = false;
-
 
   constructor(element: HTMLElement, options: NormalizedLiquidGlassOptions) {
     this.element = element;
@@ -110,7 +135,6 @@ export class SvgRendererWrapper implements RendererDelegate {
       const initialMat = this.resolveCurrentMaterial(w, h);
       this.svgEngine.update(initialMat, null, this.options.refraction ?? 1.0);
     }
-
 
     // Fast-path interaction controller
     if (this.options.interactive !== false) {
@@ -191,41 +215,49 @@ export class SvgRendererWrapper implements RendererDelegate {
     s.setProperty('--lg-press-scale', String(mat.calibration.interaction.pressScale));
     s.setProperty('--lg-fresnel-gain', String(mat.calibration.lighting.fresnelGain));
 
+    // Keep the currently displayed optical field in sync with every material update.
+    // Geometry-affecting changes still schedule a new field below, but scalar changes
+    // (blur, saturation, dispersion, refraction, and debug) must not wait for it.
+    if (this.capability === 'full' && this.svgEngine) {
+      this.svgEngine.update(mat, this.currentAssets, this.options.refraction ?? 1.0);
+    }
+    // Bind the filter after its graph is updated. Chromium does not reliably repaint
+    // backdrop-filter when only the referenced SVG nodes change.
     this.updateBackdropStyle(mat);
     this.updateSpecularGradients(mat);
 
     const isDebugChannel = mat.debug !== 'none' && mat.debug !== 'final';
     this.tintLayer.style.display = isDebugChannel ? 'none' : '';
-    if (isDebugChannel) {
-      this.borderScreenLayer.style.display = 'none';
-      this.borderOverlayLayer.style.display = 'none';
-    }
+    // Edge highlights are an independent layer and must remain visible while
+    // inspecting the refraction channel; only the material fill is suppressed.
+    this.borderScreenLayer.style.display = '';
+    this.borderOverlayLayer.style.display = '';
   }
 
   private updateBackdropStyle(mat: ResolvedMaterial): void {
+    this.refractionLayer.style.filter = '';
+    this.refractionLayer.style.backgroundImage = '';
+    this.refractionLayer.style.backgroundColor = '';
     if (this.capability === 'full' && this.svgEngine && this.currentAssets) {
-      // Full Optical: pure url(#filter) with zero duplicate CSS saturation
       const filterCss = `url(#${this.svgEngine.filterId})`;
       this.refractionLayer.style.backdropFilter = filterCss;
-      (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter = filterCss;
+      (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
+        filterCss;
     } else {
       // Live Material Fallback (Safari WebKit Bug 245510 or initial mount before assets ready)
-      const blurPx = Math.max(1, Math.round(mat.bodyBlur || 8));
+      const blurPx = Math.max(0, Math.round(mat.bodyBlur));
       const sat = Math.round(mat.saturation > 10 ? mat.saturation : mat.saturation * 100);
-      const filterCss = `blur(${blurPx}px) saturate(${sat}%)`;
+      const filterCss = `${blurPx > 0 ? `blur(${blurPx}px) ` : ''}saturate(${sat}%)`;
       this.refractionLayer.style.backdropFilter = filterCss;
-      (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter = filterCss;
+      (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
+        filterCss;
     }
   }
 
-
   private updateSpecularGradients(mat?: ResolvedMaterial): void {
     if (this.isDestroyed) return;
-    const isDebugChannel = Boolean(
-      this.options.debug && this.options.debug !== 'none' && this.options.debug !== 'final'
-    );
     const specular = mat ? mat.specular : (this.options.specular ?? 0.65);
-    if (isDebugChannel || specular <= 0) {
+    if (specular <= 0) {
       this.borderScreenLayer.style.display = 'none';
       this.borderOverlayLayer.style.display = 'none';
       return;
@@ -261,7 +293,11 @@ export class SvgRendererWrapper implements RendererDelegate {
    * Slow Path: Asynchronous optical field generation with revision race guard and transactional swap.
    */
   private scheduleGeometryUpdate(): void {
-    if (this.isDestroyed || this.updateScheduled) return;
+    if (this.isDestroyed) return;
+    // Invalidate in-flight work immediately. This prevents a fast slider sequence
+    // from committing an optical field generated from stale options.
+    this.fieldRevision += 1;
+    if (this.updateScheduled) return;
     this.updateScheduled = true;
 
     requestAnimationFrame(async () => {
@@ -274,13 +310,12 @@ export class SvgRendererWrapper implements RendererDelegate {
 
       this.applyStyles();
 
-
       if (this.capability !== 'full' || !this.svgEngine) {
         return; // Fallback does not need SVG displacement texture
       }
 
-      const revision = ++this.fieldRevision;
-      const opts = this.options;
+      const revision = this.fieldRevision;
+      const opts = { ...this.options };
       const radius = opts.radius ?? 40;
       const bezel = opts.bezel ?? 36;
       const ior = opts.ior ?? 2.2;
@@ -301,6 +336,7 @@ export class SvgRendererWrapper implements RendererDelegate {
           surfaceProfile,
           basis: resolvedMat.calibration.geometry,
           revision,
+          maxFieldDimension: resolveOpticalFieldDimension(opts.quality),
         });
 
         // Revision race guard: discard if superseded or destroyed
@@ -313,8 +349,9 @@ export class SvgRendererWrapper implements RendererDelegate {
         const previousAssets = this.currentAssets;
         this.currentAssets = nextAssets;
 
-        this.svgEngine.update(resolvedMat, nextAssets, opts.refraction ?? 1.0);
-        this.updateBackdropStyle(resolvedMat);
+        const committedMat = this.resolveCurrentMaterial(width, height);
+        this.svgEngine.update(committedMat, nextAssets, this.options.refraction ?? 1.0);
+        this.updateBackdropStyle(committedMat);
 
         requestAnimationFrame(() => {
           previousAssets?.dispose();
@@ -326,12 +363,23 @@ export class SvgRendererWrapper implements RendererDelegate {
     });
   }
 
-
   public update(newOptions: LiquidGlassUpdateOptions): void {
     if (this.isDestroyed) return;
+    const requiresOpticalFieldUpdate = OPTICAL_FIELD_OPTION_KEYS.some(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(newOptions, key) &&
+        newOptions[key] !== this.options[key]
+    );
+
     Object.assign(this.options, newOptions);
+    // CSS-backed values and the active SVG filter update synchronously.
     this.applyStyles();
-    this.scheduleGeometryUpdate();
+    // Only geometry/calibration changes require a new optical field. Scalar material
+    // controls such as refraction and blur reuse the committed field and stay stable
+    // while the slider is moving.
+    if (requiresOpticalFieldUpdate) {
+      this.scheduleGeometryUpdate();
+    }
   }
 
   public resize(): void {

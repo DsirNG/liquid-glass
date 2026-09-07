@@ -13,4 +13,5 @@ export type {
   LiquidGlassInstance,
   GlassPreset,
   SurfaceShape,
+  LiquidGlassQuality,
 } from '../types';

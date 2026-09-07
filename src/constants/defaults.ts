@@ -18,10 +18,10 @@ export const DEFAULT_GLASS_OPTIONS: Readonly<NormalizedLiquidGlassOptions> = Obj
   surfaceShape: 'convex_squircle',
   surfaceProfile: 'convex_squircle',
   materialPreset: 'ios',
+  quality: 'high',
   ambientLuma: 0.5,
   shape: 'roundedRect',
   capability: 'auto',
   debug: 'none',
   interactive: true,
 });
-

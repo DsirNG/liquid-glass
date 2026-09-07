@@ -10,9 +10,7 @@ function sanitizeNumber(val: unknown, fallback: number, min: number, max: number
 }
 
 /** Validates and normalizes material and runtime options for an engine. */
-export function normalizeOptions(
-  options?: LiquidGlassCreateOptions
-): NormalizedLiquidGlassOptions {
+export function normalizeOptions(options?: LiquidGlassCreateOptions): NormalizedLiquidGlassOptions {
   const d = DEFAULT_GLASS_OPTIONS;
   const o = options ?? {};
 
@@ -36,11 +34,11 @@ export function normalizeOptions(
     surfaceShape: o.surfaceShape ?? d.surfaceShape,
     surfaceProfile: o.surfaceProfile ?? (o.surfaceShape as any) ?? d.surfaceProfile,
     materialPreset: o.materialPreset ?? d.materialPreset,
+    quality: o.quality ?? d.quality,
     ambientLuma: sanitizeNumber(o.ambientLuma, d.ambientLuma, 0, 1),
     shape: o.shape ?? d.shape,
     capability: o.capability ?? d.capability,
     debug: o.debug ?? d.debug,
     interactive: typeof o.interactive === 'boolean' ? o.interactive : d.interactive,
   };
-
 }
