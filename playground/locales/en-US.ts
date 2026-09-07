@@ -38,7 +38,8 @@ export default {
   profileChamfer: '📐 Chamfer',
   profileFluidDome: '💧 Fluid Dome',
   profileViscous: '🌊 Meniscus',
-  profileHint: 'Fluid modes eliminate the flat-body chamfer boundary for a continuous liquid lens',
+  profileRod: '🧪 Glass Rod',
+  profileHint: 'Fluid and rod modes eliminate the flat-body chamfer boundary for a continuous liquid lens',
 
   opticsTitle: 'Optics & Physics',
   refraction: 'Refraction Amplitude',

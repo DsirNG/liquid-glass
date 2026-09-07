@@ -4,7 +4,8 @@ export type SurfaceShape =
   | 'concave'
   | 'lip'
   | 'fluid_dome'
-  | 'viscous_meniscus';
+  | 'viscous_meniscus'
+  | 'cylindrical_rod';
 export type SurfaceProfile = SurfaceShape;
 export type MaterialPreset = 'pure' | 'ios';
 export type FootprintShape = 'roundedRect' | 'capsule' | 'circle';

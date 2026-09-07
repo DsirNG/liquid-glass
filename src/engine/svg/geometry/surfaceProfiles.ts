@@ -4,7 +4,8 @@ export type SurfaceProfile =
   | 'concave'
   | 'lip'
   | 'fluid_dome'
-  | 'viscous_meniscus';
+  | 'viscous_meniscus'
+  | 'cylindrical_rod';
 
 export const SURFACE_PROFILES: Record<SurfaceProfile, (x: number) => number> = {
   convex_squircle: (x: number) => Math.pow(Math.max(0, 1 - Math.pow(1 - x, 4)), 0.25),
@@ -23,6 +24,8 @@ export const SURFACE_PROFILES: Record<SurfaceProfile, (x: number) => number> = {
     const c = Math.max(0, Math.min(1, x));
     return c * c * c * (c * (c * 6 - 15) + 10);
   },
+  // 🧪 iOS 胶囊液体玻璃管：横向圆柱体截面，产生强烈的垂直向内聚焦压缩与拉伸
+  cylindrical_rod: (x: number) => Math.sqrt(Math.max(0, 1 - (1 - x) * (1 - x))),
 };
 
 /** Alias for backward compatibility */

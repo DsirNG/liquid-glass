@@ -227,8 +227,10 @@ export class OpticalFieldGenerator {
 
     const profileName = params.surfaceProfile || 'convex_squircle';
     const profileFn = SURFACE_PROFILES[profileName] || SURFACE_PROFILES.convex_squircle;
-    const isFluid = profileName === 'fluid_dome' || profileName === 'viscous_meniscus';
-    const fluidRadius = Math.max(bezel, Math.min(cssW, cssH) * 0.5);
+    const isRod = profileName === 'cylindrical_rod';
+    const isFluid = isRod || profileName === 'fluid_dome' || profileName === 'viscous_meniscus';
+    const rodRadius = Math.min(cssW, cssH) * 0.5;
+    const fluidRadius = isRod ? rodRadius : Math.max(bezel, rodRadius);
     const effectiveBezel = Math.max(1, isFluid ? fluidRadius : bezel);
 
     const profile = calculateRefractionProfile(thickness, effectiveBezel, profileFn, ior);
@@ -316,9 +318,11 @@ export class OpticalFieldGenerator {
           // Snell geometry can produce very large shifts near a steep
           // silhouette. Keep the physical profile intact for calibration, but
           // bound the rendered transmission displacement for visual stability.
-          const maxRenderableShiftPx = isFluid
-            ? Math.max(10, Math.min(36, effectiveBezel * 0.45))
-            : Math.max(6, Math.min(24, effectiveBezel * 0.55));
+          const maxRenderableShiftPx = isRod
+            ? Math.max(12, Math.min(45, effectiveBezel * 0.75))
+            : isFluid
+              ? Math.max(10, Math.min(36, effectiveBezel * 0.45))
+              : Math.max(6, Math.min(24, effectiveBezel * 0.55));
           const boundedRefractionPx = Math.max(
             -maxRenderableShiftPx,
             Math.min(maxRenderableShiftPx, rawRefractionPx)
@@ -328,9 +332,11 @@ export class OpticalFieldGenerator {
           // entry into refractive displacement. The outer basis remains the
           // silhouette/Fresnel transition and does not jump the backdrop.
           const inner01 = coverage > 0.0001 ? Math.max(0, Math.min(1, basis.inner / coverage)) : 0;
-          const transmissionGate = isFluid
-            ? smoothstep(0.0, 0.15, coverage) * (1 - Math.pow(dNorm, 4) * 0.15)
-            : smoothstep(0.05, 0.95, inner01);
+          const transmissionGate = isRod
+            ? smoothstep(0.0, 0.08, coverage) * (1 - Math.pow(dNorm, 2) * 0.05)
+            : isFluid
+              ? smoothstep(0.0, 0.15, coverage) * (1 - Math.pow(dNorm, 4) * 0.15)
+              : smoothstep(0.05, 0.95, inner01);
           const normalizedMag = maxAbs > 0 ? boundedRefractionPx / maxAbs : 0;
           const deflectionWeight = coverage * transmissionGate;
           const normDx = -normal.x * normalizedMag * deflectionWeight;

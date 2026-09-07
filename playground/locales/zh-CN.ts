@@ -38,7 +38,8 @@ export default {
   profileChamfer: '📐 机械斜切',
   profileFluidDome: '💧 饱满水滴',
   profileViscous: '🌊 弯月流体',
-  profileHint: '水滴与流体模式消除平板边缘斜切分界线，实现全曲面连续流体透镜',
+  profileRod: '🧪 胶囊水管',
+  profileHint: '水滴、流体与水管模式消除平板边缘斜切分界线，实现全曲面连续流体透镜',
 
   opticsTitle: '光学与物理',
   refraction: '折射强度 (Refraction)',

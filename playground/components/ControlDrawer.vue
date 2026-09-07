@@ -261,7 +261,7 @@ function onCustomColorInput(e: Event) {
           </div>
           <div
             class="radio-pill-group"
-            style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px"
+            style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px"
           >
             <button
               :class="{
@@ -270,7 +270,7 @@ function onCustomColorInput(e: Event) {
                   params.surfaceProfile === 'convex_squircle' ||
                   params.surfaceProfile === 'convex_circle',
               }"
-              style="font-size: 10px; padding: 7px 2px; font-weight: 700; text-align: center"
+              style="font-size: 10px; padding: 7px 4px; font-weight: 700; text-align: center"
               @click="emit('updateParam', 'surfaceProfile', 'convex_squircle')"
             >
               {{ t.profileChamfer }}
@@ -279,7 +279,7 @@ function onCustomColorInput(e: Event) {
               :class="{ active: params.surfaceProfile === 'fluid_dome' }"
               style="
                 font-size: 10px;
-                padding: 7px 2px;
+                padding: 7px 4px;
                 font-weight: 700;
                 text-align: center;
                 color: #38bdf8;
@@ -292,7 +292,7 @@ function onCustomColorInput(e: Event) {
               :class="{ active: params.surfaceProfile === 'viscous_meniscus' }"
               style="
                 font-size: 10px;
-                padding: 7px 2px;
+                padding: 7px 4px;
                 font-weight: 700;
                 text-align: center;
                 color: #a855f7;
@@ -300,6 +300,19 @@ function onCustomColorInput(e: Event) {
               @click="emit('updateParam', 'surfaceProfile', 'viscous_meniscus')"
             >
               {{ t.profileViscous }}
+            </button>
+            <button
+              :class="{ active: params.surfaceProfile === 'cylindrical_rod' }"
+              style="
+                font-size: 10px;
+                padding: 7px 4px;
+                font-weight: 700;
+                text-align: center;
+                color: #10b981;
+              "
+              @click="emit('updateParam', 'surfaceProfile', 'cylindrical_rod')"
+            >
+              {{ t.profileRod }}
             </button>
           </div>
           <small class="param-hint" style="display: block; margin-top: 5px; line-height: 1.4">
