@@ -250,6 +250,7 @@ export class OpticalFieldGenerator {
 
     const effectiveBezel = Math.max(1, bezel);
     const rimWidthPx = Math.max(1.25, Math.min(3.0, effectiveBezel * 0.06));
+    const edgeLockWidthPx = Math.max(1.5, Math.min(4.0, effectiveBezel * 0.08));
 
     for (let fy = 0; fy < fieldH; fy++) {
       const cssY = (fy + 0.5) / fieldScale;
@@ -309,8 +310,12 @@ export class OpticalFieldGenerator {
           const normal = evaluateFootprintNormal(cssX, cssY, cssGeom);
           const refraction = sampleRefractionProfile(profile, dNorm);
           const normalizedMag = maxAbs > 0 ? refraction / maxAbs : 0;
-          // Body does not displace; inner and outer carry deflection
-          const deflectionWeight = coverage - basis.body;
+          // Body does not displace; inner and outer carry deflection. Keep the
+          // silhouette attached to the original boundary and let displacement
+          // ramp in over the first few pixels of the bevel. This prevents
+          // rapidly rotating corner normals from tearing the backdrop outward.
+          const edgeAttach = smoothstep(0, edgeLockWidthPx, Math.max(0, inwardDist));
+          const deflectionWeight = (coverage - basis.body) * edgeAttach;
           const normDx = -normal.x * normalizedMag * deflectionWeight;
           const normDy = -normal.y * normalizedMag * deflectionWeight;
 
