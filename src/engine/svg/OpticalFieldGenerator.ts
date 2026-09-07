@@ -228,10 +228,13 @@ export class OpticalFieldGenerator {
     const profileName = params.surfaceProfile || 'convex_squircle';
     const profileFn = SURFACE_PROFILES[profileName] || SURFACE_PROFILES.convex_squircle;
     const isRod = profileName === 'cylindrical_rod';
-    const isFluid = isRod || profileName === 'fluid_dome' || profileName === 'viscous_meniscus';
-    const rodRadius = Math.min(cssW, cssH) * 0.5;
-    const fluidRadius = isRod ? rodRadius : Math.max(bezel, rodRadius);
-    const effectiveBezel = Math.max(1, isFluid ? fluidRadius : bezel);
+    const isCapsuleRod = isRod && shape === 'capsule';
+    const maxHalfDim = Math.min(cssW, cssH) * 0.5;
+    // 区域控制：胶囊管透镜充满截面，而卡片/普通容器严格限定在四周边缘 Bezel 区域，防止折射侵占中心产生对角三角裂区
+    const effectiveBezel = Math.max(
+      4,
+      isCapsuleRod ? maxHalfDim : Math.min(bezel, maxHalfDim * 0.8)
+    );
 
     const profile = calculateRefractionProfile(thickness, effectiveBezel, profileFn, ior);
     const maxAbs = calculateMaxAbsRefraction(profile);
@@ -310,33 +313,24 @@ export class OpticalFieldGenerator {
 
         // Vector Field: Deflect along surface normal scaled by continuous profile
         const dNorm = Math.max(0, Math.min(1, inwardDist / effectiveBezel));
-        const canRefract = isFluid ? dNorm < 1.0 : dNorm < 1.0 && basis.body < 0.999 * coverage;
+        const canRefract = dNorm < 1.0;
         if (canRefract) {
           const normal = evaluateFootprintNormal(cssX, cssY, cssGeom);
           const rawRefractionPx = sampleRefractionProfile(profile, dNorm);
 
-          // Snell geometry can produce very large shifts near a steep
-          // silhouette. Keep the physical profile intact for calibration, but
-          // bound the rendered transmission displacement for visual stability.
-          const maxRenderableShiftPx = isRod
+          const maxRenderableShiftPx = isCapsuleRod
             ? Math.max(12, Math.min(45, effectiveBezel * 0.75))
-            : isFluid
-              ? Math.max(10, Math.min(36, effectiveBezel * 0.45))
-              : Math.max(6, Math.min(24, effectiveBezel * 0.55));
+            : Math.max(8, Math.min(28, effectiveBezel * 0.5));
           const boundedRefractionPx = Math.max(
             -maxRenderableShiftPx,
             Math.min(maxRenderableShiftPx, rawRefractionPx)
           );
 
-          // Body is clean transmission; the inner basis controls the gradual
-          // entry into refractive displacement. The outer basis remains the
-          // silhouette/Fresnel transition and does not jump the backdrop.
-          const inner01 = coverage > 0.0001 ? Math.max(0, Math.min(1, basis.inner / coverage)) : 0;
-          const transmissionGate = isRod
-            ? smoothstep(0.0, 0.08, coverage) * (1 - Math.pow(dNorm, 2) * 0.05)
-            : isFluid
-              ? smoothstep(0.0, 0.15, coverage) * (1 - Math.pow(dNorm, 4) * 0.15)
-              : smoothstep(0.05, 0.95, inner01);
+          // 四周往中间自然渐变平滑归零：外边缘平滑进入，内侧边界（dNorm -> 1.0）使用 Hermite 曲线平滑收口为 0
+          const inwardFalloff = isCapsuleRod
+            ? 1 - Math.pow(dNorm, 2) * 0.05
+            : 1 - smoothstep(0.65, 1.0, dNorm);
+          const transmissionGate = smoothstep(0.0, 0.1, coverage) * inwardFalloff;
           const normalizedMag = maxAbs > 0 ? boundedRefractionPx / maxAbs : 0;
           const deflectionWeight = coverage * transmissionGate;
           const normDx = -normal.x * normalizedMag * deflectionWeight;
