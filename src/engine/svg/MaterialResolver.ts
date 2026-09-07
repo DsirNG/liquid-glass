@@ -30,6 +30,7 @@ export interface ResolvedMaterial {
   calibration: CalibrationPreset;
   borderMode: 'directional' | 'adaptive';
   colorBleed: number;
+  refractionCoverage: 'full' | 'rim';
 }
 
 /**
@@ -123,6 +124,7 @@ export class MaterialResolver {
       calibration,
       borderMode: options.borderMode || 'directional',
       colorBleed: typeof options.colorBleed === 'number' ? options.colorBleed : 0.6,
+      refractionCoverage: options.refractionCoverage || 'full',
     };
   }
 }

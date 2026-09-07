@@ -30,6 +30,7 @@ export interface OpticalFieldParams {
   basis?: BasisConfig;
   revision?: number;
   maxFieldDimension?: number;
+  refractionCoverage?: 'full' | 'rim';
 }
 
 function smoothstep(edge0: number, edge1: number, x: number): number {
@@ -229,12 +230,12 @@ export class OpticalFieldGenerator {
     const profileFn = SURFACE_PROFILES[profileName] || SURFACE_PROFILES.convex_squircle;
     const isRod = profileName === 'cylindrical_rod';
     const isCapsuleRod = isRod && shape === 'capsule';
+    const isFullCoverage = params.refractionCoverage !== 'rim';
     const maxHalfDim = Math.min(cssW, cssH) * 0.5;
-    // 区域控制：胶囊管透镜充满截面，而卡片/普通容器严格限定在四周边缘 Bezel 区域，防止折射侵占中心产生对角三角裂区
-    const effectiveBezel = Math.max(
-      4,
-      isCapsuleRod ? maxHalfDim : Math.min(bezel, maxHalfDim * 0.8)
-    );
+    // 区域控制：全域液态模式（full）由斯涅尔透镜充满全域，细边框模式（rim）则限定在四周 Bezel
+    const effectiveBezel = isFullCoverage
+      ? maxHalfDim
+      : Math.max(4, isCapsuleRod ? maxHalfDim : Math.min(bezel, maxHalfDim * 0.8));
 
     const profile = calculateRefractionProfile(thickness, effectiveBezel, profileFn, ior);
     const maxAbs = calculateMaxAbsRefraction(profile);
@@ -313,12 +314,12 @@ export class OpticalFieldGenerator {
 
         // Vector Field: Deflect along surface normal scaled by continuous profile
         const dNorm = Math.max(0, Math.min(1, inwardDist / effectiveBezel));
-        const canRefract = dNorm < 1.0;
+        const canRefract = isFullCoverage ? coverage > 0.001 : dNorm < 1.0;
         if (canRefract) {
           const normal = evaluateFootprintNormal(cssX, cssY, cssGeom);
-          const rawRefractionPx = sampleRefractionProfile(profile, dNorm);
+          const rawRefractionPx = sampleRefractionProfile(profile, Math.min(1, dNorm));
 
-          const maxRenderableShiftPx = isCapsuleRod
+          const maxRenderableShiftPx = isCapsuleRod || isFullCoverage
             ? Math.max(12, Math.min(45, effectiveBezel * 0.75))
             : Math.max(8, Math.min(28, effectiveBezel * 0.5));
           const boundedRefractionPx = Math.max(
@@ -326,15 +327,49 @@ export class OpticalFieldGenerator {
             Math.min(maxRenderableShiftPx, rawRefractionPx)
           );
 
-          // 四周往中间自然渐变平滑归零：外边缘平滑进入，内侧边界（dNorm -> 1.0）使用 Hermite 曲线平滑收口为 0
-          const inwardFalloff = isCapsuleRod
-            ? 1 - Math.pow(dNorm, 2) * 0.05
-            : 1 - smoothstep(0.65, 1.0, dNorm);
+          let finalNx = normal.x;
+          let finalNy = normal.y;
+          let inwardFalloff = 1.0;
+
+          if (isFullCoverage) {
+            // 💧 全域连续水滴曲率 + 低频正弦谐波水波涟漪 (Fluid Lens + Harmonic Liquid Waves)
+            // 消除矩形对角线 45° 阶跃折缝，将边缘 SDF 法线平滑过渡到整块卡片的中心径向曲面与液态水波
+            const cx = cssW * 0.5;
+            const cy = cssH * 0.5;
+            const rx = (cssX - cx) / Math.max(1, maxHalfDim);
+            const ry = (cssY - cy) / Math.max(1, maxHalfDim);
+            const rDist = Math.hypot(rx, ry);
+
+            // 边缘（dNorm < 0.25）以贴边法线为主；向内（dNorm >= 0.25）平滑融入全域流体透镜与微波
+            const blendToBody = smoothstep(0.15, 0.65, dNorm);
+
+            // 平滑低频水面张力涟漪（波长在 28~36px，振幅温和柔润）
+            const waveFreq = Math.max(24, Math.min(48, maxHalfDim * 0.35));
+            const waveX = Math.sin(cssX / waveFreq + 0.4) * Math.cos(cssY / (waveFreq * 1.2)) * 0.22;
+            const waveY = Math.cos(cssX / (waveFreq * 1.2)) * Math.sin(cssY / waveFreq + 0.8) * 0.22;
+
+            // 径向平滑透镜向心/离心坡度：中心点 (rDist -> 0) 自然平滑归零无奇点
+            const radialDomeMag = smoothstep(0.0, 0.8, rDist);
+            const lensX = (rDist > 1e-4 ? (rx / rDist) * radialDomeMag : 0) * 0.45 + waveX;
+            const lensY = (rDist > 1e-4 ? (ry / rDist) * radialDomeMag : 0) * 0.45 + waveY;
+
+            finalNx = normal.x * (1 - blendToBody) + lensX * blendToBody;
+            finalNy = normal.y * (1 - blendToBody) + lensY * blendToBody;
+
+            // 全域保持 0.75 ~ 1.0 的液态折射透光率，不出现中心断崖式空白
+            inwardFalloff = 1 - Math.pow(dNorm, 3) * 0.25;
+          } else {
+            // 细边框模式（rim）：四周边框自然收敛归零，中心完全平坦
+            inwardFalloff = isCapsuleRod
+              ? 1 - Math.pow(dNorm, 2) * 0.05
+              : 1 - smoothstep(0.65, 1.0, dNorm);
+          }
+
           const transmissionGate = smoothstep(0.0, 0.1, coverage) * inwardFalloff;
           const normalizedMag = maxAbs > 0 ? boundedRefractionPx / maxAbs : 0;
           const deflectionWeight = coverage * transmissionGate;
-          const normDx = normal.x * normalizedMag * deflectionWeight;
-          const normDy = normal.y * normalizedMag * deflectionWeight;
+          const normDx = finalNx * normalizedMag * deflectionWeight;
+          const normDy = finalNy * normalizedMag * deflectionWeight;
 
           vecData[idx] = Math.round(128 + Math.max(-1, Math.min(1, normDx)) * 127);
           vecData[idx + 1] = Math.round(128 + Math.max(-1, Math.min(1, normDy)) * 127);

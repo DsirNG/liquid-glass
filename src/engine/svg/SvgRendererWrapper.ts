@@ -381,6 +381,7 @@ export class SvgRendererWrapper implements RendererDelegate {
           basis: resolvedMat.calibration.geometry,
           revision,
           maxFieldDimension: resolveOpticalFieldDimension(opts.quality),
+          refractionCoverage: resolvedMat.refractionCoverage,
         });
 
         // Revision race guard: discard if superseded or destroyed

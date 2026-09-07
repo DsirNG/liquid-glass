@@ -43,7 +43,8 @@ export class SvgFilterBuilder {
     assets?: OpticalFieldAssets | null,
     userRefraction = 1.0
   ): string {
-    const { bodyBlur, saturation, dispersionGain, lensingGain, colorBleed = 0.6 } = material;
+    const { bodyBlur, saturation, dispersionGain, lensingGain, colorBleed = 0.6, refractionCoverage = 'full' } = material;
+    const isFullCoverage = refractionCoverage !== 'rim';
     const width = assets?.width ?? 300;
     const height = assets?.height ?? 80;
     const physicalAmplitude = assets?.physicalAmplitude ?? 32;
@@ -129,14 +130,21 @@ export class SvgFilterBuilder {
                 0 0 0 1 0"
         result="COVERAGE_MASK"
       />
-      <!-- Outer + inner are the complete refractive bevel. -->
+      <!-- Refraction mask: covers full element in 'full' mode, or outer + inner in 'rim' mode -->
       <feColorMatrix
         in="BASIS_FIELD"
         type="matrix"
-        values="1 1 0 0 0
+        values="${
+          isFullCoverage
+            ? `0 0 0 1 0
+                0 0 0 1 0
+                0 0 0 1 0
+                0 0 0 1 0`
+            : `1 1 0 0 0
                 1 1 0 0 0
                 1 1 0 0 0
-                1 1 0 0 0"
+                1 1 0 0 0`
+        }"
         result="REFRACTION_MASK"
       />
 

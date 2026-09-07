@@ -42,5 +42,6 @@ export function normalizeOptions(options?: LiquidGlassCreateOptions): Normalized
     interactive: typeof o.interactive === 'boolean' ? o.interactive : d.interactive,
     borderMode: o.borderMode ?? d.borderMode,
     colorBleed: sanitizeNumber(o.colorBleed, d.colorBleed, 0, 1),
+    refractionCoverage: o.refractionCoverage === 'rim' ? 'rim' : 'full',
   };
 }

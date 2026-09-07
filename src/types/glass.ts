@@ -8,6 +8,7 @@ export type {
   FootprintShape,
   LiquidGlassQuality,
   OpticalDebugMode,
+  RefractionCoverage,
 } from './material';
 
 export type GlassPreset = 'ios-like' | 'clear' | 'vivid' | 'heavy';

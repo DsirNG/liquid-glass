@@ -26,4 +26,5 @@ export const DEFAULT_GLASS_OPTIONS: Readonly<NormalizedLiquidGlassOptions> = Obj
   interactive: true,
   borderMode: 'directional',
   colorBleed: 0.6,
+  refractionCoverage: 'full',
 });

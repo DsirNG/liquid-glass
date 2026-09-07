@@ -9,6 +9,7 @@ import type {
   FootprintShape,
   LiquidGlassQuality,
   OpticalDebugMode,
+  RefractionCoverage,
 } from '../../../types';
 
 import { useLiquidGlass } from '../../composables/useLiquidGlass';
@@ -37,6 +38,8 @@ const props = withDefaults(
     ambientLuma?: number;
     debug?: OpticalDebugMode;
     borderMode?: 'directional' | 'adaptive';
+    colorBleed?: number;
+    refractionCoverage?: RefractionCoverage;
     options?: LiquidGlassMaterialOptions;
   }>(),
   { interactive: true }
@@ -70,6 +73,8 @@ const createOptions = computed<LiquidGlassCreateOptions>(() => {
   if (props.ambientLuma !== undefined) options.ambientLuma = props.ambientLuma;
   if (props.debug !== undefined) options.debug = props.debug;
   if (props.borderMode !== undefined) options.borderMode = props.borderMode;
+  if (props.colorBleed !== undefined) options.colorBleed = props.colorBleed;
+  if (props.refractionCoverage !== undefined) options.refractionCoverage = props.refractionCoverage;
 
   return options;
 });

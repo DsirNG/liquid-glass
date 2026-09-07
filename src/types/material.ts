@@ -14,6 +14,7 @@ export type OpticalDebugMode =
   'none' | 'vector' | 'outer' | 'inner' | 'body' | 'coverage' | 'refraction' | 'final';
 
 export type BorderContrastMode = 'directional' | 'adaptive';
+export type RefractionCoverage = 'full' | 'rim';
 
 /**
  * Optical material parameters shared by every Liquid Glass implementation.
@@ -42,4 +43,5 @@ export interface LiquidGlassMaterialOptions {
   debug?: OpticalDebugMode;
   borderMode?: BorderContrastMode;
   colorBleed?: number;
+  refractionCoverage?: RefractionCoverage;
 }

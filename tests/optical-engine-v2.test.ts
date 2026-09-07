@@ -10,7 +10,7 @@ import {
   OpticalFieldGenerator,
   evaluatePartitionOfUnityBasis,
   CapabilityResolver,
-
+  SvgFilterBuilder,
   MaterialResolver,
   resolveOpticalFieldDimension,
 } from '../src/engine/svg';
@@ -337,6 +337,71 @@ describe('Liquid Glass Optical Engine v2.1 Architecture Contracts', () => {
       expect(resolveOpticalFieldDimension('medium')).toBe(256);
       expect(resolveOpticalFieldDimension('high')).toBe(512);
       expect(resolveOpticalFieldDimension('ultra')).toBe(1024);
+    });
+  });
+
+  describe('Contract 8: Full-Body Liquid Refraction vs Rim Bezel Coverage', () => {
+    it('generates full-body liquid coverage and preserves rim-only coverage on demand', async () => {
+      // 1. Full-body mode asset generation
+      const fullAssets = await OpticalFieldGenerator.generate({
+        geometry: {
+          shape: 'roundedRect',
+          width: 200,
+          height: 100,
+          radius: 24,
+        },
+        bezel: 24,
+        thickness: 40,
+        ior: 2.2,
+        refractionCoverage: 'full',
+      });
+
+      expect(fullAssets.width).toBe(200);
+      expect(fullAssets.height).toBe(100);
+      expect(fullAssets.physicalAmplitude).toBeGreaterThan(0);
+      fullAssets.dispose();
+
+      // 2. Rim-only mode asset generation
+      const rimAssets = await OpticalFieldGenerator.generate({
+        geometry: {
+          shape: 'roundedRect',
+          width: 200,
+          height: 100,
+          radius: 24,
+        },
+        bezel: 24,
+        thickness: 40,
+        ior: 2.2,
+        refractionCoverage: 'rim',
+      });
+
+      expect(rimAssets.width).toBe(200);
+      expect(rimAssets.height).toBe(100);
+      rimAssets.dispose();
+    });
+
+    it('configures SvgFilterBuilder REFRACTION_MASK based on refractionCoverage', () => {
+      const fullMat = MaterialResolver.resolve(
+        { refractionCoverage: 'full' },
+        200,
+        100
+      );
+      expect(fullMat.refractionCoverage).toBe('full');
+
+      const fullFilterXml = SvgFilterBuilder.build(fullMat);
+      // In full mode, REFRACTION_MASK uses 4th channel (coverage)
+      expect(fullFilterXml).toContain('0 0 0 1 0');
+
+      const rimMat = MaterialResolver.resolve(
+        { refractionCoverage: 'rim' },
+        200,
+        100
+      );
+      expect(rimMat.refractionCoverage).toBe('rim');
+
+      const rimFilterXml = SvgFilterBuilder.build(rimMat);
+      // In rim mode, REFRACTION_MASK uses outer + inner channels (1 1 0 0 0)
+      expect(rimFilterXml).toContain('1 1 0 0 0');
     });
   });
 });
