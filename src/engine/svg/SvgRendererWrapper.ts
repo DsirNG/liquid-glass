@@ -228,10 +228,7 @@ export class SvgRendererWrapper implements RendererDelegate {
 
     const isDebugChannel = mat.debug !== 'none' && mat.debug !== 'final';
     this.tintLayer.style.display = isDebugChannel ? 'none' : '';
-    // Edge highlights are an independent layer and must remain visible while
-    // inspecting the refraction channel; only the material fill is suppressed.
-    this.borderScreenLayer.style.display = '';
-    this.borderOverlayLayer.style.display = '';
+    // Specular display state is owned exclusively by updateSpecularGradients().
   }
 
   private updateBackdropStyle(mat: ResolvedMaterial): void {
@@ -287,6 +284,18 @@ export class SvgRendererWrapper implements RendererDelegate {
       '--lg-border-overlay-bg',
       `linear-gradient(${angle}deg, rgba(255,255,255,${o1}) 0%, rgba(255,255,255,${o2}) 60%, rgba(255,255,255,${o3}) 100%)`
     );
+  }
+
+  private updateSpecularMask(assets: OpticalFieldAssets | null): void {
+    const hasMask = Boolean(assets?.fresnelMaskUrl);
+    for (const layer of [this.borderScreenLayer, this.borderOverlayLayer]) {
+      layer.classList.toggle('lg-border-geometry', hasMask);
+    }
+    if (hasMask) {
+      this.element.style.setProperty('--lg-fresnel-mask-image', `url("${assets?.fresnelMaskUrl}")`);
+    } else {
+      this.element.style.removeProperty('--lg-fresnel-mask-image');
+    }
   }
 
   /**
@@ -348,6 +357,7 @@ export class SvgRendererWrapper implements RendererDelegate {
         // Transactional swap: install new assets, update SVG filter graph, then switch backdrop style
         const previousAssets = this.currentAssets;
         this.currentAssets = nextAssets;
+        this.updateSpecularMask(nextAssets);
 
         const committedMat = this.resolveCurrentMaterial(width, height);
         this.svgEngine.update(committedMat, nextAssets, this.options.refraction ?? 1.0);

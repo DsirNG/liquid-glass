@@ -147,6 +147,22 @@ describe('LiquidGlass Contract Tests', () => {
       // Await transactional swap once assets are generated
       await new Promise((resolve) => setTimeout(resolve, 50));
       expect(backdrop?.style.backdropFilter).toMatch(/^url\(["']?#.*lg-svg-filter/);
+      expect(el.querySelector('.lg-border-screen')?.classList.contains('lg-border-geometry')).toBe(
+        true
+      );
+
+      instance.destroy();
+      el.remove();
+    });
+
+    it('keeps both specular layers hidden when specular is disabled', () => {
+      const el = document.createElement('div');
+      document.body.appendChild(el);
+
+      const instance = createLiquidGlass(el, { specular: 0 });
+
+      expect((el.querySelector('.lg-border-screen') as HTMLElement).style.display).toBe('none');
+      expect((el.querySelector('.lg-border-overlay') as HTMLElement).style.display).toBe('none');
 
       instance.destroy();
       el.remove();

@@ -232,11 +232,14 @@ export class OpticalFieldGenerator {
 
     const vectorBuf = createOffscreenBuffer(fieldW, fieldH);
     const basisBuf = createOffscreenBuffer(fieldW, fieldH);
+    const fresnelMaskBuf = createOffscreenBuffer(fieldW, fieldH);
 
     const vectorImg = vectorBuf.ctx.createImageData(fieldW, fieldH);
     const basisImg = basisBuf.ctx.createImageData(fieldW, fieldH);
+    const fresnelMaskImg = fresnelMaskBuf.ctx.createImageData(fieldW, fieldH);
     const vecData = vectorImg.data;
     const basData = basisImg.data;
+    const fresnelData = fresnelMaskImg.data;
 
     const cssGeom = {
       shape,
@@ -269,6 +272,10 @@ export class OpticalFieldGenerator {
           basData[idx + 1] = 0;
           basData[idx + 2] = 0;
           basData[idx + 3] = 0;
+          fresnelData[idx] = 255;
+          fresnelData[idx + 1] = 255;
+          fresnelData[idx + 2] = 255;
+          fresnelData[idx + 3] = 0;
           continue;
         }
 
@@ -284,6 +291,15 @@ export class OpticalFieldGenerator {
         basData[idx + 1] = Math.round(basis.inner * 255);
         basData[idx + 2] = Math.round(basis.body * 255);
         basData[idx + 3] = Math.round(basis.coverage * 255);
+
+        // The highlight mask shares the same SDF-derived outer/inner geometry
+        // as refraction. It covers the bevel transition, while the gradient
+        // direction remains a CSS fast path driven by pointer interaction.
+        const fresnel = Math.min(1, basis.outer + basis.inner);
+        fresnelData[idx] = 255;
+        fresnelData[idx + 1] = 255;
+        fresnelData[idx + 2] = 255;
+        fresnelData[idx + 3] = Math.round(fresnel * 255);
 
         // Vector Field: Deflect along surface normal scaled by continuous profile
         const dNorm = Math.max(0, Math.min(1, inwardDist / effectiveBezel));
@@ -311,15 +327,18 @@ export class OpticalFieldGenerator {
 
     vectorBuf.ctx.putImageData(vectorImg, 0, 0);
     basisBuf.ctx.putImageData(basisImg, 0, 0);
+    fresnelMaskBuf.ctx.putImageData(fresnelMaskImg, 0, 0);
 
-    const [vectorUrl, basisUrl] = await Promise.all([
+    const [vectorUrl, basisUrl, fresnelMaskUrl] = await Promise.all([
       canvasToBlobUrl(vectorBuf.canvas),
       canvasToBlobUrl(basisBuf.canvas),
+      canvasToBlobUrl(fresnelMaskBuf.canvas),
     ]);
 
     return new ManagedOpticalFieldAssets({
       vectorUrl,
       basisUrl,
+      fresnelMaskUrl,
       physicalAmplitude: maxAbs,
       width: cssW,
       height: cssH,

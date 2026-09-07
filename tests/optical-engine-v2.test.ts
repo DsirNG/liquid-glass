@@ -138,6 +138,7 @@ describe('Liquid Glass Optical Engine v2.1 Architecture Contracts', () => {
       expect(assets.width).toBe(120);
       expect(assets.height).toBe(60);
       expect(assets.physicalAmplitude).toBeGreaterThan(0);
+      expect(assets.fresnelMaskUrl).toBeTruthy();
 
       assets.dispose();
     });
