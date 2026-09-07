@@ -250,7 +250,6 @@ export class OpticalFieldGenerator {
 
     const effectiveBezel = Math.max(1, bezel);
     const rimWidthPx = Math.max(1.25, Math.min(3.0, effectiveBezel * 0.06));
-    const edgeLockWidthPx = Math.max(1.5, Math.min(4.0, effectiveBezel * 0.08));
 
     for (let fy = 0; fy < fieldH; fy++) {
       const cssY = (fy + 0.5) / fieldScale;
@@ -308,14 +307,24 @@ export class OpticalFieldGenerator {
         const dNorm = Math.max(0, Math.min(1, inwardDist / effectiveBezel));
         if (dNorm < 1.0 && basis.body < 0.999 * coverage) {
           const normal = evaluateFootprintNormal(cssX, cssY, cssGeom);
-          const refraction = sampleRefractionProfile(profile, dNorm);
-          const normalizedMag = maxAbs > 0 ? refraction / maxAbs : 0;
-          // Body does not displace; inner and outer carry deflection. Keep the
-          // silhouette attached to the original boundary and let displacement
-          // ramp in over the first few pixels of the bevel. This prevents
-          // rapidly rotating corner normals from tearing the backdrop outward.
-          const edgeAttach = smoothstep(0, edgeLockWidthPx, Math.max(0, inwardDist));
-          const deflectionWeight = (coverage - basis.body) * edgeAttach;
+          const rawRefractionPx = sampleRefractionProfile(profile, dNorm);
+
+          // Snell geometry can produce very large shifts near a steep
+          // silhouette. Keep the physical profile intact for calibration, but
+          // bound the rendered transmission displacement for visual stability.
+          const maxRenderableShiftPx = Math.max(6, Math.min(24, effectiveBezel * 0.55));
+          const boundedRefractionPx = Math.max(
+            -maxRenderableShiftPx,
+            Math.min(maxRenderableShiftPx, rawRefractionPx)
+          );
+
+          // Body is clean transmission; the inner basis controls the gradual
+          // entry into refractive displacement. The outer basis remains the
+          // silhouette/Fresnel transition and does not jump the backdrop.
+          const inner01 = coverage > 0.0001 ? Math.max(0, Math.min(1, basis.inner / coverage)) : 0;
+          const transmissionGate = smoothstep(0.05, 0.95, inner01);
+          const normalizedMag = maxAbs > 0 ? boundedRefractionPx / maxAbs : 0;
+          const deflectionWeight = coverage * transmissionGate;
           const normDx = -normal.x * normalizedMag * deflectionWeight;
           const normDy = -normal.y * normalizedMag * deflectionWeight;
 
