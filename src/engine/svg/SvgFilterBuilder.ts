@@ -43,7 +43,7 @@ export class SvgFilterBuilder {
     assets?: OpticalFieldAssets | null,
     userRefraction = 1.0
   ): string {
-    const { bodyBlur, saturation, dispersionGain, lensingGain } = material;
+    const { bodyBlur, saturation, dispersionGain, lensingGain, colorBleed = 0.6 } = material;
     const width = assets?.width ?? 300;
     const height = assets?.height ?? 80;
     const physicalAmplitude = assets?.physicalAmplitude ?? 32;
@@ -150,7 +150,72 @@ export class SvgFilterBuilder {
       />
       <feComposite in="BODY_MATERIAL" in2="BODY_MASK" operator="in" result="BODY_CLEAN" />
 
-      <!-- 4. Inner Lensing Pass (Physical deflection & subtle chromatic dispersion) -->
+      <!-- 4. Liquid Color Bleed & Chromatic Lensing Pass -->
+      <!-- Diffuses and blooms backdrop colors along refraction gradients ("把颜色晕出去") -->
+      ${
+        colorBleed > 0.05
+          ? `
+      <feGaussianBlur in="SourceGraphic" stdDeviation="${Math.max(0.6, colorBleed * 3.5).toFixed(2)}" result="SOURCE_BLEED" />
+      ${
+        colorBleed > 0.25
+          ? `<feGaussianBlur in="SourceGraphic" stdDeviation="${Math.max(0.2, (colorBleed - 0.25) * 1.5).toFixed(2)}" result="SOURCE_CORE" />`
+          : `<feOffset in="SourceGraphic" dx="0" dy="0" result="SOURCE_CORE" />`
+      }
+      <feDisplacementMap
+        in="SOURCE_BLEED"
+        in2="DISPLACEMENT_TEXTURE"
+        scale="${scales.r}"
+        xChannelSelector="R"
+        yChannelSelector="G"
+        result="RED_DISPLACED"
+      />
+      <feColorMatrix
+        in="RED_DISPLACED"
+        type="matrix"
+        values="1 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 1 0"
+        result="RED_CHANNEL"
+      />
+
+      <feDisplacementMap
+        in="SOURCE_CORE"
+        in2="DISPLACEMENT_TEXTURE"
+        scale="${scales.g}"
+        xChannelSelector="R"
+        yChannelSelector="G"
+        result="GREEN_DISPLACED"
+      />
+      <feColorMatrix
+        in="GREEN_DISPLACED"
+        type="matrix"
+        values="0 0 0 0 0
+                0 1 0 0 0
+                0 0 0 0 0
+                0 0 0 1 0"
+        result="GREEN_CHANNEL"
+      />
+
+      <feDisplacementMap
+        in="SOURCE_BLEED"
+        in2="DISPLACEMENT_TEXTURE"
+        scale="${scales.b}"
+        xChannelSelector="R"
+        yChannelSelector="G"
+        result="BLUE_DISPLACED"
+      />
+      <feColorMatrix
+        in="BLUE_DISPLACED"
+        type="matrix"
+        values="0 0 0 0 0
+                0 0 0 0 0
+                0 0 1 0 0
+                0 0 0 1 0"
+        result="BLUE_CHANNEL"
+      />
+      `
+          : `
       <feDisplacementMap
         in="SourceGraphic"
         in2="DISPLACEMENT_TEXTURE"
@@ -204,6 +269,8 @@ export class SvgFilterBuilder {
                 0 0 0 1 0"
         result="BLUE_CHANNEL"
       />
+      `
+      }
 
       <feBlend in="RED_CHANNEL" in2="GREEN_CHANNEL" mode="screen" result="RG_COMBINED" />
       <feBlend in="RG_COMBINED" in2="BLUE_CHANNEL" mode="screen" result="RGB_COMBINED" />

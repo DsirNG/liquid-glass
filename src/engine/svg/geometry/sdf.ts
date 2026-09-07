@@ -7,6 +7,11 @@ export interface FootprintGeometry {
   radius: number;
 }
 
+function smax(a: number, b: number, k: number): number {
+  const h = Math.max(0, Math.min(1, 0.5 + (0.5 * (b - a)) / k));
+  return (1 - h) * a + h * b + k * h * (1 - h);
+}
+
 /**
  * Analytical Signed Distance Field for a 2D Box with rounded corners.
  * Coordinates (x, y) relative to box top-left (0..width, 0..height).
@@ -25,7 +30,16 @@ export function roundedRectSdf(x: number, y: number, w: number, h: number, r: nu
   const outsideX = Math.max(0, px);
   const outsideY = Math.max(0, py);
   const outsideDist = Math.hypot(outsideX, outsideY);
-  const insideDist = Math.min(Math.max(px, py), 0);
+
+  // Use smooth maximum for the interior quadrant (px < 0 && py < 0) to eliminate
+  // the harsh 45-degree medial-axis seam that fractures liquid refraction.
+  let insideDist: number;
+  if (px < 0 && py < 0) {
+    const smoothK = Math.max(12, clampedR * 0.85);
+    insideDist = Math.min(smax(px, py, smoothK), 0);
+  } else {
+    insideDist = Math.min(Math.max(px, py), 0);
+  }
 
   return outsideDist + insideDist - clampedR;
 }

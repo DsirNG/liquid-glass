@@ -385,6 +385,21 @@ function onCustomColorInput(e: Event) {
         </div>
         <div class="slider-row-block">
           <div class="slider-header">
+            <span style="color: #38bdf8; font-weight: 600">{{ t.colorBleed }}</span>
+            <span class="val" style="color: #38bdf8">{{ Math.round((params.colorBleed ?? 0.6) * 100) }}%</span>
+          </div>
+          <input
+            :value="params.colorBleed ?? 0.6"
+            type="range"
+            min="0.0"
+            max="1.0"
+            step="0.05"
+            @input="onParamInput('colorBleed', $event)"
+          />
+          <small class="param-hint">{{ t.colorBleedHint }}</small>
+        </div>
+        <div class="slider-row-block">
+          <div class="slider-header">
             <span>色彩饱和度 (Saturation)</span>
             <span class="val">{{ Math.round((params.saturation ?? 1.3) * 100) }}%</span>
           </div>

@@ -41,4 +41,5 @@ export interface LiquidGlassMaterialOptions {
   capability?: 'auto' | 'full' | 'material';
   debug?: OpticalDebugMode;
   borderMode?: BorderContrastMode;
+  colorBleed?: number;
 }

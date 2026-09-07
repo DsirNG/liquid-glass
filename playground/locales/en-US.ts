@@ -50,6 +50,8 @@ export default {
   iorHint: 'Optical constant (water: 1.33, glass: 1.5, diamond: 2.4)',
   dispersion: 'Chromatic Dispersion',
   dispersionHint: 'Subtle RGB separation at outer perimeter',
+  colorBleed: 'Liquid Color Bleed',
+  colorBleedHint: 'Simulates fluid defocus & chromatic bloom that bleeds backdrop colors outward',
   blur: 'Body Blur',
   blurHint: 'Mild scattering blur in center transmission area',
   specular: 'Specular Highlight',

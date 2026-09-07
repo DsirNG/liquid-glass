@@ -29,6 +29,7 @@ export interface ResolvedMaterial {
   debug: OpticalDebugMode;
   calibration: CalibrationPreset;
   borderMode: 'directional' | 'adaptive';
+  colorBleed: number;
 }
 
 /**
@@ -88,9 +89,11 @@ export class MaterialResolver {
     const effectiveAmp = physicalAmplitude > 0 ? physicalAmplitude : 32;
     const totalRefractionPx = userRefraction * effectiveAmp * lensingGain;
 
-    // Required userSpaceOnUse sampling margin to prevent clipping blur & deflection
+    // Required userSpaceOnUse sampling margin to prevent clipping blur, color bleed & deflection
     const safetyPadding = 12;
-    const samplingMargin = Math.ceil(totalRefractionPx + bodyBlur * 3 + safetyPadding);
+    const samplingMargin = Math.ceil(
+      totalRefractionPx + bodyBlur * 3 + (options.colorBleed ?? 0.6) * 12 + safetyPadding
+    );
 
     const shadowSpread = Math.max(-10, Math.min(10, (userShadow - 0.5) * 15));
     const shadowBlur = Math.round(userShadow * (20 + 20 * sizeFactor) * calibration.shadow.blurGain);
@@ -119,6 +122,7 @@ export class MaterialResolver {
       debug: debugMode,
       calibration,
       borderMode: options.borderMode || 'directional',
+      colorBleed: typeof options.colorBleed === 'number' ? options.colorBleed : 0.6,
     };
   }
 }

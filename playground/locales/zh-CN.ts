@@ -50,6 +50,8 @@ export default {
   iorHint: '光学常数（水 1.33，玻璃 1.5，钻石 2.4）',
   dispersion: '色散微差 (Dispersion)',
   dispersionHint: '透镜边缘的红蓝微弱色散分离度',
+  colorBleed: '液态色彩晕染 (Color Bleed)',
+  colorBleedHint: '模拟水滴透镜的柔焦色相扩散与溢彩晕染，让文字与底色像液体般向边缘自然晕开',
   blur: '磨砂模糊 (Blur)',
   blurHint: '玻璃中心区域对背景的散射模糊程度',
   specular: '边缘高光 (Specular)',

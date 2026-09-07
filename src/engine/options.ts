@@ -41,5 +41,6 @@ export function normalizeOptions(options?: LiquidGlassCreateOptions): Normalized
     debug: o.debug ?? d.debug,
     interactive: typeof o.interactive === 'boolean' ? o.interactive : d.interactive,
     borderMode: o.borderMode ?? d.borderMode,
+    colorBleed: sanitizeNumber(o.colorBleed, d.colorBleed, 0, 1),
   };
 }
