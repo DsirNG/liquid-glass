@@ -4,7 +4,6 @@
 .lg-root {
   position: relative;
   display: inline-flex;
-  isolation: isolate;
   box-sizing: border-box;
 }
 
@@ -12,7 +11,6 @@
 .lg-svg-container {
   position: relative;
   display: inline-flex;
-  isolation: isolate;
   border-radius: var(--lg-radius, 40px);
   box-shadow: 0 8px var(--lg-outer-shadow-blur, 24px)
     rgba(0, 0, 0, calc(0.22 * var(--lg-shadow-opacity, 1)));
@@ -54,7 +52,7 @@
   pointer-events: none;
   z-index: 2;
   box-sizing: border-box;
-  padding: 1.5px;
+  padding: 1.25px;
   opacity: var(--lg-fresnel-gain, 1);
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-mask:
@@ -68,18 +66,12 @@
   mask-composite: exclude;
 }
 
-/* Geometry-coupled bevel mask generated from the same outer/inner basis as refraction. */
+/* Geometry-coupled bevel rim (guaranteed hollow center to never obstruct refraction) */
 .lg-border-geometry {
-  padding: 0;
-  /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-mask: var(--lg-fresnel-mask-image) center / 100% 100% no-repeat;
-  mask: var(--lg-fresnel-mask-image) center / 100% 100% no-repeat;
-  /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-mask-composite: source-over;
-  mask-composite: add;
+  padding: 1.25px;
 }
 
-/* Specular Highlight Border 1 (Screen Blend - Ambient Environmental Light Rim) */
+/* Specular Highlight Border 1 (Ambient Environmental Light Rim) */
 .lg-border-screen {
   background: var(
     --lg-border-screen-bg,
@@ -90,10 +82,9 @@
       rgba(255, 255, 255, 0.5) 100%
     )
   );
-  mix-blend-mode: screen;
 }
 
-/* Specular Highlight Border 2 (Overlay Blend - Intense Directional Glint Line) */
+/* Specular Highlight Border 2 (Intense Directional Glint Line) */
 .lg-border-overlay {
   background: var(
     --lg-border-overlay-bg,
@@ -104,7 +95,6 @@
       rgba(255, 255, 255, 0.35) 100%
     )
   );
-  mix-blend-mode: overlay;
 }
 
 /* Common Content Slot */

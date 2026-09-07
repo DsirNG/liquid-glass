@@ -45,10 +45,11 @@ function setInspectionMode(mode: 'final' | 'refraction' | 'frosted'): void {
       shadow: 0.35,
     },
     refraction: {
-      debug: 'refraction',
+      debug: 'none',
+      blur: 0,
       opacity: 0,
-      specular: 0,
-      shadow: 0,
+      specular: 0.75,
+      shadow: 0.25,
       refraction: 1.0,
     },
     frosted: {
@@ -100,7 +101,7 @@ function onCustomColorInput(e: Event) {
               active:
                 (!params.debug || params.debug === 'none') &&
                 (params.refraction ?? 1) > 0 &&
-                (params.specular ?? 0.7) > 0,
+                (params.opacity ?? 0) > 0,
             }"
             style="font-size: 10px; padding: 8px 2px; font-weight: 700; text-align: center"
             @click="setInspectionMode('final')"
@@ -111,7 +112,9 @@ function onCustomColorInput(e: Event) {
             :class="{
               active:
                 params.debug === 'refraction' ||
-                (params.specular === 0 && params.opacity === 0 && (params.refraction ?? 1) > 0),
+                ((!params.debug || params.debug === 'none') &&
+                  (params.opacity ?? 0) === 0 &&
+                  (params.refraction ?? 1) > 0),
             }"
             style="
               font-size: 10px;
