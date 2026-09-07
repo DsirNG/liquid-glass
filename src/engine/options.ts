@@ -40,5 +40,6 @@ export function normalizeOptions(options?: LiquidGlassCreateOptions): Normalized
     capability: o.capability ?? d.capability,
     debug: o.debug ?? d.debug,
     interactive: typeof o.interactive === 'boolean' ? o.interactive : d.interactive,
+    borderMode: o.borderMode ?? d.borderMode,
   };
 }

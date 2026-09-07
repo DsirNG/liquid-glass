@@ -362,6 +362,39 @@ function onCustomColorInput(e: Event) {
           />
           <small class="param-hint">{{ t.specularHint }}</small>
         </div>
+
+        <!-- 🌓 白底边缘呈现方案 Tab 切换 (Border Contrast Mode) -->
+        <div class="border-mode-box" style="margin-top: 14px">
+          <div class="slider-header" style="margin-bottom: 6px">
+            <span style="font-weight: 600; font-size: 11px">{{ t.borderModeTitle }}</span>
+          </div>
+          <div
+            class="radio-pill-group"
+            style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px"
+          >
+            <button
+              :class="{ active: (params.borderMode ?? 'directional') === 'directional' }"
+              style="font-size: 10px; padding: 7px 4px; font-weight: 700; text-align: center"
+              @click="emit('updateParam', 'borderMode', 'directional')"
+            >
+              {{ t.borderModeDirectional }}
+            </button>
+            <button
+              :class="{ active: params.borderMode === 'adaptive' }"
+              style="font-size: 10px; padding: 7px 4px; font-weight: 700; text-align: center"
+              @click="emit('updateParam', 'borderMode', 'adaptive')"
+            >
+              {{ t.borderModeAdaptive }}
+            </button>
+          </div>
+          <small class="param-hint" style="display: block; margin-top: 5px; line-height: 1.4">
+            {{
+              (params.borderMode ?? 'directional') === 'directional'
+                ? t.borderModeDirectionalHint
+                : t.borderModeAdaptiveHint
+            }}
+          </small>
+        </div>
       </section>
 
       <!-- Color & Atmosphere -->

@@ -48,6 +48,11 @@ export default {
   blurHint: '玻璃中心区域对背景的散射模糊程度',
   specular: '边缘高光 (Specular)',
   specularHint: '跟随鼠标光源流动的镜面高光边框强度',
+  borderModeTitle: '白底边缘呈现方案 (Border in Light/White)',
+  borderModeDirectional: '🌓 方案 1: 双向流光',
+  borderModeAdaptive: '🌗 方案 2: 环境自适应',
+  borderModeDirectionalHint: '方案 1: 迎光白高光 + 背光物理微暗切角，全场景自动立体凸显，白底黑底皆宜',
+  borderModeAdaptiveHint: '方案 2: 根据背景明度自适应切换，白底呈现深灰微墨线轮廓，黑底呈现晶亮白',
 
   appearanceTitle: '材质外观与阴影',
   tintColor: '材质底色 (Tint Color)',

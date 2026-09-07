@@ -6,6 +6,8 @@ export type LiquidGlassQuality = 'low' | 'medium' | 'high' | 'ultra';
 export type OpticalDebugMode =
   'none' | 'vector' | 'outer' | 'inner' | 'body' | 'coverage' | 'refraction' | 'final';
 
+export type BorderContrastMode = 'directional' | 'adaptive';
+
 /**
  * Optical material parameters shared by every Liquid Glass implementation.
  */
@@ -31,4 +33,5 @@ export interface LiquidGlassMaterialOptions {
   shape?: FootprintShape;
   capability?: 'auto' | 'full' | 'material';
   debug?: OpticalDebugMode;
+  borderMode?: BorderContrastMode;
 }

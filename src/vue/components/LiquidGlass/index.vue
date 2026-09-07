@@ -36,6 +36,7 @@ const props = withDefaults(
     shape?: FootprintShape;
     ambientLuma?: number;
     debug?: OpticalDebugMode;
+    borderMode?: 'directional' | 'adaptive';
     options?: LiquidGlassMaterialOptions;
   }>(),
   { interactive: true }
@@ -68,6 +69,7 @@ const createOptions = computed<LiquidGlassCreateOptions>(() => {
   if (props.shape !== undefined) options.shape = props.shape;
   if (props.ambientLuma !== undefined) options.ambientLuma = props.ambientLuma;
   if (props.debug !== undefined) options.debug = props.debug;
+  if (props.borderMode !== undefined) options.borderMode = props.borderMode;
 
   return options;
 });

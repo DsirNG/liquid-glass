@@ -28,6 +28,7 @@ export interface ResolvedMaterial {
   radiusPx: string;
   debug: OpticalDebugMode;
   calibration: CalibrationPreset;
+  borderMode: 'directional' | 'adaptive';
 }
 
 /**
@@ -117,6 +118,7 @@ export class MaterialResolver {
       radiusPx,
       debug: debugMode,
       calibration,
+      borderMode: options.borderMode || 'directional',
     };
   }
 }

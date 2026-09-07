@@ -267,23 +267,58 @@ export class SvgRendererWrapper implements RendererDelegate {
     const angle = sState ? sState.lightAngle : 135;
     const gain = mat ? mat.specularGain : 1.0;
     const effSpec = Math.min(1, specular * gain);
-
-    const s1 = (0.85 * effSpec).toFixed(3);
-    const s2 = (0.2 * effSpec).toFixed(3);
-    const s3 = (0.55 * effSpec).toFixed(3);
-    const o1 = (0.95 * effSpec).toFixed(3);
-    const o2 = (0.05 * effSpec).toFixed(3);
-    const o3 = (0.4 * effSpec).toFixed(3);
+    const borderMode = mat?.borderMode ?? (this.options.borderMode ?? 'directional');
 
     const s = this.element.style;
-    s.setProperty(
-      '--lg-border-screen-bg',
-      `linear-gradient(${angle}deg, rgba(255,255,255,${s1}) 0%, rgba(255,255,255,${s2}) 50%, rgba(255,255,255,${s3}) 100%)`
-    );
-    s.setProperty(
-      '--lg-border-overlay-bg',
-      `linear-gradient(${angle}deg, rgba(255,255,255,${o1}) 0%, rgba(255,255,255,${o2}) 60%, rgba(255,255,255,${o3}) 100%)`
-    );
+
+    if (borderMode === 'adaptive') {
+      // 方案二：环境亮度自适应轮廓 (Luma-Adaptive Dual Rim)
+      // 根据环境明度 (ambientLuma)，在纯白/浅色底时平滑过渡为深冷灰精细墨线，暗底保持晶亮白高光
+      const luma = mat?.ambientLuma ?? (this.options.ambientLuma ?? 0.5);
+      const isLight = luma >= 0.6;
+      const factor = Math.max(0, Math.min(1, (luma - 0.45) / 0.4));
+
+      // 在亮白底使用深灰墨线 (15, 23, 42)，暗底使用纯白 (255, 255, 255)
+      const r = Math.round(255 * (1 - factor) + 15 * factor);
+      const g = Math.round(255 * (1 - factor) + 23 * factor);
+      const b = Math.round(255 * (1 - factor) + 42 * factor);
+
+      const a1 = isLight ? (0.28 * effSpec).toFixed(3) : (0.85 * effSpec).toFixed(3);
+      const a2 = isLight ? (0.08 * effSpec).toFixed(3) : (0.2 * effSpec).toFixed(3);
+      const a3 = isLight ? (0.18 * effSpec).toFixed(3) : (0.55 * effSpec).toFixed(3);
+
+      const o1 = isLight ? (0.35 * effSpec).toFixed(3) : (0.95 * effSpec).toFixed(3);
+      const o2 = isLight ? (0.05 * effSpec).toFixed(3) : (0.05 * effSpec).toFixed(3);
+      const o3 = isLight ? (0.24 * effSpec).toFixed(3) : (0.4 * effSpec).toFixed(3);
+
+      s.setProperty(
+        '--lg-border-screen-bg',
+        `linear-gradient(${angle}deg, rgba(${r},${g},${b},${a1}) 0%, rgba(${r},${g},${b},${a2}) 50%, rgba(${r},${g},${b},${a3}) 100%)`
+      );
+      s.setProperty(
+        '--lg-border-overlay-bg',
+        `linear-gradient(${angle}deg, rgba(${r},${g},${b},${o1}) 0%, rgba(${r},${g},${b},${o2}) 60%, rgba(${r},${g},${b},${o3}) 100%)`
+      );
+    } else {
+      // 方案一：明暗双向流动光影边 (Directional Contrast Rim)
+      // 迎光面保持通透镜面白高光，背光面自然沉降为真实物理折射的微弱暗影线 (rgba(15,23,42,0.18))
+      // 在深底白光璀璨，在纯白底背光暗切角立即突显立体几何边缘
+      const s1 = (0.92 * effSpec).toFixed(3);
+      const s2 = (0.15 * effSpec).toFixed(3);
+      const s3 = (0.18 * effSpec).toFixed(3);
+      const o1 = (0.95 * effSpec).toFixed(3);
+      const o2 = (0.05 * effSpec).toFixed(3);
+      const o3 = (0.24 * effSpec).toFixed(3);
+
+      s.setProperty(
+        '--lg-border-screen-bg',
+        `linear-gradient(${angle}deg, rgba(255,255,255,${s1}) 0%, rgba(255,255,255,${s2}) 50%, rgba(15,23,42,${s3}) 100%)`
+      );
+      s.setProperty(
+        '--lg-border-overlay-bg',
+        `linear-gradient(${angle}deg, rgba(255,255,255,${o1}) 0%, rgba(255,255,255,${o2}) 60%, rgba(15,23,42,${o3}) 100%)`
+      );
+    }
   }
 
   private updateSpecularMask(assets: OpticalFieldAssets | null): void {

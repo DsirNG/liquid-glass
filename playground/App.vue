@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import type { GlassPreset, LiquidGlassMaterialOptions } from '../src/core';
 import { GLASS_PRESETS } from '../src/core';
 import { LiquidGlass } from '../src/vue';
@@ -35,6 +35,8 @@ const params = reactive<LiquidGlassMaterialOptions>({
   dispersion: 2.0,
   saturation: 1.3,
   quality: 'high',
+  borderMode: 'directional',
+  ambientLuma: 0.5,
 });
 
 // Quality is part of the same reactive material object consumed by the engine.
@@ -109,6 +111,14 @@ const isLightBg = computed(() => {
   }
   return false;
 });
+
+watch(
+  isLightBg,
+  (light) => {
+    params.ambientLuma = light ? 0.92 : 0.4;
+  },
+  { immediate: true }
+);
 
 const rootStyle = computed(() => {
   if (isSolidColor.value) {

@@ -48,6 +48,11 @@ export default {
   blurHint: 'Mild scattering blur in center transmission area',
   specular: 'Specular Highlight',
   specularHint: 'Intensity of light-tracking rim reflection',
+  borderModeTitle: 'Border in Light/White Background',
+  borderModeDirectional: '🌓 Option 1: Directional Rim',
+  borderModeAdaptive: '🌗 Option 2: Luma Adaptive',
+  borderModeDirectionalHint: 'Option 1: Facing light highlights, shadow side dark rim. Universal 3D depth on all backgrounds.',
+  borderModeAdaptiveHint: 'Option 2: Dynamically shifts between white specular and dark ink outline based on ambient brightness.',
 
   appearanceTitle: 'Appearance & Shadow',
   tintColor: 'Tint Color',
