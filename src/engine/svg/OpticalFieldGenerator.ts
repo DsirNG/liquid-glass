@@ -333,8 +333,8 @@ export class OpticalFieldGenerator {
           const transmissionGate = smoothstep(0.0, 0.1, coverage) * inwardFalloff;
           const normalizedMag = maxAbs > 0 ? boundedRefractionPx / maxAbs : 0;
           const deflectionWeight = coverage * transmissionGate;
-          const normDx = -normal.x * normalizedMag * deflectionWeight;
-          const normDy = -normal.y * normalizedMag * deflectionWeight;
+          const normDx = normal.x * normalizedMag * deflectionWeight;
+          const normDy = normal.y * normalizedMag * deflectionWeight;
 
           vecData[idx] = Math.round(128 + Math.max(-1, Math.min(1, normDx)) * 127);
           vecData[idx + 1] = Math.round(128 + Math.max(-1, Math.min(1, normDy)) * 127);

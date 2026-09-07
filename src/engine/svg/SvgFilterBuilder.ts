@@ -148,7 +148,8 @@ export class SvgFilterBuilder {
         values="${satMatrix(saturation)}"
         result="BODY_MATERIAL"
       />
-      <feComposite in="BODY_MATERIAL" in2="BODY_MASK" operator="in" result="BODY_CLEAN" />
+      <!-- Glass base layer covers entire coverage area so perimeter never drops out -->
+      <feComposite in="BODY_MATERIAL" in2="COVERAGE_MASK" operator="in" result="BODY_CLEAN" />
 
       <!-- 4. Liquid Color Bleed & Chromatic Lensing Pass -->
       <!-- Diffuses and blooms backdrop colors along refraction gradients ("把颜色晕出去") -->
