@@ -1,46 +1,37 @@
 # Liquid Glass
 
-DOM-native liquid glass optics for Vanilla JavaScript and Vue 3, with an optional Three.js WebGL implementation.
+DOM-native liquid glass optics for Vanilla JavaScript and Vue 3.
 
 ## Architecture
 
 The default package is the lightweight path:
 
 ```text
-liquid-glass / liquid-glass/vue
+@dinqorai/liquid-glass / @dinqorai/liquid-glass/vue
   -> DOM-native LiquidGlassEngine
   -> SVG backdrop optics + CSS material layers
   -> real DOM content
 ```
 
-WebGL is an explicit extension and is never imported by the default core:
-
-```text
-liquid-glass/webgl / liquid-glass/vue-webgl
-  -> WebGLEnhancement
-  -> Three.js
-```
+The current package exposes only the DOM-native SVG/CSS renderer. There is no WebGL or Three.js API in this release.
 
 ## Installation
 
 ```bash
-pnpm add liquid-glass
+pnpm add @dinqorai/liquid-glass
 ```
 
-Vue users install Vue alongside the package. WebGL users also install Three.js:
+Vue users install Vue alongside the package:
 
 ```bash
-pnpm add liquid-glass vue
-pnpm add liquid-glass three
+pnpm add @dinqorai/liquid-glass vue
 ```
-
-Both `vue` and `three` are optional peer dependencies.
 
 ## DOM-native API
 
 ```ts
-import { createLiquidGlass } from 'liquid-glass';
-import 'liquid-glass/style.css';
+import { createLiquidGlass } from '@dinqorai/liquid-glass';
+import '@dinqorai/liquid-glass/style.css';
 
 const glass = createLiquidGlass(document.querySelector('#card')!, {
   thickness: 45,
@@ -53,14 +44,14 @@ glass.resize();
 glass.destroy();
 ```
 
-`createLiquidGlass()` has no renderer switch or WebGL background option. SVG filters are an internal detail of the DOM backdrop engine.
+`createLiquidGlass()` uses the DOM-native SVG backdrop engine. SVG filters are an internal implementation detail.
 
 ## Vue API
 
 ```vue
 <script setup lang="ts">
-import { LiquidGlass, GlassButton } from 'liquid-glass/vue';
-import 'liquid-glass/style.css';
+import { LiquidGlass, GlassButton } from '@dinqorai/liquid-glass/vue';
+import '@dinqorai/liquid-glass/style.css';
 </script>
 
 <template>
@@ -70,29 +61,6 @@ import 'liquid-glass/style.css';
 
   <!-- Ready-to-use Liquid Glass Button -->
   <GlassButton variant="primary" size="md" @click="handleClick"> Action Button </GlassButton>
-</template>
-```
-
-## Optional WebGL API
-
-```ts
-import { createWebGLLiquidGlass } from 'liquid-glass/webgl';
-
-const glass = createWebGLLiquidGlass(document.querySelector('#card')!, {
-  backgroundUrl: '/background.jpg',
-  thickness: 45,
-});
-```
-
-```vue
-<script setup lang="ts">
-import { WebGLLiquidGlass } from 'liquid-glass/vue-webgl';
-</script>
-
-<template>
-  <WebGLLiquidGlass background-url="/background.jpg">
-    <button>WebGL glass</button>
-  </WebGLLiquidGlass>
 </template>
 ```
 

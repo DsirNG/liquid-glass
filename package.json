@@ -1,6 +1,6 @@
 {
-  "name": "liquid-glass",
-  "version": "0.1.0",
+  "name": "@dinqorai/liquid-glass",
+  "version": "0.1.0-test.1",
   "description": "Next-generation liquid glass optical distortion & refraction engine for Vue 3 and Vanilla JS.",
   "type": "module",
   "main": "./dist/core/index.js",
