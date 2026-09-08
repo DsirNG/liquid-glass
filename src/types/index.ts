@@ -8,6 +8,7 @@ export type {
   FootprintShape,
   LiquidGlassQuality,
   OpticalDebugMode,
+  BorderContrastMode,
   RefractionCoverage,
   LiquidGlassMaterialOptions,
   LiquidGlassCreateOptions,

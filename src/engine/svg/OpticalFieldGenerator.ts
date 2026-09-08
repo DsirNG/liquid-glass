@@ -348,7 +348,6 @@ export class OpticalFieldGenerator {
             const rDist = Math.hypot(rx, ry);
 
             // 边缘（dNorm < 0.25）以贴边法线为主；向内（dNorm >= 0.25）平滑融入全域流体透镜与微波
-            const blendToBody = smoothstep(0.15, 0.65, dNorm);
 
             // 平滑低频水面张力涟漪（波长在 28~36px，振幅温和柔润）
             const waveFreq = Math.max(24, Math.min(48, maxHalfDim * 0.35));
@@ -362,8 +361,12 @@ export class OpticalFieldGenerator {
             const lensX = (rDist > 1e-4 ? (rx / rDist) * radialDomeMag : 0) * 0.45 + waveX;
             const lensY = (rDist > 1e-4 ? (ry / rDist) * radialDomeMag : 0) * 0.45 + waveY;
 
-            finalNx = normal.x * (1 - blendToBody) + lensX * blendToBody;
-            finalNy = normal.y * (1 - blendToBody) + lensY * blendToBody;
+            // Full coverage is a fluid lens, not a rounded-rectangle bevel.
+            // Using the SDF normal near the edge reintroduces the rectangle's
+            // medial-axis diagonal at the corners, so the continuous ellipse
+            // field owns the direction everywhere in Full mode.
+            finalNx = lensX;
+            finalNy = lensY;
 
             // 全域保持 0.75 ~ 1.0 的液态折射透光率，不出现中心断崖式空白
             inwardFalloff = 1 - Math.pow(dNorm, 3) * 0.25;

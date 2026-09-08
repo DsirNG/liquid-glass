@@ -36,6 +36,7 @@ const OPTICAL_FIELD_OPTION_KEYS = [
   'materialPreset',
   'quality',
   'shape',
+  'refractionCoverage',
 ] as const satisfies readonly (keyof LiquidGlassUpdateOptions)[];
 
 export type ExtendedEngineOptions = NormalizedLiquidGlassOptions;

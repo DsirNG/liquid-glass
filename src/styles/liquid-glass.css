@@ -1,5 +1,12 @@
 @import './variables.css';
 
+/* Registered so the button's elastic scale can interpolate on the compositor. */
+@property --lg-button-scale {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+
 /* Root Host Element */
 .lg-root {
   position: relative;
@@ -14,7 +21,11 @@
   border-radius: var(--lg-radius, 40px);
   box-shadow: 0 8px var(--lg-outer-shadow-blur, 24px)
     rgba(0, 0, 0, calc(0.22 * var(--lg-shadow-opacity, 1)));
-  transform: scale(calc(1 - (1 - var(--lg-press-scale, 0.97)) * var(--lg-pressed, 0)));
+
+  /* Keep engine press depth and component motion as separate composable scales. */
+  transform: scale(calc(1 - (1 - var(--lg-press-scale, 0.97)) * var(--lg-pressed, 0)))
+    scale(var(--lg-button-scale, 1));
+  transform-origin: center center;
   transition: box-shadow 0.2s ease;
   will-change: transform;
   box-sizing: border-box;

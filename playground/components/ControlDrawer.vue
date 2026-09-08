@@ -321,6 +321,35 @@ function onCustomColorInput(e: Event) {
         </div>
       </section>
 
+      <!-- Liquid deformation coverage: maps directly to refractionCoverage. -->
+      <div class="coverage-mode-box" style="margin-top: 14px">
+        <div class="slider-header" style="margin-bottom: 6px">
+          <span style="font-weight: 600; font-size: 11px">液态变形范围 (Coverage)</span>
+        </div>
+        <div
+          class="radio-pill-group"
+          style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px"
+        >
+          <button
+            :class="{ active: (params.refractionCoverage ?? 'rim') === 'rim' }"
+            style="font-size: 10px; padding: 7px 4px; font-weight: 700; text-align: center"
+            @click="emit('updateParam', 'refractionCoverage', 'rim')"
+          >
+            边缘液态 (Rim)
+          </button>
+          <button
+            :class="{ active: params.refractionCoverage === 'full' }"
+            style="font-size: 10px; padding: 7px 4px; font-weight: 700; text-align: center"
+            @click="emit('updateParam', 'refractionCoverage', 'full')"
+          >
+            全域液态 (Full)
+          </button>
+        </div>
+        <small class="param-hint" style="display: block; margin-top: 5px; line-height: 1.4">
+          Rim 只在边缘变形；Full 让整张卡片参与液态折射。
+        </small>
+      </div>
+
       <!-- Optics & Physics -->
       <section class="ctrl-group">
         <label class="group-title">{{ t.opticsTitle }}</label>
@@ -386,7 +415,9 @@ function onCustomColorInput(e: Event) {
         <div class="slider-row-block">
           <div class="slider-header">
             <span style="color: #38bdf8; font-weight: 600">{{ t.colorBleed }}</span>
-            <span class="val" style="color: #38bdf8">{{ Math.round((params.colorBleed ?? 0.6) * 100) }}%</span>
+            <span class="val" style="color: #38bdf8"
+              >{{ Math.round((params.colorBleed ?? 0.6) * 100) }}%</span
+            >
           </div>
           <input
             :value="params.colorBleed ?? 0.6"

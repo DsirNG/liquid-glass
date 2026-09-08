@@ -32,6 +32,9 @@ function handleClick(label: string): void {
         :key="item.key"
         size="md"
         :variant="item.key"
+        refraction-coverage="full"
+        surface-profile="fluid_dome"
+        border-mode="adaptive"
         @click="handleClick(item.label)"
       >
         {{ item.label }}
@@ -41,7 +44,8 @@ function handleClick(label: string): void {
     <!-- 参数备注：这些值在 src/vue/components/GlassButton/index.vue 中集中调整。 -->
     <p class="button-preview-note">
       参数备注：md = 40px 高、左右 20px 内边距；圆角 20px；bezel 16px；厚度 42；按下缩放
-      0.97；Default / Primary / Ghost / Danger 分别使用不同 tint、opacity、specular、blur、shadow。
+      0.97；当前预览额外使用 Full + fluid_dome；Default / Primary / Ghost / Danger 分别使用不同
+      tint、opacity、specular、blur、shadow。
     </p>
   </section>
 </template>

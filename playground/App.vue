@@ -2,7 +2,7 @@
 import { ref, reactive, computed, watch } from 'vue';
 import type { GlassPreset, LiquidGlassMaterialOptions } from '../src/core';
 import { GLASS_PRESETS } from '../src/core';
-import { LiquidGlass } from '../src/vue';
+import { GlassButton, LiquidGlass } from '../src/vue';
 
 import { t } from './locales';
 import { DEFAULT_BACKGROUNDS, type QualityTier } from './types';
@@ -287,6 +287,8 @@ const rootStyle = computed(() => {
           </div>
 
           <GlassButtonPreview />
+          111
+          <glass-button />
         </div>
       </div>
     </main>

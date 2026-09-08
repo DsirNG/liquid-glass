@@ -1,8 +1,12 @@
 export {
   LiquidGlass,
   GlassButton,
+  GlassTabBar,
   type GlassButtonSize,
   type GlassButtonVariant,
+  type GlassTabBarEmits,
+  type GlassTabBarItem,
+  type GlassTabBarProps,
 } from './components';
 export { useLiquidGlass, type UseLiquidGlassReturn } from './composables';
 
