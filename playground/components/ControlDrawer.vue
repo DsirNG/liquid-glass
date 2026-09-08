@@ -878,4 +878,62 @@ function onCustomColorInput(e: Event) {
   color: #1e293b;
   text-shadow: none;
 }
+
+/* Tablet: keep the inspector as a right rail without covering the usable stage. */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .control-drawer {
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: min(312px, calc(100vw - 24px));
+  }
+
+  .drawer-body {
+    padding-inline: 16px;
+  }
+}
+
+/* Phone: turn the inspector into a bottom sheet so the demo remains visible. */
+@media (max-width: 767px) {
+  .control-drawer {
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    width: auto;
+    height: min(78vh, 680px);
+    max-height: calc(100vh - 72px);
+    border-radius: 24px;
+    transform: translateY(calc(100% + 20px));
+  }
+
+  .control-drawer.open {
+    transform: translateY(0);
+  }
+
+  .drawer-header {
+    padding: 16px 16px 12px;
+  }
+
+  .drawer-body {
+    gap: 16px;
+    padding: 14px 14px max(24px, env(safe-area-inset-bottom));
+  }
+
+  .group-title {
+    font-size: 10px;
+  }
+
+  .slider-row {
+    gap: 8px;
+  }
+
+  .preset-buttons button {
+    min-width: 0;
+    padding-inline: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
 </style>

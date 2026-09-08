@@ -13,6 +13,24 @@ export interface FilterViewport {
   height: number;
 }
 
+const MIN_FILTER_SAMPLING_MARGIN = 24;
+const MAX_FILTER_SAMPLING_MARGIN = 192;
+
+function resolveFilterSamplingMargin(material: ResolvedMaterial): number {
+  const requestedMargin = Number.isFinite(material.samplingMargin)
+    ? Math.ceil(material.samplingMargin)
+    : MIN_FILTER_SAMPLING_MARGIN;
+
+  // The optical field already includes the actual refraction amplitude and
+  // blur budget. Never expand the filter by the whole host size: on a large
+  // viewport that turns a small glass surface into an enormous compositor
+  // surface and causes long Commit phases.
+  return Math.max(
+    MIN_FILTER_SAMPLING_MARGIN,
+    Math.min(MAX_FILTER_SAMPLING_MARGIN, requestedMargin)
+  );
+}
+
 export const DISPERSION_PROFILES = {
   subtle: { red: 0, green: 0.025, blue: 0.05 },
   ios: { red: 0, green: 0.05, blue: 0.1 },
@@ -333,6 +351,7 @@ export class SvgGlassEngine {
   private defsContainer: SVGDefsElement | null = null;
   private filterElement: SVGFilterElement | null = null;
   private isDestroyed = false;
+  private graphSignature = '';
   public readonly filterId: string;
 
   constructor(idPrefix = 'lg-svg-filter') {
@@ -367,6 +386,71 @@ export class SvgGlassEngine {
     }
   }
 
+  private getGraphSignature(
+    material: ResolvedMaterial,
+    assets?: OpticalFieldAssets | null
+  ): string {
+    const bodyMode = material.bodyBlur > 0.01 ? 'blur' : 'offset';
+    const colorBleedMode =
+      material.colorBleed > 0.25 ? 'bleed-core' : material.colorBleed > 0.05 ? 'bleed' : 'none';
+
+    return [
+      assets?.vectorUrl ?? '',
+      assets?.basisUrl ?? '',
+      material.debug,
+      material.refractionCoverage,
+      bodyMode,
+      colorBleedMode,
+    ].join('|');
+  }
+
+  private patchDynamicNodes(
+    material: ResolvedMaterial,
+    assets: OpticalFieldAssets | null | undefined,
+    userRefraction: number,
+    width: number,
+    height: number
+  ): void {
+    if (!this.filterElement) return;
+
+    const images = this.filterElement.querySelectorAll('feImage');
+    images.forEach((image) => {
+      image.setAttribute('width', `${width}`);
+      image.setAttribute('height', `${height}`);
+    });
+
+    const blurNodes = this.filterElement.querySelectorAll('feGaussianBlur');
+    let blurIndex = 0;
+    if (material.bodyBlur > 0.01) {
+      blurNodes[blurIndex]?.setAttribute('stdDeviation', `${material.bodyBlur}`);
+      blurIndex += 1;
+    }
+
+    if (material.colorBleed > 0.05) {
+      blurNodes[blurIndex]?.setAttribute(
+        'stdDeviation',
+        Math.max(0.6, material.colorBleed * 3.5).toFixed(2)
+      );
+      blurIndex += 1;
+
+      if (material.colorBleed > 0.25) {
+        blurNodes[blurIndex]?.setAttribute(
+          'stdDeviation',
+          Math.max(0.2, (material.colorBleed - 0.25) * 1.5).toFixed(2)
+        );
+      }
+    }
+
+    const physicalAmplitude = assets?.physicalAmplitude ?? 32;
+    const refractionGain = material.calibration?.optics?.refractionGain ?? 1.0;
+    const baseScale = physicalAmplitude * material.lensingGain * userRefraction * refractionGain;
+    const scales = SvgFilterBuilder.resolveDispersionScales(baseScale, material.dispersionGain);
+    const displacementMaps = this.filterElement.querySelectorAll('feDisplacementMap');
+    [scales.r, scales.g, scales.b].forEach((scale, index) => {
+      displacementMaps[index]?.setAttribute('scale', `${scale}`);
+    });
+  }
+
   public update(
     material: ResolvedMaterial,
     assets?: OpticalFieldAssets | null,
@@ -382,7 +466,7 @@ export class SvgGlassEngine {
     // The backdrop-filter implementation may expose the user-space filter
     // region as a visible surface boundary while the host is resizing. Keep
     // that boundary well outside the card so it can never become an inner seam.
-    const samplingMargin = Math.max(material.samplingMargin || 24, width, height);
+    const samplingMargin = resolveFilterSamplingMargin(material);
     const x = -samplingMargin;
     const y = -samplingMargin;
     const w = width + 2 * samplingMargin;
@@ -396,12 +480,21 @@ export class SvgGlassEngine {
     this.filterElement.setAttribute('width', `${w}`);
     this.filterElement.setAttribute('height', `${h}`);
 
-    this.filterElement.innerHTML = SvgFilterBuilder.build(
-      material,
-      assets,
-      userRefraction,
-      viewport
-    );
+    const nextGraphSignature = this.getGraphSignature(material, assets);
+    if (nextGraphSignature !== this.graphSignature) {
+      this.filterElement.innerHTML = SvgFilterBuilder.build(
+        material,
+        assets,
+        userRefraction,
+        viewport
+      );
+      this.graphSignature = nextGraphSignature;
+      return;
+    }
+
+    // Scalar material changes stay synchronous, but patch existing nodes
+    // instead of replacing the entire SVG graph on every slider event.
+    this.patchDynamicNodes(material, assets, userRefraction, width, height);
   }
 
   /** Update only the sampling viewport while reusing the current optical field. */
@@ -434,5 +527,6 @@ export class SvgGlassEngine {
     }
     this.filterElement = null;
     this.defsContainer = null;
+    this.graphSignature = '';
   }
 }

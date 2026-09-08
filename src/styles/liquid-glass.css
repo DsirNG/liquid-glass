@@ -84,27 +84,21 @@
 
 /* Specular Highlight Border 1 (Ambient Environmental Light Rim) */
 .lg-border-screen {
-  background: var(
-    --lg-border-screen-bg,
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.75) 0%,
-      rgba(255, 255, 255, 0.2) 50%,
-      rgba(255, 255, 255, 0.5) 100%
-    )
+  background: linear-gradient(
+    var(--lg-light-angle, 135deg),
+    var(--lg-border-screen-stop-1, rgba(255, 255, 255, 0.75)) 0%,
+    var(--lg-border-screen-stop-2, rgba(255, 255, 255, 0.2)) 50%,
+    var(--lg-border-screen-stop-3, rgba(255, 255, 255, 0.5)) 100%
   );
 }
 
 /* Specular Highlight Border 2 (Intense Directional Glint Line) */
 .lg-border-overlay {
-  background: var(
-    --lg-border-overlay-bg,
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.95) 0%,
-      rgba(255, 255, 255, 0.05) 60%,
-      rgba(255, 255, 255, 0.35) 100%
-    )
+  background: linear-gradient(
+    var(--lg-light-angle, 135deg),
+    var(--lg-border-overlay-stop-1, rgba(255, 255, 255, 0.95)) 0%,
+    var(--lg-border-overlay-stop-2, rgba(255, 255, 255, 0.05)) 60%,
+    var(--lg-border-overlay-stop-3, rgba(255, 255, 255, 0.35)) 100%
   );
 }
 

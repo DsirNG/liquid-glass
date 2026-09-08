@@ -98,4 +98,32 @@ h2 {
   font-size: 11px;
   line-height: 1.5;
 }
+
+@media (max-width: 767px) {
+  .button-preview {
+    width: 100%;
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .button-preview-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-bottom: 12px;
+  }
+
+  .button-preview-status {
+    flex: 1 1 100%;
+  }
+
+  .button-preview-grid {
+    gap: 8px;
+  }
+
+  .button-preview-note {
+    margin-top: 12px;
+    font-size: 10px;
+  }
+}
 </style>

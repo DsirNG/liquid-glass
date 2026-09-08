@@ -23,6 +23,16 @@ export interface GlassTabBarProps {
   height?: number;
   /** Fixed width reserved by every tab item in pixels. */
   itemWidth?: number;
+  /** Enables breakpoint-aware dimensions for tablet and phone layouts. */
+  responsive?: boolean;
+  /** Outer bar height used below 768px when responsive is enabled. */
+  mobileHeight?: number;
+  /** Tab width used below 768px when responsive is enabled. */
+  mobileItemWidth?: number;
+  /** Outer bar height used from 768px through 1199px when responsive is enabled. */
+  tabletHeight?: number;
+  /** Tab width used from 768px through 1199px when responsive is enabled. */
+  tabletItemWidth?: number;
   /** Height of the selected lens. Defaults to the bar height minus 12px. */
   itemHeight?: number;
   /** Vertical inset used by the selected lens. Takes precedence over itemHeight. */

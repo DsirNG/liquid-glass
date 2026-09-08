@@ -69,6 +69,7 @@ export class SvgRendererWrapper implements RendererDelegate {
   private currentAssets: OpticalFieldAssets | null = null;
   private updateScheduled = false;
   private geometryDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private geometryGenerationInFlight = false;
   private isPreviewingResize = false;
 
   constructor(element: HTMLElement, options: NormalizedLiquidGlassOptions) {
@@ -136,7 +137,10 @@ export class SvgRendererWrapper implements RendererDelegate {
       const w = Math.max(16, Math.round(rect.width || this.element.offsetWidth || 300));
       const h = Math.max(16, Math.round(rect.height || this.element.offsetHeight || 80));
       const initialMat = this.resolveCurrentMaterial(w, h);
-      this.svgEngine.update(initialMat, null, this.options.refraction ?? 1.0);
+      this.svgEngine.update(initialMat, null, this.options.refraction ?? 1.0, {
+        width: w,
+        height: h,
+      });
     }
 
     // Fast-path interaction controller
@@ -148,7 +152,9 @@ export class SvgRendererWrapper implements RendererDelegate {
       });
     }
 
-    this.applyStyles();
+    // The initial filter graph is already installed above. CSS styles still
+    // apply synchronously, while the first optical field is generated below.
+    this.applyStyles(false);
     this.scheduleGeometryUpdate();
 
     if (typeof ResizeObserver !== 'undefined') {
@@ -178,7 +184,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     const height = Math.max(16, Math.round(rect.height || this.element.offsetHeight || 80));
     const mat = this.resolveCurrentMaterial(width, height);
 
-    this.applyStyles();
+    this.applyStyles(false);
     if (this.capability !== 'full' || !this.svgEngine || !this.currentAssets) return;
 
     this.svgEngine.resizeViewport({ width, height }, mat.samplingMargin);
@@ -224,7 +230,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     );
   }
 
-  private applyStyles(): void {
+  private applyStyles(updateFilter = true): void {
     if (this.isDestroyed) return;
     const rect = getElementRect(this.element);
     const width = rect.width || this.element.offsetWidth || 300;
@@ -248,7 +254,10 @@ export class SvgRendererWrapper implements RendererDelegate {
     // Keep the currently displayed optical field in sync with every material update.
     // Geometry-affecting changes still schedule a new field below, but scalar changes
     // (blur, saturation, dispersion, refraction, and debug) must not wait for it.
-    if (this.capability === 'full' && this.svgEngine) {
+    if (this.capability === 'full' && this.svgEngine && updateFilter) {
+      // Keep scalar controls synchronous. SvgGlassEngine patches existing
+      // filter nodes when the graph structure has not changed, avoiding a full
+      // innerHTML rebuild for every slider event.
       this.svgEngine.update(mat, this.currentAssets, this.options.refraction ?? 1.0, {
         width,
         height,
@@ -314,7 +323,12 @@ export class SvgRendererWrapper implements RendererDelegate {
 
   private updateSpecularGradients(mat?: ResolvedMaterial): void {
     if (this.isDestroyed) return;
-    const specular = mat ? mat.specular : (this.options.specular ?? 0.65);
+    // InteractionController updates --lg-light-angle directly. Material
+    // changes call this method with a resolved material, while interaction
+    // frames do not need to touch gradient declarations at all.
+    if (!mat) return;
+
+    const specular = mat.specular;
     if (specular <= 0) {
       this.borderScreenLayer.style.display = 'none';
       this.borderOverlayLayer.style.display = 'none';
@@ -324,11 +338,9 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.borderScreenLayer.style.display = '';
     this.borderOverlayLayer.style.display = '';
 
-    const sState = this.interactionController?.getState();
-    const angle = sState ? sState.lightAngle : 135;
-    const gain = mat ? mat.specularGain : 1.0;
+    const gain = mat.specularGain;
     const effSpec = Math.min(1, specular * gain);
-    const borderMode = mat?.borderMode ?? this.options.borderMode ?? 'directional';
+    const borderMode = mat.borderMode;
 
     const s = this.element.style;
 
@@ -352,13 +364,31 @@ export class SvgRendererWrapper implements RendererDelegate {
       const o2 = isLight ? (0.05 * effSpec).toFixed(3) : (0.05 * effSpec).toFixed(3);
       const o3 = isLight ? (0.24 * effSpec).toFixed(3) : (0.4 * effSpec).toFixed(3);
 
+      const screenStops = [
+        `rgba(${r},${g},${b},${a1})`,
+        `rgba(${r},${g},${b},${a2})`,
+        `rgba(${r},${g},${b},${a3})`,
+      ];
+      const overlayStops = [
+        `rgba(${r},${g},${b},${o1})`,
+        `rgba(${r},${g},${b},${o2})`,
+        `rgba(${r},${g},${b},${o3})`,
+      ];
+
+      s.setProperty('--lg-border-screen-stop-1', screenStops[0]);
+      s.setProperty('--lg-border-screen-stop-2', screenStops[1]);
+      s.setProperty('--lg-border-screen-stop-3', screenStops[2]);
+      s.setProperty('--lg-border-overlay-stop-1', overlayStops[0]);
+      s.setProperty('--lg-border-overlay-stop-2', overlayStops[1]);
+      s.setProperty('--lg-border-overlay-stop-3', overlayStops[2]);
+
       s.setProperty(
         '--lg-border-screen-bg',
-        `linear-gradient(${angle}deg, rgba(${r},${g},${b},${a1}) 0%, rgba(${r},${g},${b},${a2}) 50%, rgba(${r},${g},${b},${a3}) 100%)`
+        `linear-gradient(135deg, ${screenStops[0]} 0%, ${screenStops[1]} 50%, ${screenStops[2]} 100%)`
       );
       s.setProperty(
         '--lg-border-overlay-bg',
-        `linear-gradient(${angle}deg, rgba(${r},${g},${b},${o1}) 0%, rgba(${r},${g},${b},${o2}) 60%, rgba(${r},${g},${b},${o3}) 100%)`
+        `linear-gradient(135deg, ${overlayStops[0]} 0%, ${overlayStops[1]} 60%, ${overlayStops[2]} 100%)`
       );
     } else {
       // 方案一：明暗双向流动光影边 (Directional Contrast Rim)
@@ -371,13 +401,31 @@ export class SvgRendererWrapper implements RendererDelegate {
       const o2 = (0.05 * effSpec).toFixed(3);
       const o3 = (0.24 * effSpec).toFixed(3);
 
+      const screenStops = [
+        `rgba(255,255,255,${s1})`,
+        `rgba(255,255,255,${s2})`,
+        `rgba(15,23,42,${s3})`,
+      ];
+      const overlayStops = [
+        `rgba(255,255,255,${o1})`,
+        `rgba(255,255,255,${o2})`,
+        `rgba(15,23,42,${o3})`,
+      ];
+
+      s.setProperty('--lg-border-screen-stop-1', screenStops[0]);
+      s.setProperty('--lg-border-screen-stop-2', screenStops[1]);
+      s.setProperty('--lg-border-screen-stop-3', screenStops[2]);
+      s.setProperty('--lg-border-overlay-stop-1', overlayStops[0]);
+      s.setProperty('--lg-border-overlay-stop-2', overlayStops[1]);
+      s.setProperty('--lg-border-overlay-stop-3', overlayStops[2]);
+
       s.setProperty(
         '--lg-border-screen-bg',
-        `linear-gradient(${angle}deg, rgba(255,255,255,${s1}) 0%, rgba(255,255,255,${s2}) 50%, rgba(15,23,42,${s3}) 100%)`
+        `linear-gradient(135deg, ${screenStops[0]} 0%, ${screenStops[1]} 50%, ${screenStops[2]} 100%)`
       );
       s.setProperty(
         '--lg-border-overlay-bg',
-        `linear-gradient(${angle}deg, rgba(255,255,255,${o1}) 0%, rgba(255,255,255,${o2}) 60%, rgba(15,23,42,${o3}) 100%)`
+        `linear-gradient(135deg, ${overlayStops[0]} 0%, ${overlayStops[1]} 60%, ${overlayStops[2]} 100%)`
       );
     }
   }
@@ -419,6 +467,7 @@ export class SvgRendererWrapper implements RendererDelegate {
       this.geometryDebounceTimer = null;
     }
 
+    if (this.geometryGenerationInFlight) return;
     if (this.updateScheduled) return;
     this.updateScheduled = true;
 
@@ -430,7 +479,7 @@ export class SvgRendererWrapper implements RendererDelegate {
       const width = Math.max(16, Math.round(rect.width || this.element.offsetWidth || 300));
       const height = Math.max(16, Math.round(rect.height || this.element.offsetHeight || 80));
 
-      this.applyStyles();
+      this.applyStyles(false);
 
       if (this.capability !== 'full' || !this.svgEngine) {
         return; // Fallback does not need SVG displacement texture
@@ -444,6 +493,7 @@ export class SvgRendererWrapper implements RendererDelegate {
       const surfaceProfile: SurfaceProfile = opts.surfaceProfile ?? 'convex_squircle';
       const resolvedMat = this.resolveCurrentMaterial(width, height);
 
+      this.geometryGenerationInFlight = true;
       try {
         const nextAssets = await OpticalFieldGenerator.generate({
           geometry: {
@@ -475,7 +525,10 @@ export class SvgRendererWrapper implements RendererDelegate {
 
         const committedMat = this.resolveCurrentMaterial(width, height);
         this.isPreviewingResize = false;
-        this.svgEngine.update(committedMat, nextAssets, this.options.refraction ?? 1.0);
+        this.svgEngine.update(committedMat, nextAssets, this.options.refraction ?? 1.0, {
+          width,
+          height,
+        });
         this.updateBackdropStyle(committedMat);
 
         requestAnimationFrame(() => {
@@ -484,6 +537,19 @@ export class SvgRendererWrapper implements RendererDelegate {
       } catch (err) {
         // Fallback silently if offscreen rendering is constrained
         console.warn('[LiquidGlass] Failed to generate optical field:', err);
+      } finally {
+        this.geometryGenerationInFlight = false;
+
+        // A newer geometry update may have arrived while the current field was
+        // being generated. Start exactly one follow-up pass for the latest
+        // revision, while preserving an active resize debounce timer.
+        if (
+          !this.isDestroyed &&
+          revision !== this.fieldRevision &&
+          this.geometryDebounceTimer === null
+        ) {
+          this.scheduleGeometryUpdate();
+        }
       }
     });
   }
@@ -498,7 +564,7 @@ export class SvgRendererWrapper implements RendererDelegate {
 
     Object.assign(this.options, newOptions);
     // CSS-backed values and the active SVG filter update synchronously.
-    this.applyStyles();
+    this.applyStyles(!requiresOpticalFieldUpdate);
     // Only geometry/calibration changes require a new optical field. Scalar material
     // controls such as refraction and blur reuse the committed field and stay stable
     // while the slider is moving.

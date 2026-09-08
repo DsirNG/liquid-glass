@@ -13,6 +13,7 @@ import ControlDrawer from './components/ControlDrawer.vue';
 import StageBackdrop from './components/StageBackdrop.vue';
 import MusicPlayerCard from './components/MusicPlayerCard.vue';
 import GlassButtonPreview from './components/GlassButtonPreview.vue';
+import CleanNavPreview from './components/CleanNavPreview.vue';
 
 // Background Wallpapers
 const backgrounds = DEFAULT_BACKGROUNDS;
@@ -136,7 +137,7 @@ const rootStyle = computed(() => {
 <template>
   <div class="lab-root" :style="rootStyle" :class="{ 'is-light-stage': isLightBg }">
     <!-- Top Floating Glass Navbar -->
-    <TopNavbar v-model:is-panel-open="isPanelOpen" />
+    <TopNavbar v-model:is-panel-open="isPanelOpen" :glass-options="params" />
 
     <!-- Parameter Inspector Drawer -->
     <ControlDrawer
@@ -205,13 +206,17 @@ const rootStyle = computed(() => {
             </button>
           </div>
 
+          <!-- Standalone navigation specimen: no brand or utility actions. -->
+          <CleanNavPreview :glass-options="params" />
+
           <!-- The Single Interactive Liquid Glass Card -->
           <div
             class="glass-stage-card-wrapper"
             :class="{ dragging: isDragging }"
             :style="{
-              width: `${glassWidth}px`,
-              height: `${glassHeight}px`,
+              '--glass-card-width': `${glassWidth}px`,
+              '--glass-card-height': `${glassHeight}px`,
+              '--glass-card-ratio': glassWidth / glassHeight,
               transform: `translate3d(${cardPos.x}px, ${cardPos.y}px, 0)`,
             }"
             :title="t.dragHint"
@@ -371,6 +376,8 @@ body,
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: min(100%, 960px);
+  max-width: 100%;
   gap: 16px;
   margin: auto;
 }
@@ -378,6 +385,9 @@ body,
 .engine-indicator-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  flex-wrap: wrap;
   gap: 8px;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(20px);
@@ -419,6 +429,10 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
+  width: min(var(--glass-card-width, 380px), 100%);
+  height: auto;
+  max-width: 100%;
+  aspect-ratio: var(--glass-card-ratio, 1.5833);
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -470,6 +484,7 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
+  max-width: 100%;
   gap: 8px;
   flex-wrap: wrap;
   padding: 6px 14px;
@@ -488,6 +503,7 @@ body,
 }
 
 .stage-geo-btn {
+  flex: 0 0 auto;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.85);
@@ -552,5 +568,111 @@ body,
 
 .lab-root.is-light-stage .pill-label {
   color: #0f172a;
+}
+
+/* Tablet: reserve a stable rail for the inspector while keeping the stage usable. */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .showcase-stage {
+    padding: 86px 18px 24px;
+  }
+
+  .showcase-stage.drawer-open {
+    padding-right: 336px;
+  }
+
+  .stage-viewport {
+    min-height: 500px;
+  }
+
+  .stage-center {
+    gap: 14px;
+  }
+
+  .glass-buttons-row {
+    justify-content: flex-start;
+  }
+}
+
+/* Phone: the inspector becomes a bottom sheet and all stage controls can wrap or scroll. */
+@media (max-width: 767px) {
+  .lab-root {
+    min-width: 0;
+  }
+
+  .showcase-stage,
+  .showcase-stage.drawer-open {
+    align-items: stretch;
+    padding: 78px 12px 20px;
+  }
+
+  .stage-viewport {
+    min-height: 0;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+  .stage-center {
+    gap: 12px;
+  }
+
+  .engine-indicator-pill {
+    width: min(100%, 440px);
+    gap: 6px;
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .indicator-text {
+    white-space: nowrap;
+  }
+
+  .reset-pos-btn {
+    font-size: 9px;
+    padding: 4px 7px;
+  }
+
+  .glass-stage-card-wrapper {
+    align-self: center;
+  }
+
+  .glass-buttons-row {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .glass-buttons-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .row-label {
+    flex: 0 0 auto;
+  }
+
+  .stage-geo-btn {
+    font-size: 10px;
+    padding: 5px 9px;
+  }
+}
+
+@media (max-width: 420px) {
+  .showcase-stage,
+  .showcase-stage.drawer-open {
+    padding-inline: 8px;
+  }
+
+  .engine-indicator-pill {
+    width: 100%;
+  }
+
+  .indicator-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 </style>

@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { GlassTabBar, type GlassTabBarItem } from '../../src/vue';
+import type { LiquidGlassMaterialOptions } from '../../src/core';
 import { t } from '../locales';
 
 const props = defineProps<{
   isPanelOpen: boolean;
+  glassOptions?: LiquidGlassMaterialOptions;
 }>();
 
 const emit = defineEmits<{
@@ -21,6 +23,14 @@ const navItems: GlassTabBarItem[] = [
   { value: 'profile', label: '我的' },
 ];
 
+// The demo card and the TabBar share one material source of truth. The card's
+// footprint shape is intentionally normalized because a circle selected in
+// the inspector must not turn the horizontal navigation into a circle.
+const tabBarOptions = computed<LiquidGlassMaterialOptions>(() => ({
+  ...(props.glassOptions ?? {}),
+  shape: 'roundedRect',
+}));
+
 function togglePanel(): void {
   emit('update:isPanelOpen', !props.isPanelOpen);
 }
@@ -33,34 +43,15 @@ function togglePanel(): void {
       :items="navItems"
       :height="94"
       :item-width="104"
+      :radius="999"
+      responsive
+      :mobile-height="60"
+      :mobile-item-width="40"
+      :tablet-height="80"
+      :tablet-item-width="76"
       :lens-inset="8"
-      :base-options="{
-        blur: 14,
-        opacity: 0.08,
-        radius: 47,
-        bezel: 24,
-        specular: 0.6,
-        tint: '#ffffff',
-        shadow: 0.35,
-        surfaceProfile: 'fluid_dome',
-        refractionCoverage: 'full',
-        borderMode: 'adaptive',
-      }"
-      :lens-options="{
-        blur: 2,
-        opacity: 0.1,
-        radius: 39,
-        bezel: 16,
-        thickness: 38,
-        refraction: 0.85,
-        saturation: 1.12,
-        specular: 0.72,
-        tint: '#ffffff',
-        shadow: 0.16,
-        surfaceProfile: 'fluid_dome',
-        refractionCoverage: 'full',
-        borderMode: 'adaptive',
-      }"
+      :base-options="tabBarOptions"
+      :lens-options="tabBarOptions"
     >
       <template #prefix>
         <div class="top-navbar-brand">
@@ -220,11 +211,66 @@ function togglePanel(): void {
   stroke-width: 1.8;
 }
 
-@media (max-width: 760px) {
+@media (min-width: 768px) and (max-width: 1199px) {
+  .top-navbar-wrapper {
+    top: 14px;
+  }
+}
+
+@media (max-width: 767px) {
   .top-navbar-wrapper {
     top: 10px;
-    transform: translateX(-50%) scale(0.74);
-    transform-origin: top center;
+  }
+
+  .top-navbar-brand {
+    min-width: 30px;
+    gap: 0;
+    padding-inline: 2px;
+  }
+
+  .top-navbar-brand-text {
+    display: none;
+  }
+
+  .top-navbar-brand-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .top-navbar-actions {
+    gap: 0;
+    padding-inline: 2px 4px;
+  }
+
+  .top-navbar-icon-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .top-navbar-wrapper :deep(.glass-tabbar__icon),
+  .top-navbar-wrapper :deep(.top-navbar-tab-icon) {
+    width: 20px;
+    height: 20px;
+  }
+
+  .top-navbar-wrapper :deep(.top-navbar-tab-icon svg) {
+    width: 18px;
+    height: 18px;
+  }
+
+  .top-navbar-wrapper :deep(.glass-tabbar__label) {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .top-navbar-wrapper {
+    top: 8px;
+  }
+
+  .top-navbar-wrapper :deep(.glass-tabbar__label) {
+    font-size: 10px;
   }
 }
 </style>

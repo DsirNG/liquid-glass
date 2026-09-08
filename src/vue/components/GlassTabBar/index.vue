@@ -1,17 +1,24 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import type { LiquidGlassCreateOptions } from '../../../types';
-import { useLiquidGlass } from '../../composables/useLiquidGlass';
+import LiquidGlass from '../LiquidGlass/index.vue';
 import type { GlassTabBarEmits, GlassTabBarProps } from './types';
 
 const props = withDefaults(defineProps<GlassTabBarProps>(), {
   modelValue: '',
   height: 94,
   itemWidth: 116,
+  responsive: false,
+  mobileHeight: 60,
+  mobileItemWidth: 40,
+  tabletHeight: 80,
+  tabletItemWidth: 76,
 });
 
 const emit = defineEmits<GlassTabBarEmits>();
 
+const baseGlassRef = ref<InstanceType<typeof LiquidGlass> | null>(null);
+const lensGlassRef = ref<InstanceType<typeof LiquidGlass> | null>(null);
 const navRef = ref<HTMLElement | null>(null);
 const lensRef = ref<HTMLElement | null>(null);
 const itemRefs = ref<(HTMLElement | null)[]>([]);
@@ -20,6 +27,24 @@ const selectedIndex = ref(0);
 const hoverIndex = ref<number | null>(null);
 const isHovering = computed(() => hoverIndex.value !== null);
 const targetIndex = computed(() => hoverIndex.value ?? selectedIndex.value);
+const viewportWidth = ref(typeof window === 'undefined' ? 1440 : window.innerWidth);
+
+const isMobileViewport = computed(
+  () => props.responsive && viewportWidth.value > 0 && viewportWidth.value < 768
+);
+const isTabletViewport = computed(
+  () => props.responsive && viewportWidth.value >= 768 && viewportWidth.value < 1200
+);
+const barHeight = computed(() => {
+  if (isMobileViewport.value) return props.mobileHeight;
+  if (isTabletViewport.value) return props.tabletHeight;
+  return props.height;
+});
+const tabItemWidth = computed(() => {
+  if (isMobileViewport.value) return props.mobileItemWidth;
+  if (isTabletViewport.value) return props.tabletItemWidth;
+  return props.itemWidth;
+});
 
 function syncSelectedIndex(): void {
   const index = props.items.findIndex((item) => item.value === props.modelValue);
@@ -32,7 +57,7 @@ watch(
   () => {
     if (selectedIndex.value >= props.items.length) selectedIndex.value = 0;
     syncSelectedIndex();
-    void nextTick(() => setLensTarget(targetIndex.value));
+    void nextTick(() => scheduleLensTarget(targetIndex.value));
   }
 );
 
@@ -40,20 +65,20 @@ const TABBAR_PAD = 8;
 
 const selectedLensHeight = computed(() => {
   if (props.lensInset !== undefined) {
-    return Math.max(20, Math.round(props.height - props.lensInset * 2));
+    return Math.max(20, Math.round(barHeight.value - props.lensInset * 2));
   }
   if (props.itemHeight !== undefined) return Math.max(20, props.itemHeight);
-  return Math.max(20, Math.round(props.height - 12));
+  return Math.max(20, Math.round(barHeight.value - 12));
 });
 
 const autoInset = computed(() =>
-  Math.max(0, Math.round((props.height - selectedLensHeight.value) / 2))
+  Math.max(0, Math.round((barHeight.value - selectedLensHeight.value) / 2))
 );
 
 const baseRadius = computed(() => {
   if (props.radius !== undefined) return props.radius;
   if (props.baseOptions?.radius !== undefined) return props.baseOptions.radius;
-  return Math.round(props.height / 2);
+  return Math.round(barHeight.value / 2);
 });
 
 const selectedLensRadius = computed(() => {
@@ -64,12 +89,12 @@ const selectedLensRadius = computed(() => {
 
 const hoverLensHeight = computed(() => {
   if (props.lensHeight !== undefined) return Math.max(20, props.lensHeight);
-  return Math.round(props.height + 10);
+  return Math.round(barHeight.value + 10);
 });
 
 const hoverLensWidth = computed(() => {
   if (props.lensWidth !== undefined) return Math.max(20, props.lensWidth);
-  return Math.round(props.itemWidth * (150 / 116));
+  return Math.round(tabItemWidth.value * (150 / 116));
 });
 
 const hoverLensRadius = computed(() => {
@@ -85,14 +110,14 @@ const tabbarPad = computed(() => {
 });
 
 const selectedLensWidth = computed(() =>
-  Math.max(20, Math.round(props.itemWidth + (TABBAR_PAD - autoInset.value) * 2))
+  Math.max(20, Math.round(tabItemWidth.value + (TABBAR_PAD - autoInset.value) * 2))
 );
 
 const rootStyle = computed(() => ({
-  '--tabbar-height': `${props.height}px`,
+  '--tabbar-height': `${barHeight.value}px`,
   '--tabbar-pad': `${tabbarPad.value}px`,
   '--tabbar-radius': `${baseRadius.value}px`,
-  '--item-width': `${props.itemWidth}px`,
+  '--item-width': `${tabItemWidth.value}px`,
   '--lens-selected-width': `${selectedLensWidth.value}px`,
   '--lens-selected-height': `${selectedLensHeight.value}px`,
   '--lens-selected-radius': `${selectedLensRadius.value}px`,
@@ -102,7 +127,6 @@ const rootStyle = computed(() => ({
 }));
 
 const baseCreateOptions = computed<LiquidGlassCreateOptions>(() => ({
-  radius: baseRadius.value,
   thickness: 30,
   bezel: 14,
   blur: 3,
@@ -113,8 +137,9 @@ const baseCreateOptions = computed<LiquidGlassCreateOptions>(() => ({
   specular: 0.58,
   shadow: 0.14,
   tint: '#ffffff',
-  interactive: false,
   ...props.baseOptions,
+  radius: baseRadius.value,
+  interactive: false,
 }));
 
 const selectedLensOptions = computed<LiquidGlassCreateOptions>(() => {
@@ -151,18 +176,26 @@ const hoverLensOptions = computed<LiquidGlassCreateOptions>(() => ({
 const lensOptions = computed<LiquidGlassCreateOptions>(() => ({
   ...(isHovering.value ? hoverLensOptions.value : selectedLensOptions.value),
   ...props.lensOptions,
+  radius: isHovering.value ? hoverLensRadius.value : selectedLensRadius.value,
+  interactive: false,
 }));
 
-const { instance: baseInstance } = useLiquidGlass(navRef, baseCreateOptions);
-const { instance: lensInstance } = useLiquidGlass(lensRef, lensOptions);
+const baseInstance = computed(() => baseGlassRef.value?.instance ?? null);
+const lensInstance = computed(() => lensGlassRef.value?.instance ?? null);
 
 let currentX = 0;
 let targetX = 0;
 let animationFrame: number | null = null;
+let lensMeasureFrame: number | null = null;
+let pendingLensIndex: number | null = null;
+let pendingPointerX: number | undefined;
 
 const MAX_FOLLOW_OFFSET = 14;
 const FOLLOW_STRENGTH = 0.25;
-const DAMPING = 0.18;
+// Position following should settle in a few frames. The press "dongdong"
+// animation remains separate, so this does not remove the elastic click feel.
+const LENS_FOLLOW_LERP = 0.72;
+const LENS_SNAP_DISTANCE = 0.1;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -185,18 +218,18 @@ function animateLens(): void {
   animationFrame = null;
   const distance = targetX - currentX;
 
-  if (Math.abs(distance) < 0.05) {
+  if (Math.abs(distance) < LENS_SNAP_DISTANCE) {
     currentX = targetX;
     renderLensX();
     return;
   }
 
-  currentX += distance * DAMPING;
+  currentX += distance * LENS_FOLLOW_LERP;
   renderLensX();
   animationFrame = requestAnimationFrame(animateLens);
 }
 
-function setLensTarget(index: number, clientX?: number): void {
+function updateLensTarget(index: number, clientX?: number): void {
   const nav = navRef.value;
   const item = itemRefs.value[index];
   if (!nav || !item) return;
@@ -215,25 +248,52 @@ function setLensTarget(index: number, clientX?: number): void {
   startLensAnimation();
 }
 
+function flushScheduledLensTarget(): void {
+  lensMeasureFrame = null;
+  const index = pendingLensIndex;
+  const clientX = pendingPointerX;
+  pendingLensIndex = null;
+  pendingPointerX = undefined;
+
+  if (index !== null) updateLensTarget(index, clientX);
+}
+
+function scheduleLensTarget(index: number, clientX?: number): void {
+  pendingLensIndex = index;
+  pendingPointerX = clientX;
+  if (lensMeasureFrame !== null) return;
+
+  if (typeof requestAnimationFrame === 'undefined') {
+    flushScheduledLensTarget();
+    return;
+  }
+
+  lensMeasureFrame = requestAnimationFrame(flushScheduledLensTarget);
+}
+
 function handleItemEnter(index: number, event: PointerEvent): void {
   if (props.items[index]?.disabled) return;
   hoverIndex.value = index;
-  setLensTarget(index, event.clientX);
+  scheduleLensTarget(index, event.clientX);
 }
 
 function handleItemMove(index: number, event: PointerEvent): void {
   if (hoverIndex.value !== index || props.items[index]?.disabled) return;
-  setLensTarget(index, event.clientX);
+  scheduleLensTarget(index, event.clientX);
 }
 
 function handleNavLeave(): void {
   hoverIndex.value = null;
-  setLensTarget(selectedIndex.value);
+  scheduleLensTarget(selectedIndex.value);
 }
 
 const isJiggling = ref(false);
 const clickingIndex = ref<number | null>(null);
 let jiggleTimer: ReturnType<typeof setTimeout> | null = null;
+
+function handleViewportResize(): void {
+  viewportWidth.value = window.innerWidth;
+}
 
 function triggerBounce(index: number): void {
   isJiggling.value = false;
@@ -257,36 +317,39 @@ function handleSelect(index: number): void {
   emit('update:modelValue', item.value);
   emit('change', item.value, item, index);
 
-  if (hoverIndex.value === null) setLensTarget(index);
+  if (hoverIndex.value === null) scheduleLensTarget(index);
 }
 
 watch(
   () => selectedIndex.value,
   () => {
     void nextTick(() => {
-      if (!isHovering.value) setLensTarget(selectedIndex.value);
+      if (!isHovering.value) scheduleLensTarget(selectedIndex.value);
     });
   }
 );
 
-watch(
-  [() => props.height, () => props.itemWidth, () => props.itemHeight, () => props.lensInset],
-  () => {
-    void nextTick(() => setLensTarget(targetIndex.value));
-  }
-);
+watch([barHeight, tabItemWidth, () => props.itemHeight, () => props.lensInset], () => {
+  void nextTick(() => scheduleLensTarget(targetIndex.value));
+});
 
 onMounted(async () => {
+  window.addEventListener('resize', handleViewportResize, { passive: true });
   await nextTick();
-  setLensTarget(selectedIndex.value);
+  updateLensTarget(selectedIndex.value);
   currentX = targetX;
   renderLensX();
 });
 
 onUnmounted(() => {
+  window.removeEventListener('resize', handleViewportResize);
   if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+  if (lensMeasureFrame !== null) cancelAnimationFrame(lensMeasureFrame);
   if (jiggleTimer) clearTimeout(jiggleTimer);
   animationFrame = null;
+  lensMeasureFrame = null;
+  pendingLensIndex = null;
+  pendingPointerX = undefined;
   jiggleTimer = null;
 });
 
@@ -303,60 +366,75 @@ defineExpose({
 
 <template>
   <div class="glass-tabbar-shell" :style="rootStyle" @pointerleave="handleNavLeave">
-    <nav ref="navRef" class="glass-tabbar" :style="rootStyle">
-      <div v-if="$slots.prefix" class="glass-tabbar__prefix">
-        <slot name="prefix" />
-      </div>
+    <LiquidGlass
+      ref="baseGlassRef"
+      class="glass-tabbar"
+      :options="baseCreateOptions"
+      :interactive="false"
+    >
+      <nav ref="navRef" class="glass-tabbar__content">
+        <div v-if="$slots.prefix" class="glass-tabbar__prefix">
+          <slot name="prefix" />
+        </div>
 
-      <div
-        ref="lensRef"
-        class="glass-tabbar__lens"
-        :class="{ 'is-hovering': isHovering, 'is-bouncing': isJiggling }"
-        aria-hidden="true"
-      />
-
-      <button
-        v-for="(item, index) in items"
-        :key="item.value"
-        :ref="(element) => setItemRef(element as Element | null, index)"
-        type="button"
-        class="glass-tabbar__item"
-        :class="{
-          'is-selected': selectedIndex === index,
-          'is-hovered': hoverIndex === index,
-          'is-previewing-other': isHovering && hoverIndex !== index && selectedIndex === index,
-          'is-disabled': item.disabled,
-          'is-clicking': clickingIndex === index,
-        }"
-        :disabled="item.disabled"
-        @pointerenter="handleItemEnter(index, $event)"
-        @pointermove="handleItemMove(index, $event)"
-        @click="handleSelect(index)"
-      >
-        <slot
-          name="item"
-          :item="item"
-          :index="index"
-          :is-selected="selectedIndex === index"
-          :is-hovered="hoverIndex === index"
+        <div
+          ref="lensRef"
+          class="glass-tabbar__lens"
+          :class="{ 'is-hovering': isHovering, 'is-bouncing': isJiggling }"
+          aria-hidden="true"
         >
-          <span class="glass-tabbar__icon">
-            <component
-              :is="selectedIndex === index && item.activeIcon ? item.activeIcon : item.icon"
-              v-if="item.icon || item.activeIcon"
-            />
-          </span>
-          <span class="glass-tabbar__label">{{ item.label }}</span>
-          <span v-if="item.badge !== undefined" class="glass-tabbar__badge">
-            {{ item.badge }}
-          </span>
-        </slot>
-      </button>
+          <LiquidGlass
+            ref="lensGlassRef"
+            class="glass-tabbar__lens-surface"
+            :options="lensOptions"
+            :interactive="false"
+            aria-hidden="true"
+          />
+        </div>
 
-      <div v-if="$slots.suffix" class="glass-tabbar__suffix">
-        <slot name="suffix" />
-      </div>
-    </nav>
+        <button
+          v-for="(item, index) in items"
+          :key="item.value"
+          :ref="(element) => setItemRef(element as Element | null, index)"
+          type="button"
+          class="glass-tabbar__item"
+          :class="{
+            'is-selected': selectedIndex === index,
+            'is-hovered': hoverIndex === index,
+            'is-previewing-other': isHovering && hoverIndex !== index && selectedIndex === index,
+            'is-disabled': item.disabled,
+            'is-clicking': clickingIndex === index,
+          }"
+          :disabled="item.disabled"
+          @pointerenter="handleItemEnter(index, $event)"
+          @pointermove="handleItemMove(index, $event)"
+          @click="handleSelect(index)"
+        >
+          <slot
+            name="item"
+            :item="item"
+            :index="index"
+            :is-selected="selectedIndex === index"
+            :is-hovered="hoverIndex === index"
+          >
+            <span class="glass-tabbar__icon">
+              <component
+                :is="selectedIndex === index && item.activeIcon ? item.activeIcon : item.icon"
+                v-if="item.icon || item.activeIcon"
+              />
+            </span>
+            <span class="glass-tabbar__label">{{ item.label }}</span>
+            <span v-if="item.badge !== undefined" class="glass-tabbar__badge">
+              {{ item.badge }}
+            </span>
+          </slot>
+        </button>
+
+        <div v-if="$slots.suffix" class="glass-tabbar__suffix">
+          <slot name="suffix" />
+        </div>
+      </nav>
+    </LiquidGlass>
   </div>
 </template>
 
@@ -380,7 +458,7 @@ defineExpose({
   align-items: stretch;
   width: max-content;
   height: var(--tabbar-height, 94px);
-  padding: 0 var(--tabbar-pad, 8px);
+  padding: 0;
   box-sizing: border-box;
   border-radius: var(--tabbar-radius, 999px);
   isolation: isolate;
@@ -390,18 +468,30 @@ defineExpose({
 }
 
 /*
- * LiquidGlass protects raw children by wrapping them in .lg-content. The
- * outer bar still needs that protected content layer to behave as one row;
- * otherwise each prefix/item/suffix becomes a normal block and stacks
- * vertically. Keep the wrapper as the flex geometry surface while the lens
- * remains absolutely positioned against it.
+ * LiquidGlass owns the outer base and provides its own .lg-content layer.
+ * Keep that layer as the full-size flex surface, then use the nav below as
+ * the geometry reference for the moving lens.
  */
 .glass-tabbar > .lg-content {
   display: inline-flex;
   align-items: stretch;
-  width: max-content;
+  width: 100%;
   height: 100%;
   flex: 0 0 auto;
+}
+
+.glass-tabbar__content {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  width: max-content;
+  height: 100%;
+  padding: 0 var(--tabbar-pad, 8px);
+  box-sizing: border-box;
+  isolation: isolate;
+  user-select: none;
+  touch-action: none;
+  overflow: visible;
 }
 
 .glass-tabbar__prefix,
@@ -438,6 +528,11 @@ defineExpose({
   width: var(--lens-hover-width, 150px);
   height: var(--lens-hover-height, 104px);
   border-radius: var(--lens-hover-radius, 999px);
+}
+
+.glass-tabbar__lens-surface {
+  width: 100%;
+  height: 100%;
 }
 
 .glass-tabbar__item {

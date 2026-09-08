@@ -29,34 +29,31 @@ defineProps<{
         <div class="text-col">
           <p class="chart-label">FINE TEXT (8PX - HIGH FREQUENCY)</p>
           <p class="sample-8px">
-            The quick brown fox jumps over the lazy dog. 0123456789.
-            Liquid Glass optical deflection preserves body legibility while refracting edges.
+            The quick brown fox jumps over the lazy dog. 0123456789. Liquid Glass optical deflection
+            preserves body legibility while refracting edges.
           </p>
           <p class="chart-label">MEDIUM TEXT (11PX - UI LABEL)</p>
           <p class="sample-11px">
             Apple Liquid Glass iOS 26 Material Engine • Snell Law Raytracing • SDF Bezel Profiling
           </p>
           <p class="chart-label">BOLD GEOMETRIC (16PX - INTERFACE DISPLAY)</p>
-          <p class="sample-16px">
-            PARALLEL REFRACTION GRID • ZERO TEARING
-          </p>
+          <p class="sample-16px">PARALLEL REFRACTION GRID • ZERO TEARING</p>
         </div>
         <div class="text-col">
           <p class="chart-label">HIGH CONTRAST CHROMATIC BARS</p>
           <div class="color-bars">
-            <span style="background: #ef4444;" title="Red" />
-            <span style="background: #22c55e;" title="Green" />
-            <span style="background: #3b82f6;" title="Blue" />
-            <span style="background: #eab308;" title="Yellow" />
-            <span style="background: #a855f7;" title="Purple" />
-            <span style="background: #06b6d4;" title="Cyan" />
-            <span style="background: #ffffff;" title="White" />
-            <span style="background: #000000;" title="Black" />
+            <span style="background: #ef4444" title="Red" />
+            <span style="background: #22c55e" title="Green" />
+            <span style="background: #3b82f6" title="Blue" />
+            <span style="background: #eab308" title="Yellow" />
+            <span style="background: #a855f7" title="Purple" />
+            <span style="background: #06b6d4" title="Cyan" />
+            <span style="background: #ffffff" title="White" />
+            <span style="background: #000000" title="Black" />
           </div>
           <p class="chart-label">MONOSPACE LINEAR RULER</p>
           <p class="sample-mono">
-            |...+....|...+....|...+....|...+....|...+....|
-            00  10   20  30   40  50   60  70   80  90  100
+            |...+....|...+....|...+....|...+....|...+....| 00 10 20 30 40 50 60 70 80 90 100
           </p>
         </div>
       </div>
@@ -146,7 +143,11 @@ defineProps<{
 .chart-grid-layer {
   position: absolute;
   inset: 0;
-  background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+  background-size:
+    20px 20px,
+    20px 20px,
+    100px 100px,
+    100px 100px;
   background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
@@ -173,9 +174,21 @@ defineProps<{
   left: 50%;
   transform: translate(-50%, -50%);
 }
-.ring-1 { width: 60px; height: 60px; border-color: rgba(56, 189, 248, 0.5); }
-.ring-2 { width: 140px; height: 140px; border-color: rgba(168, 85, 247, 0.4); }
-.ring-3 { width: 220px; height: 220px; border-color: rgba(255, 255, 255, 0.25); }
+.ring-1 {
+  width: 60px;
+  height: 60px;
+  border-color: rgba(56, 189, 248, 0.5);
+}
+.ring-2 {
+  width: 140px;
+  height: 140px;
+  border-color: rgba(168, 85, 247, 0.4);
+}
+.ring-3 {
+  width: 220px;
+  height: 220px;
+  border-color: rgba(255, 255, 255, 0.25);
+}
 
 .crosshair-h {
   position: absolute;
@@ -297,5 +310,47 @@ defineProps<{
 }
 .stage-backdrop-dom.is-light .sample-mono {
   color: #0369a1;
+}
+
+@media (max-width: 767px) {
+  .stage-backdrop-dom {
+    width: calc(100vw - 24px);
+  }
+
+  .typography-mode {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .backdrop-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+  }
+
+  .backdrop-title {
+    font-size: clamp(42px, 15vw, 76px);
+  }
+
+  .backdrop-subtitle {
+    margin-top: 10px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .calibration-chart {
+    width: 100%;
+    height: min(480px, 62vh);
+    padding: 14px;
+  }
+
+  .chart-text-matrix {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .chart-center-target {
+    width: min(58vw, 220px);
+    height: min(58vw, 220px);
+  }
 }
 </style>

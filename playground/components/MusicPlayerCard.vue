@@ -144,4 +144,22 @@ const isPlaying = ref(false);
   color: rgba(255, 255, 255, 0.6);
   white-space: nowrap;
 }
+
+@media (max-width: 767px) {
+  .glass-card-content {
+    padding: 18px 20px;
+  }
+
+  .track-title {
+    font-size: 18px;
+  }
+
+  .track-artist {
+    font-size: 11px;
+  }
+
+  .playback-controls {
+    gap: 8px;
+  }
+}
 </style>
