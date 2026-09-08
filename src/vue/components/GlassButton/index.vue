@@ -50,7 +50,8 @@ const emit = defineEmits<{
 
 const buttonRef = ref<HTMLButtonElement | null>(null);
 
-// Size-based geometry presets
+// Size-based geometry presets — adjust these to change the button footprint.
+// radius: corner radius; bezel: optical edge width; thickness: perceived glass depth.
 const SIZE_CONFIGS: Record<GlassButtonSize, { radius: number; bezel: number; thickness: number }> =
   {
     sm: { radius: 16, bezel: 12, thickness: 30 },
@@ -58,7 +59,9 @@ const SIZE_CONFIGS: Record<GlassButtonSize, { radius: number; bezel: number; thi
     lg: { radius: 24, bezel: 20, thickness: 54 },
   };
 
-// Variant-based material presets
+// Variant-based material presets — the visual tuning knobs for each button style.
+// tint: glass color; opacity: fill strength; specular: edge highlight; blur: backdrop blur;
+// shadow: outer shadow strength. Props below can override every one of these values.
 const VARIANT_CONFIGS: Record<
   GlassButtonVariant,
   { tint: string; opacity: number; specular: number; blur: number; shadow: number }
@@ -216,6 +219,7 @@ defineExpose({
 }
 
 .lg-glass-button:active:not(.is-disabled) {
+  /* Adjusted press scale: keeps the label centered while giving tactile feedback. */
   transform: scale(0.97) translateY(0);
 }
 

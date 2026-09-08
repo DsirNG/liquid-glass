@@ -1,6 +1,6 @@
-import { ref, reactive, nextTick } from 'vue';
+import { ref, reactive } from 'vue';
 
-export function useCardDrag(onResize?: () => void) {
+export function useCardDrag() {
   const cardPos = reactive({ x: 0, y: 0 });
   const isDragging = ref(false);
 
@@ -27,7 +27,6 @@ export function useCardDrag(onResize?: () => void) {
     const dy = e.clientY - dragStartY;
     cardPos.x = initialCardX + dx;
     cardPos.y = initialCardY + dy;
-    onResize?.();
   }
 
   function handlePointerUp(e: PointerEvent) {
@@ -38,15 +37,11 @@ export function useCardDrag(onResize?: () => void) {
     } catch {
       // ignore
     }
-    onResize?.();
   }
 
   function resetPosition() {
     cardPos.x = 0;
     cardPos.y = 0;
-    nextTick(() => {
-      onResize?.();
-    });
   }
 
   return {

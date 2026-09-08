@@ -1,10 +1,6 @@
 import type { LiquidGlassMaterialOptions, OpticalDebugMode } from '../../types';
 import { hexToRgb } from '../../utils/color';
-import {
-  type CalibrationPreset,
-  IOS_MATERIAL_PRESET,
-  PURE_MATERIAL_PRESET,
-} from './presets';
+import { type CalibrationPreset, IOS_MATERIAL_PRESET, PURE_MATERIAL_PRESET } from './presets';
 
 export type MaterialPreset = 'pure' | 'ios';
 
@@ -97,14 +93,22 @@ export class MaterialResolver {
     );
 
     const shadowSpread = Math.max(-10, Math.min(10, (userShadow - 0.5) * 15));
-    const shadowBlur = Math.round(userShadow * (20 + 20 * sizeFactor) * calibration.shadow.blurGain);
-    const shadowOpacity = Math.min(1, userShadow * (0.8 + 0.4 * sizeFactor) * calibration.shadow.opacityGain);
+    const shadowBlur = Math.round(
+      userShadow * (20 + 20 * sizeFactor) * calibration.shadow.blurGain
+    );
+    const shadowOpacity = Math.min(
+      1,
+      userShadow * (0.8 + 0.4 * sizeFactor) * calibration.shadow.opacityGain
+    );
 
     const radiusPx = typeof options.radius === 'number' ? `${options.radius}px` : '40px';
+    const requestedCoverage = options.refractionCoverage || 'rim';
+    const isCompactSurface = width <= 180 || height <= 70;
 
     return {
       bodyBlur,
-      saturation: typeof userSaturation === 'number' ? userSaturation * calibration.body.saturationGain : 1.3,
+      saturation:
+        typeof userSaturation === 'number' ? userSaturation * calibration.body.saturationGain : 1.3,
       perceivedThickness,
       physicalAmplitude: effectiveAmp,
       lensingGain,
@@ -124,7 +128,9 @@ export class MaterialResolver {
       calibration,
       borderMode: options.borderMode || 'directional',
       colorBleed: typeof options.colorBleed === 'number' ? options.colorBleed : 0.6,
-      refractionCoverage: options.refractionCoverage || 'full',
+      // Small buttons and pills need a continuous liquid body. Larger cards
+      // keep refraction localized to their soft edge/bezel region.
+      refractionCoverage: isCompactSurface ? 'full' : requestedCoverage,
     };
   }
 }

@@ -12,6 +12,7 @@ import TopNavbar from './components/TopNavbar.vue';
 import ControlDrawer from './components/ControlDrawer.vue';
 import StageBackdrop from './components/StageBackdrop.vue';
 import MusicPlayerCard from './components/MusicPlayerCard.vue';
+import GlassButtonPreview from './components/GlassButtonPreview.vue';
 
 // Background Wallpapers
 const backgrounds = DEFAULT_BACKGROUNDS;
@@ -89,9 +90,7 @@ const {
   handlePointerMove,
   handlePointerUp,
   resetPosition,
-} = useCardDrag(() => {
-  domGlassRef.value?.resize();
-});
+} = useCardDrag();
 
 // Solid color background detection & adaptation
 const isSolidColor = computed(() => {
@@ -286,6 +285,8 @@ const rootStyle = computed(() => {
               500×300 Sheet
             </button>
           </div>
+
+          <GlassButtonPreview />
         </div>
       </div>
     </main>

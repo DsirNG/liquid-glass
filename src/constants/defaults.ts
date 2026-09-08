@@ -26,5 +26,7 @@ export const DEFAULT_GLASS_OPTIONS: Readonly<NormalizedLiquidGlassOptions> = Obj
   interactive: true,
   borderMode: 'directional',
   colorBleed: 0.6,
-  refractionCoverage: 'full',
+  // Large surfaces use a soft liquid rim; compact controls are promoted to
+  // full coverage by MaterialResolver.
+  refractionCoverage: 'rim',
 });

@@ -8,6 +8,11 @@ export interface DispersionScales {
   b: number;
 }
 
+export interface FilterViewport {
+  width: number;
+  height: number;
+}
+
 export const DISPERSION_PROFILES = {
   subtle: { red: 0, green: 0.025, blue: 0.05 },
   ios: { red: 0, green: 0.05, blue: 0.1 },
@@ -41,12 +46,19 @@ export class SvgFilterBuilder {
   public static build(
     material: ResolvedMaterial,
     assets?: OpticalFieldAssets | null,
-    userRefraction = 1.0
+    userRefraction = 1.0,
+    viewport?: FilterViewport
   ): string {
-    const { bodyBlur, saturation, dispersionGain, lensingGain, colorBleed = 0.6, refractionCoverage = 'full' } = material;
+    const {
+      bodyBlur,
+      dispersionGain,
+      lensingGain,
+      colorBleed = 0.6,
+      refractionCoverage = 'full',
+    } = material;
     const isFullCoverage = refractionCoverage !== 'rim';
-    const width = assets?.width ?? 300;
-    const height = assets?.height ?? 80;
+    const width = viewport?.width ?? assets?.width ?? 300;
+    const height = viewport?.height ?? assets?.height ?? 80;
     const physicalAmplitude = assets?.physicalAmplitude ?? 32;
     const refractionGain = material.calibration?.optics?.refractionGain ?? 1.0;
     const baseScale = physicalAmplitude * lensingGain * userRefraction * refractionGain;
@@ -153,7 +165,9 @@ export class SvgFilterBuilder {
       <feColorMatrix
         in="BODY_BLURRED"
         type="matrix"
-        values="${satMatrix(saturation)}"
+        // Saturation is applied once on the final glass host so it covers the
+        // complete card, including pixels outside the optical field footprint.
+        values="${satMatrix(1)}"
         result="BODY_MATERIAL"
       />
       <!-- Glass base layer covers entire coverage area so perimeter never drops out -->
@@ -356,15 +370,19 @@ export class SvgGlassEngine {
   public update(
     material: ResolvedMaterial,
     assets?: OpticalFieldAssets | null,
-    userRefraction = 1.0
+    userRefraction = 1.0,
+    viewport?: FilterViewport
   ): void {
     if (this.isDestroyed) return;
     this.initFilterElement();
     if (!this.filterElement) return;
 
-    const width = assets?.width ?? 300;
-    const height = assets?.height ?? 80;
-    const samplingMargin = material.samplingMargin || 24;
+    const width = viewport?.width ?? assets?.width ?? 300;
+    const height = viewport?.height ?? assets?.height ?? 80;
+    // The backdrop-filter implementation may expose the user-space filter
+    // region as a visible surface boundary while the host is resizing. Keep
+    // that boundary well outside the card so it can never become an inner seam.
+    const samplingMargin = Math.max(material.samplingMargin || 24, width, height);
     const x = -samplingMargin;
     const y = -samplingMargin;
     const w = width + 2 * samplingMargin;
@@ -378,7 +396,35 @@ export class SvgGlassEngine {
     this.filterElement.setAttribute('width', `${w}`);
     this.filterElement.setAttribute('height', `${h}`);
 
-    this.filterElement.innerHTML = SvgFilterBuilder.build(material, assets, userRefraction);
+    this.filterElement.innerHTML = SvgFilterBuilder.build(
+      material,
+      assets,
+      userRefraction,
+      viewport
+    );
+  }
+
+  /** Update only the sampling viewport while reusing the current optical field. */
+  public resizeViewport(viewport: FilterViewport, samplingMargin = 24): void {
+    if (this.isDestroyed) return;
+    this.initFilterElement();
+    if (!this.filterElement) return;
+
+    const width = Math.max(16, viewport.width);
+    const height = Math.max(16, viewport.height);
+    const effectiveSamplingMargin = Math.max(samplingMargin, width, height);
+    const x = -effectiveSamplingMargin;
+    const y = -effectiveSamplingMargin;
+
+    this.filterElement.setAttribute('x', `${x}`);
+    this.filterElement.setAttribute('y', `${y}`);
+    this.filterElement.setAttribute('width', `${width + 2 * effectiveSamplingMargin}`);
+    this.filterElement.setAttribute('height', `${height + 2 * effectiveSamplingMargin}`);
+
+    this.filterElement.querySelectorAll('feImage').forEach((image) => {
+      image.setAttribute('width', `${width}`);
+      image.setAttribute('height', `${height}`);
+    });
   }
 
   public destroy(): void {

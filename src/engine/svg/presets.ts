@@ -39,7 +39,7 @@ export interface CalibrationPreset {
 export const IOS_MATERIAL_PRESET: CalibrationPreset = Object.freeze({
   geometry: {
     outerEnd: 0.18,
-    bodyStart: 0.72,
+    bodyStart: 0.9,
   },
   optics: {
     lensingGain: 1.0,
@@ -70,7 +70,7 @@ export const IOS_MATERIAL_PRESET: CalibrationPreset = Object.freeze({
 export const PURE_MATERIAL_PRESET: CalibrationPreset = Object.freeze({
   geometry: {
     outerEnd: 0.15,
-    bodyStart: 0.8,
+    bodyStart: 0.92,
   },
   optics: {
     lensingGain: 1.0,

@@ -67,6 +67,8 @@ export class SvgRendererWrapper implements RendererDelegate {
   private fieldRevision = 0;
   private currentAssets: OpticalFieldAssets | null = null;
   private updateScheduled = false;
+  private geometryDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private isPreviewingResize = false;
 
   constructor(element: HTMLElement, options: NormalizedLiquidGlassOptions) {
     this.element = element;
@@ -150,10 +152,37 @@ export class SvgRendererWrapper implements RendererDelegate {
 
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver(() => {
-        this.scheduleGeometryUpdate();
+        this.previewGeometryAtCurrentSize();
+        // Width/height CSS transitions emit one resize per frame. Optical field
+        // generation is asynchronous and expensive, so wait until the size has
+        // settled instead of starting a doomed generation for every frame.
+        this.scheduleGeometryUpdate(64);
       });
       this.resizeObserver.observe(this.element);
     }
+  }
+
+  /**
+   * Fast path for animated resizes. Reuses the current field but maps it to the
+   * current viewport immediately, so the backdrop never exposes a stale-size seam
+   * while the matching high-quality field is generated on the slow path.
+   */
+  private previewGeometryAtCurrentSize(): void {
+    if (this.isDestroyed) return;
+
+    this.isPreviewingResize = true;
+
+    const rect = getElementRect(this.element);
+    const width = Math.max(16, Math.round(rect.width || this.element.offsetWidth || 300));
+    const height = Math.max(16, Math.round(rect.height || this.element.offsetHeight || 80));
+    const mat = this.resolveCurrentMaterial(width, height);
+
+    this.applyStyles();
+    if (this.capability !== 'full' || !this.svgEngine || !this.currentAssets) return;
+
+    this.svgEngine.resizeViewport({ width, height }, mat.samplingMargin);
+    this.updateBackdropStyle(mat);
+    this.updateSpecularGradients(mat);
   }
 
   private protectContent(): void {
@@ -219,7 +248,10 @@ export class SvgRendererWrapper implements RendererDelegate {
     // Geometry-affecting changes still schedule a new field below, but scalar changes
     // (blur, saturation, dispersion, refraction, and debug) must not wait for it.
     if (this.capability === 'full' && this.svgEngine) {
-      this.svgEngine.update(mat, this.currentAssets, this.options.refraction ?? 1.0);
+      this.svgEngine.update(mat, this.currentAssets, this.options.refraction ?? 1.0, {
+        width,
+        height,
+      });
     }
     // Bind the filter after its graph is updated. Chromium does not reliably repaint
     // backdrop-filter when only the referenced SVG nodes change.
@@ -232,22 +264,50 @@ export class SvgRendererWrapper implements RendererDelegate {
   }
 
   private updateBackdropStyle(mat: ResolvedMaterial): void {
+    // Apply the backdrop effect to the complete glass host so every resize uses
+    // one compositing surface instead of exposing a seam in the inner layer.
+    this.element.style.filter = '';
+    this.element.style.backgroundImage = '';
+    this.element.style.backgroundColor = '';
     this.refractionLayer.style.filter = '';
     this.refractionLayer.style.backgroundImage = '';
     this.refractionLayer.style.backgroundColor = '';
-    if (this.capability === 'full' && this.svgEngine && this.currentAssets) {
+    this.refractionLayer.style.backdropFilter = '';
+    (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter = '';
+    this.refractionLayer.style.opacity = '';
+    const saturationPercent = Math.max(0, Math.round(mat.saturation * 100));
+    this.element.style.filter = `saturate(${saturationPercent}%)`;
+    if (
+      this.capability === 'full' &&
+      this.svgEngine &&
+      this.currentAssets &&
+      !this.isPreviewingResize
+    ) {
       const filterCss = `url(#${this.svgEngine.filterId})`;
+      this.element.style.backdropFilter = filterCss;
+      (this.element.style as unknown as Record<string, string>).webkitBackdropFilter = filterCss;
+      // Preserve the public layer-level filter contract without compositing the
+      // same optical result twice; the root host is the visible filter surface.
       this.refractionLayer.style.backdropFilter = filterCss;
       (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
         filterCss;
+      this.refractionLayer.style.opacity = '0';
     } else {
       // Live Material Fallback (Safari WebKit Bug 245510 or initial mount before assets ready)
-      const blurPx = Math.max(0, Math.round(mat.bodyBlur));
-      const sat = Math.round(mat.saturation > 10 ? mat.saturation : mat.saturation * 100);
-      const filterCss = `${blurPx > 0 ? `blur(${blurPx}px) ` : ''}saturate(${sat}%)`;
+      // During an animated resize, use a continuous native preview instead of
+      // exposing a partially-mapped optical texture and its hard seam.
+      const blurPx = this.isPreviewingResize
+        ? Math.max(6, Math.round(mat.bodyBlur))
+        : Math.max(0, Math.round(mat.bodyBlur));
+      const filterCss = `${blurPx > 0 ? `blur(${blurPx}px) ` : ''}saturate(100%)`;
+      this.element.style.backdropFilter = filterCss;
+      (this.element.style as unknown as Record<string, string>).webkitBackdropFilter = filterCss;
+      // Keep the layer-level fallback for browsers that do not support the
+      // root-level backdrop filter contract used by the optical path.
       this.refractionLayer.style.backdropFilter = filterCss;
       (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
         filterCss;
+      this.refractionLayer.style.opacity = '1';
     }
   }
 
@@ -267,14 +327,14 @@ export class SvgRendererWrapper implements RendererDelegate {
     const angle = sState ? sState.lightAngle : 135;
     const gain = mat ? mat.specularGain : 1.0;
     const effSpec = Math.min(1, specular * gain);
-    const borderMode = mat?.borderMode ?? (this.options.borderMode ?? 'directional');
+    const borderMode = mat?.borderMode ?? this.options.borderMode ?? 'directional';
 
     const s = this.element.style;
 
     if (borderMode === 'adaptive') {
       // 方案二：环境亮度自适应轮廓 (Luma-Adaptive Dual Rim)
       // 根据环境明度 (ambientLuma)，在纯白/浅色底时平滑过渡为深冷灰精细墨线，暗底保持晶亮白高光
-      const luma = mat?.ambientLuma ?? (this.options.ambientLuma ?? 0.5);
+      const luma = mat?.ambientLuma ?? this.options.ambientLuma ?? 0.5;
       const isLight = luma >= 0.6;
       const factor = Math.max(0, Math.min(1, (luma - 0.45) / 0.4));
 
@@ -336,11 +396,28 @@ export class SvgRendererWrapper implements RendererDelegate {
   /**
    * Slow Path: Asynchronous optical field generation with revision race guard and transactional swap.
    */
-  private scheduleGeometryUpdate(): void {
+  private scheduleGeometryUpdate(debounceMs = 0): void {
     if (this.isDestroyed) return;
     // Invalidate in-flight work immediately. This prevents a fast slider sequence
     // from committing an optical field generated from stale options.
     this.fieldRevision += 1;
+
+    if (debounceMs > 0) {
+      if (this.geometryDebounceTimer !== null) {
+        clearTimeout(this.geometryDebounceTimer);
+      }
+      this.geometryDebounceTimer = setTimeout(() => {
+        this.geometryDebounceTimer = null;
+        this.scheduleGeometryUpdate();
+      }, debounceMs);
+      return;
+    }
+
+    if (this.geometryDebounceTimer !== null) {
+      clearTimeout(this.geometryDebounceTimer);
+      this.geometryDebounceTimer = null;
+    }
+
     if (this.updateScheduled) return;
     this.updateScheduled = true;
 
@@ -396,6 +473,7 @@ export class SvgRendererWrapper implements RendererDelegate {
         this.updateSpecularMask(nextAssets);
 
         const committedMat = this.resolveCurrentMaterial(width, height);
+        this.isPreviewingResize = false;
         this.svgEngine.update(committedMat, nextAssets, this.options.refraction ?? 1.0);
         this.updateBackdropStyle(committedMat);
 
@@ -436,6 +514,11 @@ export class SvgRendererWrapper implements RendererDelegate {
   public destroy(): void {
     if (this.isDestroyed) return;
     this.isDestroyed = true;
+
+    if (this.geometryDebounceTimer !== null) {
+      clearTimeout(this.geometryDebounceTimer);
+      this.geometryDebounceTimer = null;
+    }
 
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();

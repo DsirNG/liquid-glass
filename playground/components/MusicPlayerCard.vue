@@ -19,7 +19,12 @@ const isPlaying = ref(false);
     </div>
 
     <div class="playback-controls">
-      <button class="icon-btn" @click="isPlaying = !isPlaying">
+      <button
+        class="icon-btn"
+        type="button"
+        :aria-label="isPlaying ? 'Pause' : 'Play'"
+        @click="isPlaying = !isPlaying"
+      >
         {{ isPlaying ? '⏸' : '▶' }}
       </button>
       <div class="progress-bar">
@@ -119,7 +124,8 @@ const isPlaying = ref(false);
 }
 
 .progress-bar {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   height: 4px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 4px;
@@ -132,8 +138,10 @@ const isPlaying = ref(false);
 }
 
 .time {
+  flex: 0 0 auto;
   font-size: 11px;
   font-family: monospace;
   color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
 }
 </style>

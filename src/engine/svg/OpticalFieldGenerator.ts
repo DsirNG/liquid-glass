@@ -233,9 +233,10 @@ export class OpticalFieldGenerator {
     const isFullCoverage = params.refractionCoverage !== 'rim';
     const maxHalfDim = Math.min(cssW, cssH) * 0.5;
     // 区域控制：全域液态模式（full）由斯涅尔透镜充满全域，细边框模式（rim）则限定在四周 Bezel
+    const minimumRimBezel = 12;
     const effectiveBezel = isFullCoverage
       ? maxHalfDim
-      : Math.max(4, isCapsuleRod ? maxHalfDim : Math.min(bezel, maxHalfDim * 0.8));
+      : Math.max(minimumRimBezel, isCapsuleRod ? maxHalfDim : Math.min(bezel, maxHalfDim * 0.8));
 
     const profile = calculateRefractionProfile(thickness, effectiveBezel, profileFn, ior);
     const maxAbs = calculateMaxAbsRefraction(profile);
@@ -319,9 +320,10 @@ export class OpticalFieldGenerator {
           const normal = evaluateFootprintNormal(cssX, cssY, cssGeom);
           const rawRefractionPx = sampleRefractionProfile(profile, Math.min(1, dNorm));
 
-          const maxRenderableShiftPx = isCapsuleRod || isFullCoverage
-            ? Math.max(12, Math.min(45, effectiveBezel * 0.75))
-            : Math.max(8, Math.min(28, effectiveBezel * 0.5));
+          const maxRenderableShiftPx =
+            isCapsuleRod || isFullCoverage
+              ? Math.max(12, Math.min(45, effectiveBezel * 0.75))
+              : Math.max(8, Math.min(28, effectiveBezel * 0.5));
           const boundedRefractionPx = Math.max(
             -maxRenderableShiftPx,
             Math.min(maxRenderableShiftPx, rawRefractionPx)
@@ -329,15 +331,20 @@ export class OpticalFieldGenerator {
 
           let finalNx = normal.x;
           let finalNy = normal.y;
-          let inwardFalloff = 1.0;
+          let inwardFalloff: number;
 
           if (isFullCoverage) {
             // 💧 全域连续水滴曲率 + 低频正弦谐波水波涟漪 (Fluid Lens + Harmonic Liquid Waves)
             // 消除矩形对角线 45° 阶跃折缝，将边缘 SDF 法线平滑过渡到整块卡片的中心径向曲面与液态水波
             const cx = cssW * 0.5;
             const cy = cssH * 0.5;
-            const rx = (cssX - cx) / Math.max(1, maxHalfDim);
-            const ry = (cssY - cy) / Math.max(1, maxHalfDim);
+            // Use the actual footprint aspect ratio. A single min(W, H) radius
+            // turns a rectangular card's interior into a circular lens and
+            // leaves the corners with a visible diagonal coverage break.
+            const halfW = Math.max(1, cssW * 0.5);
+            const halfH = Math.max(1, cssH * 0.5);
+            const rx = (cssX - cx) / halfW;
+            const ry = (cssY - cy) / halfH;
             const rDist = Math.hypot(rx, ry);
 
             // 边缘（dNorm < 0.25）以贴边法线为主；向内（dNorm >= 0.25）平滑融入全域流体透镜与微波
@@ -345,11 +352,13 @@ export class OpticalFieldGenerator {
 
             // 平滑低频水面张力涟漪（波长在 28~36px，振幅温和柔润）
             const waveFreq = Math.max(24, Math.min(48, maxHalfDim * 0.35));
-            const waveX = Math.sin(cssX / waveFreq + 0.4) * Math.cos(cssY / (waveFreq * 1.2)) * 0.22;
-            const waveY = Math.cos(cssX / (waveFreq * 1.2)) * Math.sin(cssY / waveFreq + 0.8) * 0.22;
+            const waveX =
+              Math.sin(cssX / waveFreq + 0.4) * Math.cos(cssY / (waveFreq * 1.2)) * 0.22;
+            const waveY =
+              Math.cos(cssX / (waveFreq * 1.2)) * Math.sin(cssY / waveFreq + 0.8) * 0.22;
 
             // 径向平滑透镜向心/离心坡度：中心点 (rDist -> 0) 自然平滑归零无奇点
-            const radialDomeMag = smoothstep(0.0, 0.8, rDist);
+            const radialDomeMag = smoothstep(0.0, 1.0, Math.min(1, rDist));
             const lensX = (rDist > 1e-4 ? (rx / rDist) * radialDomeMag : 0) * 0.45 + waveX;
             const lensY = (rDist > 1e-4 ? (ry / rDist) * radialDomeMag : 0) * 0.45 + waveY;
 
