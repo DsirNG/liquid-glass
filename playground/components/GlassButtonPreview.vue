@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue';
 import { GlassButton, type GlassButtonVariant } from '../../src/vue';
+import type { LiquidGlassMaterialOptions } from '../../src/core';
+
+defineProps<{
+  glassOptions?: LiquidGlassMaterialOptions;
+}>();
 
 const lastAction = shallowRef('点击按钮查看按下态');
 
@@ -32,6 +37,7 @@ function handleClick(label: string): void {
         :key="item.key"
         size="md"
         :variant="item.key"
+        :options="glassOptions"
         refraction-coverage="full"
         surface-profile="fluid_dome"
         border-mode="adaptive"
@@ -53,11 +59,6 @@ function handleClick(label: string): void {
 <style scoped>
 .button-preview {
   width: min(720px, 92vw);
-  padding: 18px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 24px;
-  background: rgba(13, 18, 30, 0.28);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.2);
 }
 
 .button-preview-heading {
