@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue';
-import { GlassButton, type GlassButtonVariant } from '../../src/vue';
-import type { LiquidGlassMaterialOptions } from '../../src/core';
+import { GlassButton, type GlassButtonVariant } from '@dinqorai/liquid-glass/vue';
+import type { LiquidGlassMaterialOptions } from '@dinqorai/liquid-glass';
 
 defineProps<{
   glassOptions?: LiquidGlassMaterialOptions;

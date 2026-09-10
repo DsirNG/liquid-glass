@@ -64,6 +64,39 @@ import '@dinqorai/liquid-glass/style.css';
 </template>
 ```
 
+### GlassTabBar
+
+`GlassTabBar` is presentational: describe the tabs with `items`, mark the active item from
+your own route or view state, and handle navigation or commands in `@click`. It does not use
+`v-model` or mutate selection state.
+
+```vue
+<script setup lang="ts">
+import { computed, shallowRef } from 'vue';
+import { GlassTabBar, type GlassTabBarItem } from '@dinqorai/liquid-glass/vue';
+
+const currentPage = shallowRef('home');
+const items = computed<GlassTabBarItem[]>(() => [
+  { value: 'home', label: 'Home', icon: HomeIcon, active: currentPage.value === 'home' },
+  { value: 'search', label: 'Search', icon: SearchIcon, active: currentPage.value === 'search' },
+  { value: 'about', label: 'About', active: currentPage.value === 'about' }, // text-only is supported
+]);
+
+function navigate(item: GlassTabBarItem) {
+  currentPage.value = item.value;
+}
+</script>
+
+<template>
+  <GlassTabBar :items="items" @click="navigate" />
+</template>
+```
+
+Use `base-options` for the bar and `lens-options` for its active/hover lens. The most useful
+controls are `blur` (backdrop softness), `opacity` (tint transparency, 0–1), `refraction`
+(distortion), `specular` (highlight, 0–1), `shadow` (shadow, 0–1), and `tint` (glass color).
+All material fields are documented on `LiquidGlassMaterialOptions` in the exported TypeScript API.
+
 ## Development
 
 ```bash

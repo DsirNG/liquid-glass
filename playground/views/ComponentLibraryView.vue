@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue';
-import type { LiquidGlassMaterialOptions } from '../../src/core';
-import { LiquidGlass } from '../../src/vue';
+import type { LiquidGlassMaterialOptions } from '@dinqorai/liquid-glass';
+import { LiquidGlass } from '@dinqorai/liquid-glass/vue';
 
 import GlassButtonPreview from '../components/GlassButtonPreview.vue';
 import CleanNavPreview from '../components/CleanNavPreview.vue';
 import MusicPlayerCard from '../components/MusicPlayerCard.vue';
 import UsageCodePanel from '../components/UsageCodePanel.vue';
 import { withPureRefraction } from '../utils/material';
+import { USAGE_CODE } from '../utils/usage-code';
 
 type LibraryComponentId = 'glass-button' | 'glass-tab-bar' | 'liquid-glass' | 'music-card';
 
@@ -16,7 +17,7 @@ interface LibraryComponent {
   number: string;
   name: string;
   description: string;
-  props: string[];
+  props: Array<{ name: string; description: string }>;
   usageCode: string;
 }
 
@@ -29,11 +30,16 @@ const libraryComponents: LibraryComponent[] = [
     number: '01',
     name: 'GlassButton',
     description: '带有液态按压回弹的玻璃按钮。',
-    props: ['size', 'variant', 'surface-profile', 'refraction-coverage', 'border-mode'],
+    props: [
+      { name: 'size', description: '按钮尺寸：sm、md、lg。' },
+      { name: 'variant', description: '按钮风格：default、primary、ghost、danger。' },
+      { name: 'surface-profile', description: '玻璃表面轮廓，例如 fluid_dome。' },
+      { name: 'refraction-coverage', description: '折射覆盖范围：rim 或 full。' },
+      { name: 'border-mode', description: '边框对比度模式：directional 或 adaptive。' },
+    ],
     usageCode: joinCode(
       '<script setup lang="ts">',
-      "import { GlassButton } from 'liquid-glass/vue';",
-      "import 'liquid-glass/style.css';",
+      "import { GlassButton } from '@dinqorai/liquid-glass/vue';",
       '',
       'function handleClick(): void {}',
       scriptClose,
@@ -63,19 +69,24 @@ const libraryComponents: LibraryComponent[] = [
     number: '02',
     name: 'GlassTabBar',
     description: '支持选中 lens、hover lens 和咚咚按压反馈的导航栏。',
-    props: ['items', 'item-width', 'lens-inset', 'radius', 'responsive'],
+    props: [
+      { name: 'items', description: '导航项数组，每项至少包含 value 和 label。' },
+      { name: 'item-width', description: '每个导航项预留的宽度，单位为 px。' },
+      { name: 'lens-inset', description: '选中透镜相对外层导航栏的垂直内缩，单位为 px。' },
+      { name: 'radius', description: '外层导航栏和透镜的圆角半径。' },
+      { name: 'responsive', description: '是否启用移动端和 tablet 断点尺寸。' },
+    ],
     usageCode: joinCode(
       '<script setup lang="ts">',
-      "import { shallowRef } from 'vue';",
-      "import { GlassTabBar } from 'liquid-glass/vue';",
-      "import 'liquid-glass/style.css';",
+      "import { computed, shallowRef } from 'vue';",
+      "import { GlassTabBar } from '@dinqorai/liquid-glass/vue';",
       '',
       "const activeTab = shallowRef('home');",
-      'const items = [',
-      "  { value: 'home', label: 'Home' },",
-      "  { value: 'discover', label: 'Discover' },",
-      "  { value: 'profile', label: 'Profile' },",
-      '];',
+      'const items = computed(() => [',
+      "  { value: 'home', label: 'Home', active: activeTab.value === 'home' },",
+      "  { value: 'discover', label: 'Discover', active: activeTab.value === 'discover' },",
+      "  { value: 'profile', label: 'Profile', active: activeTab.value === 'profile' },",
+      ']);',
       '',
       'const glassOptions = {',
       '  blur: 0,',
@@ -87,8 +98,8 @@ const libraryComponents: LibraryComponent[] = [
       '',
       '<template>',
       '  <GlassTabBar',
-      '    v-model="activeTab"',
       '    :items="items"',
+      '    @click="activeTab = $event.value"',
       '    :base-options="glassOptions"',
       '    :lens-options="glassOptions"',
       '    :item-width="88"',
@@ -104,11 +115,16 @@ const libraryComponents: LibraryComponent[] = [
     number: '03',
     name: 'LiquidGlass',
     description: '底层液态玻璃容器，承载折射、色散与高光效果。',
-    props: ['options', 'interactive', 'refraction', 'dispersion', 'saturation'],
+    props: [
+      { name: 'options', description: '统一传入玻璃材质参数。' },
+      { name: 'interactive', description: '是否启用鼠标/触摸驱动的高光交互。' },
+      { name: 'refraction', description: '折射强度。' },
+      { name: 'dispersion', description: '色散强度。' },
+      { name: 'saturation', description: '背景饱和度。' },
+    ],
     usageCode: joinCode(
       '<script setup lang="ts">',
-      "import { LiquidGlass } from 'liquid-glass/vue';",
-      "import 'liquid-glass/style.css';",
+      "import { LiquidGlass } from '@dinqorai/liquid-glass/vue';",
       '',
       'const glassOptions = {',
       '  blur: 0,',
@@ -134,12 +150,15 @@ const libraryComponents: LibraryComponent[] = [
     number: '04',
     name: 'MusicPlayerCard',
     description: '用于验证不同尺寸下内容布局和液态玻璃容器的组合示例。',
-    props: ['slot content', 'responsive layout', 'playback state'],
+    props: [
+      { name: 'slot content', description: '通过 LiquidGlass slot 放置自定义内容。' },
+      { name: 'responsive layout', description: '内容卡片会随容器尺寸调整布局。' },
+      { name: 'playback state', description: '示例播放器的播放、暂停和进度状态。' },
+    ],
     usageCode: joinCode(
       '<script setup lang="ts">',
-      "import { LiquidGlass } from 'liquid-glass/vue';",
+      "import { LiquidGlass } from '@dinqorai/liquid-glass/vue';",
       "import MusicPlayerCard from './MusicPlayerCard.vue';",
-      "import 'liquid-glass/style.css';",
       '',
       'const glassOptions = {',
       '  blur: 0,',
@@ -158,9 +177,16 @@ const libraryComponents: LibraryComponent[] = [
   },
 ];
 
+const componentsWithUsageCode: LibraryComponent[] = libraryComponents.map((component) => ({
+  ...component,
+  usageCode: USAGE_CODE[component.id],
+}));
+
 const selectedId = shallowRef<LibraryComponentId>('glass-button');
 const selectedComponent = computed<LibraryComponent>(
-  () => libraryComponents.find((item) => item.id === selectedId.value) ?? libraryComponents[0]
+  () =>
+    componentsWithUsageCode.find((item) => item.id === selectedId.value) ??
+    componentsWithUsageCode[0]
 );
 
 const viewMode = shallowRef<'preview' | 'code'>('preview');
@@ -305,7 +331,14 @@ function selectComponent(id: LibraryComponentId): void {
         <footer class="library-detail__footer">
           <span class="library-detail__footer-label">SUPPORTED PARAMETERS</span>
           <div class="library-props">
-            <code v-for="prop in selectedComponent.props" :key="prop">{{ prop }}</code>
+            <code
+              v-for="prop in selectedComponent.props"
+              :key="prop.name"
+              :title="prop.description"
+              :aria-label="`${prop.name}: ${prop.description}`"
+            >
+              {{ prop.name }}
+            </code>
           </div>
         </footer>
       </section>

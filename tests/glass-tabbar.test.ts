@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createApp, h, nextTick, ref } from 'vue';
+import { createApp, h, nextTick } from 'vue';
 import { GlassTabBar } from '../src/vue';
 import * as coreModule from '../src/core';
 import type { LiquidGlassInstance } from '../src/types';
@@ -32,9 +32,8 @@ describe('vue/GlassTabBar', () => {
         return h(GlassTabBar, {
           items: [
             { value: 'home', label: 'Home' },
-            { value: 'settings', label: 'Settings' },
+            { value: 'settings', label: 'Settings', active: true },
           ],
-          modelValue: 'settings',
           height: 72,
           itemWidth: 100,
         });
@@ -62,29 +61,23 @@ describe('vue/GlassTabBar', () => {
     root.remove();
   });
 
-  it('emits selection changes and keeps disabled items inert', async () => {
+  it('emits clicks without owning navigation state and keeps disabled items inert', async () => {
     const createSpy = vi
       .spyOn(coreModule, 'createLiquidGlass')
       .mockReturnValueOnce(createMockInstance())
       .mockReturnValueOnce(createMockInstance());
     const root = document.createElement('div');
     document.body.appendChild(root);
-    const selected = ref('home');
-    const update = vi.fn((value: string) => {
-      selected.value = value;
-    });
-    const change = vi.fn();
+    const click = vi.fn();
 
     const app = createApp({
       render() {
         return h(GlassTabBar, {
           items: [
-            { value: 'home', label: 'Home' },
+            { value: 'home', label: 'Home', active: true },
             { value: 'settings', label: 'Settings', disabled: true },
           ],
-          modelValue: selected.value,
-          'onUpdate:modelValue': update,
-          onChange: change,
+          onClick: click,
         });
       },
     });
@@ -93,12 +86,10 @@ describe('vue/GlassTabBar', () => {
     await nextTick();
     const buttons = root.querySelectorAll('button');
     buttons[1].click();
-    expect(update).not.toHaveBeenCalled();
-    expect(change).not.toHaveBeenCalled();
+    expect(click).not.toHaveBeenCalled();
 
     buttons[0].click();
-    expect(update).toHaveBeenCalledWith('home');
-    expect(change).toHaveBeenCalledWith('home', expect.objectContaining({ label: 'Home' }), 0);
+    expect(click).toHaveBeenCalledWith(expect.objectContaining({ label: 'Home' }), 0, expect.any(MouseEvent));
     expect(createSpy).toHaveBeenCalledTimes(2);
 
     app.unmount();

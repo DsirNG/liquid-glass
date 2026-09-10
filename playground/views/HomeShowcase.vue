@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue';
-import type { GlassPreset, LiquidGlassMaterialOptions } from '../../src/core';
-import { LiquidGlass } from '../../src/vue';
+import type { GlassPreset, LiquidGlassMaterialOptions } from '@dinqorai/liquid-glass';
+import { LiquidGlass } from '@dinqorai/liquid-glass/vue';
 
 import { t } from '../locales';
 import type { BackgroundItem, QualityTier } from '../types';

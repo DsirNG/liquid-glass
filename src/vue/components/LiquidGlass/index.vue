@@ -16,6 +16,7 @@ import { useLiquidGlass } from '../../composables/useLiquidGlass';
 
 const props = withDefaults(
   defineProps<{
+    /** Enables pointer-driven optical interaction. */
     interactive?: boolean;
     blur?: number;
     opacity?: number;

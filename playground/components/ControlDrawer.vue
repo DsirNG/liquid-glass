@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { GlassPreset, LiquidGlassMaterialOptions } from '../../src/core';
+import type { GlassPreset, LiquidGlassMaterialOptions } from '@dinqorai/liquid-glass';
 import type { BackgroundItem, QualityTier } from '../types';
 import { DEFAULT_SOLID_COLORS } from '../types';
 import { t } from '../locales';

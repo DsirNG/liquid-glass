@@ -1,6 +1,6 @@
 {
   "name": "@dinqorai/liquid-glass",
-  "version": "0.1.0-test.1",
+  "version": "0.1.0-test.5",
   "description": "Next-generation liquid glass optical distortion & refraction engine for Vue 3 and Vanilla JS.",
   "type": "module",
   "main": "./dist/core/index.js",
@@ -9,11 +9,13 @@
   "exports": {
     ".": {
       "types": "./dist/core/index.d.ts",
-      "import": "./dist/core/index.js"
+      "import": "./dist/core/index.js",
+      "default": "./dist/core/index.js"
     },
     "./vue": {
       "types": "./dist/vue/index.d.ts",
-      "import": "./dist/vue/index.js"
+      "import": "./dist/vue/index.js",
+      "default": "./dist/vue/index.js"
     },
     "./style.css": {
       "types": "./dist/style.css.d.ts",
@@ -23,6 +25,19 @@
   "files": [
     "dist"
   ],
+  "typesVersions": {
+    "*": {
+      "vue": [
+        "dist/vue/index.d.ts"
+      ],
+      "style.css": [
+        "dist/style.css.d.ts"
+      ],
+      "*": [
+        "dist/core/index.d.ts"
+      ]
+    }
+  },
   "sideEffects": [
     "dist/style.css",
     "**/*.css"

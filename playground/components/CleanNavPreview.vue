@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue';
+import { computed, h, shallowRef } from 'vue';
 import { GlassTabBar, type GlassTabBarItem } from '../../src/vue';
 import type { LiquidGlassMaterialOptions } from '../../src/core';
 
@@ -9,13 +9,38 @@ const props = defineProps<{
 
 const activeTab = shallowRef('home');
 
-const navItems: GlassTabBarItem[] = [
-  { value: 'home', label: 'Home' },
-  { value: 'discover', label: 'Discover' },
-  { value: 'saved', label: 'Saved' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'profile', label: 'Profile' },
-];
+const HomeIcon = {
+  render: () => h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor' }, [
+    h('path', { d: 'm3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z', 'stroke-width': '1.8', 'stroke-linejoin': 'round' }),
+  ]),
+};
+const ActiveHomeIcon = {
+  render: () => h('svg', { viewBox: '0 0 24 24', fill: 'currentColor' }, [
+    h('path', { d: 'm3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z' }),
+  ]),
+};
+const HeartIcon = {
+  render: () => h('svg', { viewBox: '0 0 24 24', fill: 'currentColor' }, [
+    h('path', { d: 'M12 21 4.6 13.6A5 5 0 0 1 11.7 6.5L12 6.8l.3-.3a5 5 0 0 1 7.1 7.1Z' }),
+  ]),
+};
+
+const navItems = computed<GlassTabBarItem[]>(() => [
+  {
+    value: 'home',
+    label: '双图标',
+    icon: HomeIcon,
+    activeIcon: ActiveHomeIcon,
+    active: activeTab.value === 'home',
+  },
+  {
+    value: 'favorite',
+    label: '仅激活图标',
+    activeIcon: HeartIcon,
+    active: activeTab.value === 'favorite',
+  },
+  { value: 'about', label: '纯文字', active: activeTab.value === 'about' },
+]);
 
 const navOptions = computed<LiquidGlassMaterialOptions>(() => ({
   ...(props.glassOptions ?? {}),
@@ -31,49 +56,20 @@ const navOptions = computed<LiquidGlassMaterialOptions>(() => ({
     </div>
 
     <GlassTabBar
-      v-model="activeTab"
       :items="navItems"
       :height="76"
-      :item-width="88"
+      :item-width="104"
       :radius="999"
       :lens-inset="7"
       responsive
-      :mobile-height="56"
-      :mobile-item-width="52"
+      :mobile-height="64"
+      :mobile-item-width="100"
       :tablet-height="68"
       :tablet-item-width="70"
       :base-options="navOptions"
       :lens-options="navOptions"
-    >
-      <template #item="{ item, index }">
-        <span class="glass-tabbar__icon clean-nav-preview__icon" aria-hidden="true">
-          <svg v-if="index === 0" viewBox="0 0 24 24">
-            <path
-              class="is-filled"
-              d="M3 10.5 12 3l9 7.5v9a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H4.5A1.5 1.5 0 0 1 3 19.5v-9Z"
-            />
-          </svg>
-          <svg v-else-if="index === 1" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="6.5" />
-            <path d="m16 16 4.5 4.5M11 7v8M7 11h8" />
-          </svg>
-          <svg v-else-if="index === 2" viewBox="0 0 24 24">
-            <path
-              class="is-filled"
-              d="M12 20.5 4.8 13.3a4.8 4.8 0 0 1 6.8-6.8L12 7l.4-.5a4.8 4.8 0 0 1 6.8 6.8L12 20.5Z"
-            />
-          </svg>
-          <svg v-else-if="index === 3" viewBox="0 0 24 24">
-            <path d="M4 18.5V13M10 18.5V8M16 18.5V4M22 18.5V10" />
-          </svg>
-          <svg v-else viewBox="0 0 24 24">
-            <circle cx="12" cy="8" r="3.5" />
-            <path d="M5 20a7 7 0 0 1 14 0" />
-          </svg>
-        </span>
-        <span class="glass-tabbar__label">{{ item.label }}</span>
-      </template>
-    </GlassTabBar>
+      @click="activeTab = $event.value"
+    />
   </section>
 </template>
 

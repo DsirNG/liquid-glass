@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, shallowRef, watch } from 'vue';
-import type { GlassPreset, LiquidGlassMaterialOptions } from '../src/core';
-import { GLASS_PRESETS } from '../src/core';
+import type { GlassPreset, LiquidGlassMaterialOptions } from '@dinqorai/liquid-glass';
+import { GLASS_PRESETS } from '@dinqorai/liquid-glass';
 
 import { DEFAULT_BACKGROUNDS, type QualityTier } from './types';
 import { withPureRefraction } from './utils/material';

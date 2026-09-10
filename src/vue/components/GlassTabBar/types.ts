@@ -2,14 +2,16 @@ import type { Component } from 'vue';
 import type { LiquidGlassCreateOptions } from '../../../types';
 
 export interface GlassTabBarItem {
-  /** Stable value emitted when this tab is selected. */
+  /** Stable identifier returned by the click event. */
   value: string;
-  /** Default text rendered when the item slot is not provided. */
+  /** Text rendered by the built-in tab layout. */
   label: string;
-  /** Optional Vue component used as the default icon. */
+  /** Optional Vue component rendered above the name. Omit for a text-only tab. */
   icon?: Component;
-  /** Optional icon used while this item is selected. */
+  /** Optional icon rendered when this item is active. */
   activeIcon?: Component;
+  /** Controls the selected lens. Set this from the owning view or router state. */
+  active?: boolean;
   /** Optional badge displayed at the item's upper-right corner. */
   badge?: string | number;
   /** Disabled items are excluded from hover and selection interactions. */
@@ -17,8 +19,8 @@ export interface GlassTabBarItem {
 }
 
 export interface GlassTabBarProps {
+  /** Tab configuration. The component renders icon + name, or name alone when icon is omitted. */
   items: GlassTabBarItem[];
-  modelValue?: string;
   /** Height of the outer glass bar in pixels. */
   height?: number;
   /** Fixed width reserved by every tab item in pixels. */
@@ -42,13 +44,18 @@ export interface GlassTabBarProps {
   lensHeight?: number;
   /** Radius of the outer bar and lenses. */
   radius?: number;
-  /** Material options for the outer bar. */
+  /**
+   * Material overrides for the outer bar. Common controls: blur (background softness),
+   * opacity (tint transparency, 0–1), refraction (distortion strength), specular
+   * (highlight strength, 0–1), shadow (shadow strength, 0–1), tint (glass color).
+   * See LiquidGlassMaterialOptions for the full field documentation.
+   */
   baseOptions?: LiquidGlassCreateOptions;
-  /** Material options for the selected/hover lens. */
+  /** Material overrides for the active/hover lens; uses the same fields as baseOptions. */
   lensOptions?: LiquidGlassCreateOptions;
 }
 
 export interface GlassTabBarEmits {
-  (event: 'update:modelValue', value: string): void;
-  (event: 'change', value: string, item: GlassTabBarItem, index: number): void;
+  /** Fired when an enabled tab is pressed. Navigation and state changes belong to the caller. */
+  (event: 'click', item: GlassTabBarItem, index: number, event: MouseEvent): void;
 }

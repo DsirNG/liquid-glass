@@ -135,6 +135,8 @@ onUnmounted(() => {
   margin: 0;
   padding: 18px;
   overflow: auto;
+  user-select: text;
+  cursor: text;
   color: rgba(224, 242, 254, 0.82);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;

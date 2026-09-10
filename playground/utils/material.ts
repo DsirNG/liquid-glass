@@ -1,4 +1,4 @@
-import type { LiquidGlassMaterialOptions } from '../../src/core';
+import type { LiquidGlassMaterialOptions } from '@dinqorai/liquid-glass';
 
 /**
  * Playground default for inspecting the optical layer without a tint, fill, or

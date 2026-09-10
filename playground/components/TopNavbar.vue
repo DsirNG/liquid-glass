@@ -3,7 +3,6 @@ import { computed } from 'vue';
 import { GlassTabBar, type GlassTabBarItem } from '../../src/vue';
 import type { LiquidGlassMaterialOptions } from '../../src/core';
 import { t } from '../locales';
-import { withPureRefraction } from '../utils/material';
 
 export type PlaygroundView = 'home' | 'library';
 
@@ -22,29 +21,23 @@ const emit = defineEmits<{
   (event: 'update:isPanelOpen', value: boolean): void;
 }>();
 
-const navItems: GlassTabBarItem[] = [
-  { value: 'home', label: '首页' },
-  { value: 'library', label: '组件库' },
-];
+const navItems = computed<GlassTabBarItem[]>(() => [
+  { value: 'home', label: '首页', active: props.modelValue === 'home' },
+  { value: 'library', label: '组件库', active: props.modelValue === 'library' },
+]);
 
-// The top navigation has its own material contract. HomeShowcase's control
-// panel intentionally updates only the main card options.
-const tabBarOptions: LiquidGlassMaterialOptions = withPureRefraction({
+const navOptions = computed<LiquidGlassMaterialOptions>(() => ({
+  blur: 0,
+  opacity: 0,
+  specular: 0.75,
+  shadow: 0.25,
+  refraction: 2,
+  refractionCoverage: 'full',
   shape: 'roundedRect',
-  radius: 999,
-  bezel: 16,
-  refraction: 0.82,
-  dispersion: 0.8,
-  saturation: 1.15,
-  specular: 0.72,
-  shadow: 0.18,
-  quality: 'high',
-});
+  debug: 'none',
+}));
 
-const activeView = computed<PlaygroundView>({
-  get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
-});
+const activeView = computed(() => props.modelValue);
 
 function togglePanel(): void {
   emit('update:isPanelOpen', !props.isPanelOpen);
@@ -53,20 +46,21 @@ function togglePanel(): void {
 
 <template>
   <header class="top-navbar-wrapper">
+
     <GlassTabBar
-      v-model="activeView"
       :items="navItems"
-      :height="64"
-      :item-width="124"
+      :height="76"
+      :item-width="88"
       :radius="999"
+      :lens-inset="7"
       responsive
       :mobile-height="56"
-      :mobile-item-width="84"
-      :tablet-height="60"
-      :tablet-item-width="104"
-      :lens-inset="7"
-      :base-options="tabBarOptions"
-      :lens-options="tabBarOptions"
+      :mobile-item-width="52"
+      :tablet-height="68"
+      :tablet-item-width="70"
+      :base-options="navOptions"
+      :lens-options="navOptions"
+      @click="emit('update:modelValue', $event.value as PlaygroundView)"
     >
       <template #prefix>
         <div class="top-navbar-brand">
@@ -74,42 +68,47 @@ function togglePanel(): void {
           <span class="top-navbar-brand-text">LiquidGlass Lab</span>
         </div>
       </template>
-
       <template #item="{ item, index }">
-        <span class="glass-tabbar__icon top-navbar-tab-icon" aria-hidden="true">
+        <span class="glass-tabbar__icon clean-nav-preview__icon" aria-hidden="true">
           <svg v-if="index === 0" viewBox="0 0 24 24">
             <path
+              class="is-filled"
               d="M3 10.5 12 3l9 7.5v9a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H4.5A1.5 1.5 0 0 1 3 19.5v-9Z"
             />
           </svg>
+          <svg v-else-if="index === 1" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="m16 16 4.5 4.5M11 7v8M7 11h8" />
+          </svg>
+          <svg v-else-if="index === 2" viewBox="0 0 24 24">
+            <path
+              class="is-filled"
+              d="M12 20.5 4.8 13.3a4.8 4.8 0 0 1 6.8-6.8L12 7l.4-.5a4.8 4.8 0 0 1 6.8 6.8L12 20.5Z"
+            />
+          </svg>
+          <svg v-else-if="index === 3" viewBox="0 0 24 24">
+            <path d="M4 18.5V13M10 18.5V8M16 18.5V4M22 18.5V10" />
+          </svg>
           <svg v-else viewBox="0 0 24 24">
-            <path d="M5 5h14M5 12h14M5 19h14" />
-            <circle cx="9" cy="5" r="1.6" />
-            <circle cx="15" cy="12" r="1.6" />
-            <circle cx="10" cy="19" r="1.6" />
+            <circle cx="12" cy="8" r="3.5" />
+            <path d="M5 20a7 7 0 0 1 14 0" />
           </svg>
         </span>
         <span class="glass-tabbar__label">{{ item.label }}</span>
       </template>
-
-      <template #suffix>
-        <div class="top-navbar-actions">
-          <span class="top-navbar-version">Vue</span>
-          <button
-            v-if="activeView === 'home'"
-            class="top-navbar-icon-btn top-navbar-panel-btn"
-            type="button"
-            :aria-label="props.isPanelOpen ? t.hideControls : t.showControls"
-            :title="props.isPanelOpen ? t.hideControls : t.showControls"
-            @click.stop="togglePanel"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 5h16M4 12h16M4 19h16" />
-            </svg>
-          </button>
-        </div>
-      </template>
     </GlassTabBar>
+    <button
+      v-if="activeView === 'home'"
+      class="top-navbar-icon-btn top-navbar-panel-btn"
+      type="button"
+      :aria-label="props.isPanelOpen ? t.hideControls : t.showControls"
+      :title="props.isPanelOpen ? t.hideControls : t.showControls"
+      @click.stop="togglePanel"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 5h16M4 12h16M4 19h16" />
+      </svg>
+    </button>
   </header>
 </template>
 

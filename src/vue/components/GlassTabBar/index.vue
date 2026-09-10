@@ -5,7 +5,6 @@ import LiquidGlass from '../LiquidGlass/index.vue';
 import type { GlassTabBarEmits, GlassTabBarProps } from './types';
 
 const props = withDefaults(defineProps<GlassTabBarProps>(), {
-  modelValue: '',
   height: 94,
   itemWidth: 116,
   responsive: false,
@@ -23,7 +22,11 @@ const navRef = ref<HTMLElement | null>(null);
 const lensRef = ref<HTMLElement | null>(null);
 const itemRefs = ref<(HTMLElement | null)[]>([]);
 
-const selectedIndex = ref(0);
+const selectedIndex = computed(() => {
+  const activeIndex = props.items.findIndex((item) => item.active && !item.disabled);
+  if (activeIndex >= 0) return activeIndex;
+  return Math.max(0, props.items.findIndex((item) => !item.disabled));
+});
 const hoverIndex = ref<number | null>(null);
 const isHovering = computed(() => hoverIndex.value !== null);
 const targetIndex = computed(() => hoverIndex.value ?? selectedIndex.value);
@@ -46,17 +49,9 @@ const tabItemWidth = computed(() => {
   return props.itemWidth;
 });
 
-function syncSelectedIndex(): void {
-  const index = props.items.findIndex((item) => item.value === props.modelValue);
-  if (index >= 0) selectedIndex.value = index;
-}
-
-watch(() => props.modelValue, syncSelectedIndex, { immediate: true });
 watch(
-  () => props.items.map((item) => item.value),
+  () => props.items.map((item) => `${item.value}:${item.active}:${item.disabled}`),
   () => {
-    if (selectedIndex.value >= props.items.length) selectedIndex.value = 0;
-    syncSelectedIndex();
     void nextTick(() => scheduleLensTarget(targetIndex.value));
   }
 );
@@ -308,20 +303,16 @@ function triggerBounce(index: number): void {
   }, 450);
 }
 
-function handleSelect(index: number): void {
+function handleClick(index: number, event: MouseEvent): void {
   const item = props.items[index];
   if (!item || item.disabled) return;
 
-  selectedIndex.value = index;
   triggerBounce(index);
-  emit('update:modelValue', item.value);
-  emit('change', item.value, item, index);
-
-  if (hoverIndex.value === null) scheduleLensTarget(index);
+  emit('click', item, index, event);
 }
 
 watch(
-  () => selectedIndex.value,
+  selectedIndex,
   () => {
     void nextTick(() => {
       if (!isHovering.value) scheduleLensTarget(selectedIndex.value);
@@ -408,7 +399,7 @@ defineExpose({
           :disabled="item.disabled"
           @pointerenter="handleItemEnter(index, $event)"
           @pointermove="handleItemMove(index, $event)"
-          @click="handleSelect(index)"
+          @click="handleClick(index, $event)"
         >
           <slot
             name="item"
@@ -417,11 +408,8 @@ defineExpose({
             :is-selected="selectedIndex === index"
             :is-hovered="hoverIndex === index"
           >
-            <span class="glass-tabbar__icon">
-              <component
-                :is="selectedIndex === index && item.activeIcon ? item.activeIcon : item.icon"
-                v-if="item.icon || item.activeIcon"
-              />
+            <span v-if="item.icon || item.activeIcon" class="glass-tabbar__icon">
+              <component :is="selectedIndex === index && item.activeIcon ? item.activeIcon : item.icon" />
             </span>
             <span class="glass-tabbar__label">{{ item.label }}</span>
             <span v-if="item.badge !== undefined" class="glass-tabbar__badge">

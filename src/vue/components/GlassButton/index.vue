@@ -1,55 +1,11 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, shallowRef } from 'vue';
-import type {
-  LiquidGlassCreateOptions,
-  LiquidGlassMaterialOptions,
-  SurfaceShape,
-  SurfaceProfile,
-  MaterialPreset,
-  FootprintShape,
-  OpticalDebugMode,
-  BorderContrastMode,
-  RefractionCoverage,
-  LiquidGlassQuality,
-} from '../../../types';
+import type { LiquidGlassCreateOptions } from '../../../types';
 import { useLiquidGlass } from '../../composables/useLiquidGlass';
-
-export type GlassButtonSize = 'sm' | 'md' | 'lg';
-export type GlassButtonVariant = 'default' | 'primary' | 'ghost' | 'danger';
+import type { GlassButtonProps, GlassButtonSize, GlassButtonVariant } from './types';
 
 const props = withDefaults(
-  defineProps<{
-    size?: GlassButtonSize;
-    variant?: GlassButtonVariant;
-    disabled?: boolean;
-    type?: 'button' | 'submit' | 'reset';
-    interactive?: boolean;
-    blur?: number;
-    opacity?: number;
-    thickness?: number;
-    ior?: number;
-    refraction?: number;
-    dispersion?: number;
-    saturation?: number;
-    tint?: string;
-    radius?: number;
-    bezel?: number;
-    specular?: number;
-    shadow?: number;
-    shadowColor?: string;
-    surfaceShape?: SurfaceShape;
-    surfaceProfile?: SurfaceProfile;
-    materialPreset?: MaterialPreset;
-    quality?: LiquidGlassQuality;
-    shape?: FootprintShape;
-    ambientLuma?: number;
-    debug?: OpticalDebugMode;
-    borderMode?: BorderContrastMode;
-    colorBleed?: number;
-    refractionCoverage?: RefractionCoverage;
-    capability?: 'auto' | 'full' | 'material';
-    options?: LiquidGlassMaterialOptions;
-  }>(),
+  defineProps<GlassButtonProps>(),
   {
     size: 'md',
     variant: 'default',
