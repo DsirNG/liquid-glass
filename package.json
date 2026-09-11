@@ -46,6 +46,7 @@
     "dev": "vite",
     "build": "vite build --config vite.config.lib.ts",
     "build:playground": "vite build",
+    "visual:fixture": "vite --host 127.0.0.1 --port 4174",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint .",
