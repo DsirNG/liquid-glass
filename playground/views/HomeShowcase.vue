@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue';
-import type { GlassPreset, LiquidGlassMaterialOptions } from '@dinqorai/liquid-glass';
+import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue';
+import type {
+  GlassPreset,
+  LiquidGlassMaterialOptions,
+  LiquidGlassStatus,
+} from '@dinqorai/liquid-glass';
 import { LiquidGlass } from '@dinqorai/liquid-glass/vue';
+import { CapabilityProbe, type CapabilityReport } from '../../src/engine';
 
 import { t } from '../locales';
 import type { BackgroundItem, QualityTier } from '../types';
@@ -69,6 +74,36 @@ const currentBgModel = computed<string>({
 
 const contentMode = shallowRef<ContentMode>('auto');
 const calibrationMode = shallowRef(false);
+const glassRef = ref<InstanceType<typeof LiquidGlass> | null>(null);
+const capabilityReport: CapabilityReport = CapabilityProbe.probe();
+const fallbackPolicy = 'auto' as const;
+const runtimeStatus = shallowRef<LiquidGlassStatus>({
+  targetMode: null,
+  activeMode: null,
+  phase: 'initializing',
+  degraded: false,
+});
+
+let statusTimer: ReturnType<typeof setInterval> | null = null;
+
+function syncRuntimeStatus(): void {
+  const status = glassRef.value?.instance?.status;
+  if (!status) return;
+
+  runtimeStatus.value = {
+    ...status,
+    lastOperation: status.lastOperation ? { ...status.lastOperation } : undefined,
+  };
+}
+
+onMounted(() => {
+  syncRuntimeStatus();
+  statusTimer = setInterval(syncRuntimeStatus, 120);
+});
+
+onUnmounted(() => {
+  if (statusTimer !== null) clearInterval(statusTimer);
+});
 
 const {
   cardPos,
@@ -125,6 +160,9 @@ function updateParam(key: keyof LiquidGlassMaterialOptions, value: unknown): voi
       v-model:glass-height="glassHeightModel"
       v-model:current-bg="currentBgModel"
       :params="props.params"
+      :status="runtimeStatus"
+      :capability-report="capabilityReport"
+      :fallback-policy="fallbackPolicy"
       :backgrounds="props.backgrounds"
       @apply-preset="handleApplyPreset"
       @apply-matrix="handleApplyMatrix"
@@ -190,6 +228,7 @@ function updateParam(key: keyof LiquidGlassMaterialOptions, value: unknown): voi
             @dblclick="resetPosition"
           >
             <LiquidGlass
+              ref="glassRef"
               :options="props.params"
               :interactive="true"
               style="width: 100%; height: 100%"
