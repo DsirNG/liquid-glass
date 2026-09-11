@@ -1,0 +1,62 @@
+[
+  {
+    "id": "pure-dark-button",
+    "fixtureKey": "full-optical-dark-button",
+    "mode": "full-optical",
+    "background": "dark",
+    "preset": "pure",
+    "width": 240,
+    "height": 72,
+    "baseline": "full-optical-dark-button.png"
+  },
+  {
+    "id": "pure-light-button",
+    "fixtureKey": "full-optical-light-button",
+    "mode": "full-optical",
+    "background": "light",
+    "preset": "pure",
+    "width": 240,
+    "height": 72,
+    "baseline": "full-optical-light-button.png"
+  },
+  {
+    "id": "ios-image-card",
+    "fixtureKey": "ios-image-card",
+    "mode": "full-optical",
+    "background": "image",
+    "preset": "ios",
+    "width": 360,
+    "height": 180,
+    "baseline": "ios-image-card.png"
+  },
+  {
+    "id": "small-pill",
+    "fixtureKey": "small-pill",
+    "mode": "full-optical",
+    "background": "dark",
+    "preset": "pure",
+    "width": 180,
+    "height": 48,
+    "baseline": "small-pill.png"
+  },
+  {
+    "id": "material-fallback",
+    "fixtureKey": "material-fallback",
+    "mode": "material",
+    "background": "image",
+    "preset": "pure",
+    "width": 320,
+    "height": 120,
+    "baseline": "material-fallback.png"
+  },
+  {
+    "id": "static-fallback",
+    "fixtureKey": "static-fallback",
+    "mode": "static",
+    "background": "dark",
+    "preset": "ios",
+    "width": 320,
+    "height": 120,
+    "baseline": "static-fallback.png"
+  }
+]

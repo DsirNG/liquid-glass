@@ -31,3 +31,5 @@ smoke-test/**/dist
 
 .pnpm-store
 liquid-glass-react/
+
+tests/visual/artifacts/

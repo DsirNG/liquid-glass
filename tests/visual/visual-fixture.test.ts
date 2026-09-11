@@ -20,6 +20,7 @@ describe('visual fixture scenarios', () => {
 
     for (const sceneId of expectedSceneIds) {
       const scene = VISUAL_FIXTURE_SCENARIOS[sceneId];
+      expect(scene.baseline).toBe(`${scene.fixtureKey}.png`);
       expect(scene.width).toBeGreaterThan(0);
       expect(scene.height).toBeGreaterThan(0);
       expect(scene.options.interactive).toBe(false);

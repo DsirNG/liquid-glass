@@ -1,4 +1,5 @@
 import type { LiquidGlassCreateOptions, MaterialPreset } from '../../../src/types';
+import manifest from '../manifest.json';
 
 export type VisualFixtureSceneId =
   | 'pure-dark-button'
@@ -13,13 +14,35 @@ export type VisualFixtureMode = 'full-optical' | 'material' | 'static';
 
 export interface VisualFixtureScene {
   readonly id: VisualFixtureSceneId;
+  readonly fixtureKey: string;
   readonly label: string;
   readonly mode: VisualFixtureMode;
   readonly background: VisualFixtureBackground;
   readonly preset: MaterialPreset;
   readonly width: number;
   readonly height: number;
+  readonly baseline: string;
   readonly options: Readonly<LiquidGlassCreateOptions>;
+}
+
+interface VisualFixtureManifestEntry {
+  readonly id: VisualFixtureSceneId;
+  readonly fixtureKey: string;
+  readonly mode: VisualFixtureMode;
+  readonly background: VisualFixtureBackground;
+  readonly preset: MaterialPreset;
+  readonly width: number;
+  readonly height: number;
+  readonly baseline: string;
+}
+
+const fixtureManifest = manifest as VisualFixtureManifestEntry[];
+const manifestById = Object.freeze(
+  Object.fromEntries(fixtureManifest.map((entry) => [entry.id, entry]))
+) as Readonly<Record<VisualFixtureSceneId, VisualFixtureManifestEntry>>;
+
+function sceneMetadata(id: VisualFixtureSceneId): VisualFixtureManifestEntry {
+  return manifestById[id];
 }
 
 const commonOptions = {
@@ -50,23 +73,13 @@ const commonOptions = {
 export const VISUAL_FIXTURE_SCENARIOS: Readonly<Record<VisualFixtureSceneId, VisualFixtureScene>> =
   Object.freeze({
     'pure-dark-button': {
-      id: 'pure-dark-button',
+      ...sceneMetadata('pure-dark-button'),
       label: 'Pure / Dark / Button',
-      mode: 'full-optical',
-      background: 'dark',
-      preset: 'pure',
-      width: 240,
-      height: 72,
       options: Object.freeze({ ...commonOptions, materialPreset: 'pure' }),
     },
     'pure-light-button': {
-      id: 'pure-light-button',
+      ...sceneMetadata('pure-light-button'),
       label: 'Pure / Light / Button',
-      mode: 'full-optical',
-      background: 'light',
-      preset: 'pure',
-      width: 240,
-      height: 72,
       options: Object.freeze({
         ...commonOptions,
         materialPreset: 'pure',
@@ -76,13 +89,8 @@ export const VISUAL_FIXTURE_SCENARIOS: Readonly<Record<VisualFixtureSceneId, Vis
       }),
     },
     'ios-image-card': {
-      id: 'ios-image-card',
+      ...sceneMetadata('ios-image-card'),
       label: 'iOS / Image / Card',
-      mode: 'full-optical',
-      background: 'image',
-      preset: 'ios',
-      width: 360,
-      height: 180,
       options: Object.freeze({
         ...commonOptions,
         materialPreset: 'ios',
@@ -92,13 +100,8 @@ export const VISUAL_FIXTURE_SCENARIOS: Readonly<Record<VisualFixtureSceneId, Vis
       }),
     },
     'small-pill': {
-      id: 'small-pill',
+      ...sceneMetadata('small-pill'),
       label: 'Pure / Dark / Small Pill',
-      mode: 'full-optical',
-      background: 'dark',
-      preset: 'pure',
-      width: 180,
-      height: 48,
       options: Object.freeze({
         ...commonOptions,
         materialPreset: 'pure',
@@ -109,13 +112,8 @@ export const VISUAL_FIXTURE_SCENARIOS: Readonly<Record<VisualFixtureSceneId, Vis
       }),
     },
     'material-fallback': {
-      id: 'material-fallback',
+      ...sceneMetadata('material-fallback'),
       label: 'Material Fallback',
-      mode: 'material',
-      background: 'image',
-      preset: 'pure',
-      width: 320,
-      height: 120,
       options: Object.freeze({
         ...commonOptions,
         materialPreset: 'pure',
@@ -127,13 +125,8 @@ export const VISUAL_FIXTURE_SCENARIOS: Readonly<Record<VisualFixtureSceneId, Vis
       }),
     },
     'static-fallback': {
-      id: 'static-fallback',
+      ...sceneMetadata('static-fallback'),
       label: 'Static Fallback',
-      mode: 'static',
-      background: 'dark',
-      preset: 'ios',
-      width: 320,
-      height: 120,
       options: Object.freeze({
         ...commonOptions,
         materialPreset: 'ios',

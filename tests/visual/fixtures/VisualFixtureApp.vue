@@ -33,6 +33,7 @@ onUnmounted(() => {
   <main
     class="visual-fixture"
     :class="[`visual-fixture--${scene.background}`]"
+    :data-visual-fixture="scene.fixtureKey"
     :data-fixture-scene="scene.id"
     :data-fixture-mode="scene.mode"
     :data-fixture-phase="status?.phase ?? 'initializing'"
