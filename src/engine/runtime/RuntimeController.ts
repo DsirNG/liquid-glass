@@ -162,8 +162,92 @@ export class RuntimeController<TSyncOptions = unknown> {
       return result;
     }
 
-    const recoveryCandidates = this.resolveRecoveryChain(plan, result.error);
-    let lastRecoveryError: unknown = result.error;
+    return this.recoverFromFailure(
+      plan,
+      result,
+      failureReason,
+      result.error,
+      planDegradationReason
+    );
+  }
+
+  /** Clears an unusable active backend, then runs the same ordered recovery chain. */
+  public async reportActiveFailure(
+    plan: RenderPlan,
+    error: unknown
+  ): Promise<BackendOperationResult> {
+    const result = this.manager.reportActiveFailure(error);
+    this.recordOperation({ status: 'active-failed', reason: 'backend-prepare-failed' });
+    const planDegradationReason = plan.degraded ? plan.degradationReason : undefined;
+    this.setState({
+      phase: 'transitioning',
+      targetMode: plan.targetMode,
+      activeMode: null,
+      runtimeDegraded: false,
+      runtimeReason: 'backend-switch',
+      degradationReason: planDegradationReason,
+    });
+
+    return this.recoverFromFailure(
+      plan,
+      result,
+      'backend-prepare-failed',
+      error,
+      planDegradationReason
+    );
+  }
+
+  private resolveRecoveryChain(
+    plan: RenderPlan,
+    error: unknown
+  ): readonly RecoveryCandidate<TSyncOptions>[] {
+    const candidates = this.getRecoveryChain
+      ? (this.getRecoveryChain(plan, error) ?? [])
+      : (() => {
+          const legacyCandidate = this.recover?.(plan, error);
+          return legacyCandidate ? [legacyCandidate] : [];
+        })();
+
+    const usableCandidates: RecoveryCandidate<TSyncOptions>[] = [];
+    for (const candidate of candidates) {
+      if (candidate.plan.targetMode === plan.targetMode) {
+        // A recovery candidate at the same mode is a retry, not a degradation.
+        candidate.backend.dispose();
+        continue;
+      }
+      usableCandidates.push(candidate);
+    }
+
+    return usableCandidates;
+  }
+
+  private async recoverFromFailure(
+    plan: RenderPlan,
+    primaryResult: BackendOperationResult,
+    failureReason: RuntimeReason,
+    primaryError: unknown,
+    planDegradationReason: ReadyRuntimeState['degradationReason']
+  ): Promise<BackendOperationResult> {
+    let recoveryCandidates: readonly RecoveryCandidate<TSyncOptions>[];
+    try {
+      recoveryCandidates = this.resolveRecoveryChain(plan, primaryError);
+    } catch (error) {
+      this.recordOperation({ status: 'recovery-failed', reason: 'recovery-failed' });
+      this.setFailed('recovery-failed', error, plan.targetMode, planDegradationReason);
+      return primaryResult;
+    }
+
+    if (recoveryCandidates.length === 0) {
+      this.setFailed(
+        'backend-prepare-failed',
+        primaryError,
+        plan.targetMode,
+        planDegradationReason
+      );
+      return primaryResult;
+    }
+
+    let lastRecoveryError: unknown = primaryError;
 
     for (let index = 0; index < recoveryCandidates.length; index += 1) {
       const recovery = recoveryCandidates[index];
@@ -186,7 +270,7 @@ export class RuntimeController<TSyncOptions = unknown> {
         });
         // Preserve the primary failure as the operation result. The status
         // describes both the recovered active mode and what triggered recovery.
-        return result;
+        return primaryResult;
       }
 
       lastRecoveryError = recoveryResult.error;
@@ -198,31 +282,7 @@ export class RuntimeController<TSyncOptions = unknown> {
 
     this.recordOperation({ status: 'recovery-failed', reason: 'recovery-failed' });
     this.setFailed('recovery-failed', lastRecoveryError, plan.targetMode, planDegradationReason);
-    return result;
-  }
-
-  public reportActiveFailure(error: unknown): BackendOperationResult {
-    const result = this.manager.reportActiveFailure(error);
-    this.recordOperation({ status: 'active-failed', reason: 'backend-prepare-failed' });
-    this.setFailed(
-      'backend-prepare-failed',
-      error,
-      this.state.targetMode,
-      this.state.degradationReason
-    );
-    return result;
-  }
-
-  private resolveRecoveryChain(
-    plan: RenderPlan,
-    error: unknown
-  ): readonly RecoveryCandidate<TSyncOptions>[] {
-    if (this.getRecoveryChain) {
-      return this.getRecoveryChain(plan, error) ?? [];
-    }
-
-    const legacyCandidate = this.recover?.(plan, error);
-    return legacyCandidate ? [legacyCandidate] : [];
+    return primaryResult;
   }
 
   private resolveFailureReason(plan: RenderPlan): RuntimeReason {

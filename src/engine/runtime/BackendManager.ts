@@ -75,6 +75,11 @@ export class BackendManager<TSyncOptions = unknown> {
       // the middle of this transaction.
       prepared.commit();
     } catch (error) {
+      try {
+        prepared.rollback?.();
+      } catch {
+        // Rollback is best-effort; the candidate is still discarded below.
+      }
       prepared.dispose();
       candidate.dispose();
       if (!context.isCurrent()) return { status: 'stale' };

@@ -18,7 +18,11 @@ import type { RuntimePreview } from '../runtime';
 import { MaterialBackend } from './MaterialBackend';
 import { OpticalBackend } from './OpticalBackend';
 import { StaticBackend } from './StaticBackend';
-import type { SvgBackendContext, SvgBackendSyncOptions } from './BackendContext';
+import type {
+  SvgBackendContext,
+  SvgBackendSyncOptions,
+  SvgBackendVisualState,
+} from './BackendContext';
 
 export { OPTICAL_FIELD_DIMENSIONS, resolveOpticalFieldDimension } from './OpticalFieldDimensions';
 
@@ -78,6 +82,8 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.backendContext = {
       getViewport: () => this.getViewport(),
       getActivePhysicalAmplitude: () => this.getActivePhysicalAmplitude(),
+      captureVisualState: () => this.captureVisualState(),
+      restoreVisualState: (state) => this.restoreVisualState(state),
       commitOptical: (engine, assets, syncOptions) =>
         this.commitOpticalFrame(engine, assets, syncOptions),
       syncOptical: (engine, assets, syncOptions) =>
@@ -295,6 +301,28 @@ export class SvgRendererWrapper implements RendererDelegate {
   private getActivePhysicalAmplitude(): number {
     const activeOptical = this.backendManager.active;
     return activeOptical instanceof OpticalBackend ? activeOptical.physicalAmplitude : 0;
+  }
+
+  private captureVisualState(): SvgBackendVisualState {
+    return {
+      elementStyle: this.element.style.cssText,
+      refractionStyle: this.refractionLayer.style.cssText,
+      tintStyle: this.tintLayer.style.cssText,
+      borderScreenStyle: this.borderScreenLayer.style.cssText,
+      borderOverlayStyle: this.borderOverlayLayer.style.cssText,
+      borderScreenClassName: this.borderScreenLayer.className,
+      borderOverlayClassName: this.borderOverlayLayer.className,
+    };
+  }
+
+  private restoreVisualState(state: SvgBackendVisualState): void {
+    this.element.style.cssText = state.elementStyle;
+    this.refractionLayer.style.cssText = state.refractionStyle;
+    this.tintLayer.style.cssText = state.tintStyle;
+    this.borderScreenLayer.style.cssText = state.borderScreenStyle;
+    this.borderOverlayLayer.style.cssText = state.borderOverlayStyle;
+    this.borderScreenLayer.className = state.borderScreenClassName;
+    this.borderOverlayLayer.className = state.borderOverlayClassName;
   }
 
   private commitOpticalFrame(
@@ -571,21 +599,30 @@ export class SvgRendererWrapper implements RendererDelegate {
   }
 
   private createBackend(plan: RenderPlan): OpticalBackend | MaterialBackend | StaticBackend {
+    return this.createBackendForPlan(plan, true);
+  }
+
+  private createBackendForPlan(
+    plan: RenderPlan,
+    trackPendingOptical = false
+  ): OpticalBackend | MaterialBackend | StaticBackend {
     if (plan.targetMode === 'full-optical') {
       const backend = new OpticalBackend(this.backendContext, this.options);
-      this.pendingOpticalBackend = backend;
+      if (trackPendingOptical) this.pendingOpticalBackend = backend;
       return backend;
     }
     if (plan.targetMode === 'material') {
-      this.pendingOpticalBackend = null;
+      if (trackPendingOptical) this.pendingOpticalBackend = null;
       return new MaterialBackend(this.backendContext, this.options);
     }
-    this.pendingOpticalBackend = null;
+    if (trackPendingOptical) this.pendingOpticalBackend = null;
     return new StaticBackend(this.backendContext, this.options);
   }
 
   private createRecoveryChain(plan: RenderPlan): RuntimePreview<SvgBackendSyncOptions>[] {
     const candidates: RuntimePreview<SvgBackendSyncOptions>[] = [];
+
+    if (plan.targetMode === 'static') return candidates;
 
     if (plan.targetMode === 'full-optical') {
       const materialPlan = this.resolveMaterialPreviewPlan();
@@ -614,13 +651,14 @@ export class SvgRendererWrapper implements RendererDelegate {
 
   private async initializeRuntime(): Promise<void> {
     const plan = this.resolvePlan();
-    const preview =
-      plan.targetMode === 'full-optical'
-        ? {
-            plan: this.resolveMaterialPreviewPlan(),
-            backend: new MaterialBackend(this.backendContext, this.options),
-          }
-        : undefined;
+    const previewPlan =
+      plan.targetMode === 'full-optical' ? this.resolveMaterialPreviewPlan() : null;
+    const preview = previewPlan
+      ? {
+          plan: previewPlan,
+          backend: this.createBackendForPlan(previewPlan),
+        }
+      : undefined;
 
     await this.runtimeController.transition(
       plan,

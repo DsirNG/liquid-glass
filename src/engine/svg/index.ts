@@ -22,6 +22,7 @@ export { StaticBackend } from './StaticBackend';
 export type {
   SvgBackendContext,
   SvgBackendSyncOptions,
+  SvgBackendVisualState,
   SvgBackendViewport,
 } from './BackendContext';
 

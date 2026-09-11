@@ -6,9 +6,16 @@ export interface BackendPrepareContext {
   isCurrent(): boolean;
 }
 
-/** Transaction returned by prepare; it owns candidate resources until commit or dispose. */
+/**
+ * Transaction returned by prepare; it owns candidate resources until commit or dispose.
+ *
+ * Implementations MUST keep commit synchronous and non-throwing in normal operation.
+ * The manager still invokes rollback defensively if an integration boundary violates that
+ * contract, so a partially applied visual frame can restore the last-good frame.
+ */
 export interface PreparedBackendCommit {
   commit(): void;
+  rollback?(): void;
   dispose(): void;
 }
 

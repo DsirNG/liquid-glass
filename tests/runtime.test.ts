@@ -67,6 +67,8 @@ class FakeBackend implements EffectBackend<void> {
   public backendDisposeCount = 0;
   public gate: Promise<void> | null = null;
   public prepareError: unknown = null;
+  public commitError: unknown = null;
+  public rollbackCount = 0;
 
   constructor(mode: RenderMode) {
     this.mode = mode;
@@ -86,8 +88,12 @@ class FakeBackend implements EffectBackend<void> {
     return {
       commit: () => {
         if (!ownsCandidate) return;
+        if (this.commitError) throw this.commitError;
         ownsCandidate = false;
         this.commitCount += 1;
+      },
+      rollback: () => {
+        this.rollbackCount += 1;
       },
       dispose: () => {
         if (!ownsCandidate) return;
@@ -138,6 +144,24 @@ describe('BackendManager', () => {
     expect(result.activeMode).toBe('full-optical');
     expect(manager.active).toBe(active);
     expect(active.backendDisposeCount).toBe(0);
+    expect(candidate.backendDisposeCount).toBe(1);
+  });
+
+  it('rolls back a commit failure and keeps the previous backend active', async () => {
+    const manager = new BackendManager<void>();
+    const plan = createPlan('full-optical');
+    const active = new FakeBackend('full-optical');
+    await manager.switchTo(active, plan);
+
+    const candidate = new FakeBackend('full-optical');
+    candidate.commitError = new Error('commit failed');
+
+    const result = await manager.switchTo(candidate, plan);
+
+    expect(result.status).toBe('candidate-failed');
+    expect(manager.active).toBe(active);
+    expect(active.backendDisposeCount).toBe(0);
+    expect(candidate.rollbackCount).toBe(1);
     expect(candidate.backendDisposeCount).toBe(1);
   });
 
@@ -256,6 +280,79 @@ describe('RuntimeController', () => {
     });
     expect(material.backendDisposeCount).toBe(1);
     expect(staticBackend.commitCount).toBe(1);
+  });
+
+  it('runs the recovery chain after an active backend failure', async () => {
+    const manager = new BackendManager<void>();
+    const fullPlan = createPlan('full-optical');
+    const materialPlan = createPlan('material');
+    const staticPlan = createPlan('static');
+    const active = new FakeBackend('full-optical');
+    await manager.switchTo(active, fullPlan);
+
+    const material = new FakeBackend('material');
+    material.prepareError = new Error('material fallback failed');
+    const staticBackend = new FakeBackend('static');
+    const controller = new RuntimeController<void>({
+      manager,
+      createBackend: () => active,
+      getRecoveryChain: () => [
+        { plan: materialPlan, backend: material },
+        { plan: staticPlan, backend: staticBackend },
+      ],
+    });
+
+    const result = await controller.reportActiveFailure(
+      fullPlan,
+      new Error('active optical failed')
+    );
+
+    expect(result.status).toBe('active-failed');
+    expect(controller.status).toMatchObject({
+      targetMode: 'full-optical',
+      activeMode: 'static',
+      phase: 'ready',
+      degraded: true,
+      runtimeReason: 'backend-prepare-failed',
+      recoveryMode: 'static',
+      lastOperation: {
+        status: 'active-failed',
+        reason: 'backend-prepare-failed',
+      },
+    });
+    expect(active.backendDisposeCount).toBe(1);
+    expect(material.backendDisposeCount).toBe(1);
+    expect(staticBackend.commitCount).toBe(1);
+  });
+
+  it('does not retry the same static mode after an active failure', async () => {
+    const manager = new BackendManager<void>();
+    const staticPlan = createPlan('static');
+    const active = new FakeBackend('static');
+    await manager.switchTo(active, staticPlan);
+    const retry = new FakeBackend('static');
+
+    const controller = new RuntimeController<void>({
+      manager,
+      createBackend: () => active,
+      getRecoveryChain: () => [{ plan: staticPlan, backend: retry }],
+    });
+
+    const result = await controller.reportActiveFailure(staticPlan, new Error('static failed'));
+
+    expect(result.status).toBe('active-failed');
+    expect(retry.prepareCount).toBe(0);
+    expect(retry.backendDisposeCount).toBe(1);
+    expect(controller.status).toMatchObject({
+      targetMode: 'static',
+      activeMode: null,
+      phase: 'failed',
+      degraded: true,
+      lastOperation: {
+        status: 'active-failed',
+        reason: 'backend-prepare-failed',
+      },
+    });
   });
 
   it('enters failed only when there is no active backend and recovery fails', async () => {

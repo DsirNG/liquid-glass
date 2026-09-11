@@ -6,7 +6,11 @@ import type {
 } from '../runtime/backend';
 import type { MaterialRenderPlan, RenderPlan } from '../planning';
 import { MaterialResolver } from './MaterialResolver';
-import type { SvgBackendContext, SvgBackendSyncOptions } from './BackendContext';
+import type {
+  SvgBackendContext,
+  SvgBackendSyncOptions,
+  SvgBackendVisualState,
+} from './BackendContext';
 
 /** Lightweight adapter for the existing CSS material preview/fallback path. */
 export class MaterialBackend implements EffectBackend<SvgBackendSyncOptions> {
@@ -52,10 +56,19 @@ export class MaterialBackend implements EffectBackend<SvgBackendSyncOptions> {
       userRefraction: materialPlan.requestedOptions.refraction,
     };
     this.currentOptions = options;
+    let previousVisualState: SvgBackendVisualState | null = null;
 
     return Promise.resolve({
       commit: () => {
-        if (!this.disposed) this.context.commitMaterial(options);
+        if (this.disposed) return;
+        previousVisualState = this.context.captureVisualState();
+        this.context.commitMaterial(options);
+        previousVisualState = null;
+      },
+      rollback: () => {
+        if (!previousVisualState) return;
+        this.context.restoreVisualState(previousVisualState);
+        previousVisualState = null;
       },
       dispose: () => undefined,
     });

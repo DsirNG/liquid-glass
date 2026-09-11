@@ -6,7 +6,11 @@ import type {
 } from '../runtime/backend';
 import type { RenderPlan, StaticRenderPlan } from '../planning';
 import { MaterialResolver } from './MaterialResolver';
-import type { SvgBackendContext, SvgBackendSyncOptions } from './BackendContext';
+import type {
+  SvgBackendContext,
+  SvgBackendSyncOptions,
+  SvgBackendVisualState,
+} from './BackendContext';
 
 /** Final CSS-only surface fallback; it never creates blur or optical resources. */
 export class StaticBackend implements EffectBackend<SvgBackendSyncOptions> {
@@ -52,10 +56,19 @@ export class StaticBackend implements EffectBackend<SvgBackendSyncOptions> {
       fillOpacity: staticPlan.effective.static.fillOpacity,
     };
     this.currentOptions = options;
+    let previousVisualState: SvgBackendVisualState | null = null;
 
     return Promise.resolve({
       commit: () => {
-        if (!this.disposed) this.context.commitStatic(options);
+        if (this.disposed) return;
+        previousVisualState = this.context.captureVisualState();
+        this.context.commitStatic(options);
+        previousVisualState = null;
+      },
+      rollback: () => {
+        if (!previousVisualState) return;
+        this.context.restoreVisualState(previousVisualState);
+        previousVisualState = null;
       },
       dispose: () => undefined,
     });

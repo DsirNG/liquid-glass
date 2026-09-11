@@ -14,6 +14,7 @@ import type { SurfaceProfile } from './geometry/surfaceProfiles';
 import type {
   SvgBackendContext,
   SvgBackendSyncOptions,
+  SvgBackendVisualState,
   SvgBackendViewport,
 } from './BackendContext';
 
@@ -90,11 +91,12 @@ export class OpticalBackend implements EffectBackend<SvgBackendSyncOptions> {
     );
     const generatedAssets = await this.generateAssets(opticalPlan, material, viewport, context);
     let ownsAssets = true;
+    let previousVisualState: SvgBackendVisualState | null = null;
 
     return {
       commit: () => {
         if (!ownsAssets || this.disposed) return;
-        ownsAssets = false;
+        previousVisualState = this.context.captureVisualState();
         this.committedAssets = generatedAssets;
         const committedOptions = this.latestSyncOptions ?? {
           material,
@@ -109,6 +111,13 @@ export class OpticalBackend implements EffectBackend<SvgBackendSyncOptions> {
           committedOptions.viewport
         );
         this.context.commitOptical(this.svgEngine, generatedAssets, committedOptions);
+        ownsAssets = false;
+        previousVisualState = null;
+      },
+      rollback: () => {
+        if (!previousVisualState) return;
+        this.context.restoreVisualState(previousVisualState);
+        previousVisualState = null;
       },
       dispose: () => {
         if (!ownsAssets) return;
