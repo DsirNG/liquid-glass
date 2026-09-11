@@ -1,3 +1,4 @@
+import { hasBlockingRestriction } from '../capabilities';
 import type {
   BackdropBackendOptions,
   CommonMaterialOptions,
@@ -90,10 +91,16 @@ function resolveDegradationReason(input: RenderPlanningInput, targetMode: 'mater
 
 /** Pure capability + options planner. It does not touch the DOM or create backends. */
 export function resolveRenderPlan(input: RenderPlanningInput): RenderPlan {
-  const { requested, capabilities, fallbackPolicy = 'auto' } = input;
+  const { requested, capabilities, capabilityReport, fallbackPolicy = 'auto' } = input;
+  const rawOpticalCapabilityAvailable =
+    capabilityReport === undefined ||
+    (capabilityReport.svgBackdropDisplacement && !hasBlockingRestriction(capabilityReport));
   const canUseOptical =
-    capabilities.opticalField && capabilities.refraction && capabilities.backdropBlur;
-  const canUseBackdrop = capabilities.backdropBlur;
+    capabilities.opticalField &&
+    capabilities.refraction &&
+    capabilities.backdropBlur &&
+    rawOpticalCapabilityAvailable;
+  const canUseBackdrop = capabilities.backdropBlur && (capabilityReport?.backdropFilter ?? true);
   const strictRequestedMode: StrictRequestedMode =
     requested.capability === 'material' ? 'material' : 'full-optical';
   const canSatisfyStrictRequest =

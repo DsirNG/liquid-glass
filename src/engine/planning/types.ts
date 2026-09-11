@@ -1,4 +1,5 @@
 import type { CanonicalGlassOptions } from '../options';
+import type { CapabilityReport } from '../capabilities';
 
 export type RenderMode = 'full-optical' | 'material' | 'static';
 
@@ -101,5 +102,7 @@ export type RenderPlan = FullOpticalRenderPlan | MaterialRenderPlan | StaticRend
 export interface RenderPlanningInput {
   requested: CanonicalGlassOptions;
   capabilities: GlassCapabilities;
+  /** Optional raw probe facts; retained as optional for planner API compatibility. */
+  capabilityReport?: CapabilityReport;
   fallbackPolicy?: FallbackPolicy;
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createLiquidGlass } from '../src/core';
+import { CapabilityProbe } from '../src/engine';
 
 describe('unified LiquidGlassEngine native implementation', () => {
   it('creates full optical layers and RGB chromatic aberration SVG filter', () => {
@@ -60,6 +61,7 @@ describe('unified LiquidGlassEngine native implementation', () => {
   });
 
   it('commits the static backend when the runtime has no backdrop-filter support', async () => {
+    CapabilityProbe.resetForTests();
     const hadCss = Object.prototype.hasOwnProperty.call(globalThis, 'CSS');
     const originalCss = (globalThis as typeof globalThis & { CSS?: unknown }).CSS;
     Object.defineProperty(globalThis, 'CSS', {
@@ -96,6 +98,7 @@ describe('unified LiquidGlassEngine native implementation', () => {
       } else {
         delete (globalThis as typeof globalThis & { CSS?: unknown }).CSS;
       }
+      CapabilityProbe.resetForTests();
     }
   });
 });

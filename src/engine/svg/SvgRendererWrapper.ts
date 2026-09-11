@@ -4,7 +4,7 @@ import type {
   NormalizedLiquidGlassOptions,
 } from '../../types';
 import type { LiquidGlassStatus } from '../../types/status';
-import { CapabilityResolver, type OpticalCapability } from './CapabilityResolver';
+import { CapabilityProbe, type CapabilityReport } from '../capabilities';
 import { InteractionController } from './InteractionController';
 import { GlassHost, MaterialStyler } from './host';
 import { SvgBackendContextAdapter } from './SvgBackendContextAdapter';
@@ -39,7 +39,7 @@ export type ExtendedEngineOptions = NormalizedLiquidGlassOptions;
 /**
  * High-level SVG DOM Wrapper implementing RendererDelegate.
  * Orchestrates:
- * 1. CapabilityResolver + RenderPlan (selects the requested backend tier)
+ * 1. CapabilityProbe + RenderPlan (reports facts, then selects the requested backend tier)
  * 2. RuntimeController + BackendManager (transaction, recovery, and last-good state)
  * 3. Optical/Material/Static backends (effect-specific resource ownership)
  * 4. MaterialResolver (size adaptation & parameter resolution)
@@ -50,7 +50,7 @@ export class SvgRendererWrapper implements RendererDelegate {
   private readonly host: GlassHost;
   private readonly materialStyler: MaterialStyler;
   private options: ExtendedEngineOptions;
-  private capability: OpticalCapability;
+  private readonly capabilityReport: CapabilityReport;
   private interactionController: InteractionController | null = null;
   private readonly capabilities: GlassCapabilities;
   private readonly backendContext: SvgBackendContextAdapter;
@@ -66,7 +66,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.host = new GlassHost(element);
     this.materialStyler = new MaterialStyler(this.host);
     this.options = { ...options };
-    this.capability = CapabilityResolver.resolve({ override: this.options.capability });
+    this.capabilityReport = CapabilityProbe.probe();
     this.capabilities = this.resolveCapabilities();
     this.backendManager = new BackendManager<SvgBackendSyncOptions>();
     this.backendContext = new SvgBackendContextAdapter(this.host, this.materialStyler, () => {
@@ -106,13 +106,14 @@ export class SvgRendererWrapper implements RendererDelegate {
   }
 
   private resolveCapabilities(): GlassCapabilities {
-    const opticalField = this.capability === 'full';
+    const opticalField =
+      this.capabilityReport.svgFilter && this.capabilityReport.svgDisplacementMap;
     return {
       opticalField,
-      refraction: opticalField,
-      dispersion: opticalField,
-      backdropBlur: CapabilityResolver.supportsBackdropFilter(),
-      saturation: true,
+      refraction: this.capabilityReport.svgDisplacementMap,
+      dispersion: this.capabilityReport.svgDisplacementMap,
+      backdropBlur: this.capabilityReport.backdropFilter,
+      saturation: this.capabilityReport.cssFilter,
       tint: true,
       shadow: true,
       specular: true,
@@ -123,6 +124,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     return resolveRenderPlan({
       requested: canonicalizeOptions(this.options),
       capabilities: this.capabilities,
+      capabilityReport: this.capabilityReport,
       fallbackPolicy: 'auto',
     });
   }
@@ -136,6 +138,7 @@ export class SvgRendererWrapper implements RendererDelegate {
         refraction: false,
         dispersion: false,
       },
+      capabilityReport: this.capabilityReport,
       fallbackPolicy: 'auto',
     });
   }
@@ -150,6 +153,7 @@ export class SvgRendererWrapper implements RendererDelegate {
         dispersion: false,
         backdropBlur: false,
       },
+      capabilityReport: this.capabilityReport,
       fallbackPolicy: 'auto',
     });
   }

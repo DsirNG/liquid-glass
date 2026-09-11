@@ -11,6 +11,8 @@ export type { OpticalFieldAssets } from './OpticalFieldAssets';
 export { ManagedOpticalFieldAssets } from './OpticalFieldAssets';
 export { CapabilityResolver } from './CapabilityResolver';
 export type { OpticalCapability, CapabilityOptions } from './CapabilityResolver';
+export { CapabilityProbe, hasBlockingRestriction } from '../capabilities';
+export type { CapabilityReport, KnownRestriction } from '../capabilities';
 export { MaterialResolver, resolveGlassSizeFactor } from './MaterialResolver';
 export type { ResolvedMaterial, MaterialPreset } from './MaterialResolver';
 export { IOS_MATERIAL_PRESET, PURE_MATERIAL_PRESET } from './presets';

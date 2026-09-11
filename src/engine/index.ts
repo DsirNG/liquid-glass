@@ -7,6 +7,8 @@ export { canonicalizeOptions, normalizeOptionPatch, normalizeOptions } from './o
 export type { CanonicalGlassOptions, CanonicalGlassUpdateOptions } from './options';
 export { RenderPlanUnsupportedError, resolveRenderPlan } from './planning';
 export { BackendManager, RuntimeController } from './runtime';
+export { CapabilityProbe, hasBlockingRestriction } from './capabilities';
+export type { CapabilityReport, KnownRestriction } from './capabilities';
 export type {
   BackdropBackendOptions,
   CapabilityDegradeReason,

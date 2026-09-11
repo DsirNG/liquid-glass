@@ -10,6 +10,7 @@ import {
   OpticalFieldGenerator,
   evaluatePartitionOfUnityBasis,
   CapabilityResolver,
+  CapabilityProbe,
   SvgFilterBuilder,
   MaterialResolver,
   resolveOpticalFieldDimension,
@@ -197,6 +198,7 @@ describe('Liquid Glass Optical Engine v2.1 Architecture Contracts', () => {
 
     it('always routes iOS platforms (including CriOS and Safari) to live material fallback', () => {
       const originalUa = navigator.userAgent;
+      CapabilityProbe.resetForTests();
       try {
         // iPhone Chrome (CriOS)
         Object.defineProperty(navigator, 'userAgent', {
@@ -218,6 +220,7 @@ describe('Liquid Glass Optical Engine v2.1 Architecture Contracts', () => {
           value: originalUa,
           configurable: true,
         });
+        CapabilityProbe.resetForTests();
       }
     });
   });
