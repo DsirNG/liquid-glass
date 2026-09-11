@@ -11,6 +11,7 @@ import { CapabilityProbe, type CapabilityReport } from '../../src/engine';
 import { t } from '../locales';
 import type { BackgroundItem, QualityTier } from '../types';
 import { useCardDrag } from '../composables/useCardDrag';
+import { installPlaygroundTestHook } from '../utils/browser-test-hook';
 
 import ControlDrawer from '../components/ControlDrawer.vue';
 import StageBackdrop from '../components/StageBackdrop.vue';
@@ -85,6 +86,7 @@ const runtimeStatus = shallowRef<LiquidGlassStatus>({
 });
 
 let statusTimer: ReturnType<typeof setInterval> | null = null;
+let disposePlaygroundTestHook: (() => void) | null = null;
 
 function syncRuntimeStatus(): void {
   const status = glassRef.value?.instance?.status;
@@ -99,10 +101,17 @@ function syncRuntimeStatus(): void {
 onMounted(() => {
   syncRuntimeStatus();
   statusTimer = setInterval(syncRuntimeStatus, 120);
+  disposePlaygroundTestHook = installPlaygroundTestHook(() => ({
+    fallbackPolicy,
+    capabilityReport,
+    status: runtimeStatus.value,
+  }));
 });
 
 onUnmounted(() => {
   if (statusTimer !== null) clearInterval(statusTimer);
+  disposePlaygroundTestHook?.();
+  disposePlaygroundTestHook = null;
 });
 
 const {
