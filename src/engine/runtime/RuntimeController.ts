@@ -88,11 +88,13 @@ export class RuntimeController<TSyncOptions = unknown> {
   ): Promise<BackendOperationResult> {
     this.beginTransition(plan, reason);
     const candidate = this.createBackend(plan);
+    this.manager.registerPending(candidate);
 
     if (preview && this.manager.activeMode === null) {
-      const previewResult = await this.manager.switchTo(preview.backend, preview.plan);
+      const previewResult = await this.manager.switchTo(preview.backend, preview.plan, {
+        preservePending: candidate,
+      });
       if (previewResult.status === 'stale') {
-        candidate.dispose();
         return previewResult;
       }
       if (previewResult.status === 'committed') {
@@ -105,7 +107,6 @@ export class RuntimeController<TSyncOptions = unknown> {
           degradationReason: plan.degraded ? plan.degradationReason : undefined,
         });
       } else if (previewResult.status === 'active-failed') {
-        candidate.dispose();
         this.recordOperation({ status: 'active-failed', reason: 'backend-prepare-failed' });
         this.setFailed(
           'backend-prepare-failed',

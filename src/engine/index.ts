@@ -26,6 +26,7 @@ export type {
 export type {
   BackendOperationResult,
   BackendPrepareContext,
+  BackendSwitchOptions,
   EffectBackend,
   FailedRuntimeState,
   InitializingRuntimeState,

@@ -5,15 +5,15 @@ import type {
 } from '../../types';
 import type { LiquidGlassStatus } from '../../types/status';
 import { CapabilityResolver, type OpticalCapability } from './CapabilityResolver';
-import { MaterialResolver, type ResolvedMaterial } from './MaterialResolver';
 import { InteractionController } from './InteractionController';
 import { GlassHost, MaterialStyler } from './host';
 import { SvgBackendContextAdapter } from './SvgBackendContextAdapter';
+import { SvgSyncCoordinator } from './SvgSyncCoordinator';
 import { canonicalizeOptions } from '../options';
 import { resolveRenderPlan } from '../planning';
 import type { GlassCapabilities, RenderPlan } from '../planning';
 import { BackendManager, RuntimeController } from '../runtime';
-import type { RuntimePreview } from '../runtime';
+import type { RuntimePreview, RuntimeTransitionReason } from '../runtime';
 import { MaterialBackend } from './MaterialBackend';
 import { OpticalBackend } from './OpticalBackend';
 import { StaticBackend } from './StaticBackend';
@@ -21,7 +21,7 @@ import type { SvgBackendSyncOptions } from './BackendContext';
 
 export { OPTICAL_FIELD_DIMENSIONS, resolveOpticalFieldDimension } from './OpticalFieldDimensions';
 
-const OPTICAL_FIELD_OPTION_KEYS = [
+const ASYNC_RESOURCE_OPTION_KEYS = [
   'radius',
   'bezel',
   'thickness',
@@ -54,9 +54,9 @@ export class SvgRendererWrapper implements RendererDelegate {
   private interactionController: InteractionController | null = null;
   private readonly capabilities: GlassCapabilities;
   private readonly backendContext: SvgBackendContextAdapter;
+  private readonly syncCoordinator: SvgSyncCoordinator;
   private readonly backendManager: BackendManager<SvgBackendSyncOptions>;
   private readonly runtimeController: RuntimeController<SvgBackendSyncOptions>;
-  private pendingOpticalBackend: OpticalBackend | null = null;
 
   private isDestroyed = false;
   private updateScheduled = false;
@@ -69,8 +69,16 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.capability = CapabilityResolver.resolve({ override: this.options.capability });
     this.capabilities = this.resolveCapabilities();
     this.backendManager = new BackendManager<SvgBackendSyncOptions>();
-    this.backendContext = new SvgBackendContextAdapter(this.host, this.materialStyler, () =>
-      this.getActivePhysicalAmplitude()
+    this.backendContext = new SvgBackendContextAdapter(this.host, this.materialStyler, () => {
+      const activeBackend = this.backendManager.active;
+      return activeBackend instanceof OpticalBackend ? activeBackend.physicalAmplitude : 0;
+    });
+    this.syncCoordinator = new SvgSyncCoordinator(
+      this.host,
+      this.materialStyler,
+      this.backendManager,
+      this.backendContext,
+      () => this.options
     );
     this.runtimeController = new RuntimeController<SvgBackendSyncOptions>({
       manager: this.backendManager,
@@ -85,83 +93,16 @@ export class SvgRendererWrapper implements RendererDelegate {
 
     // The initial filter graph is already installed above. CSS styles still
     // apply synchronously, while the first optical field is generated below.
-    this.applyStyles(false);
+    this.syncCoordinator.syncCurrentFrame();
     void this.initializeRuntime();
 
     this.host.observeResize(() => {
-      this.previewGeometryAtCurrentSize();
+      this.syncCoordinator.previewResize();
       // Width/height CSS transitions emit one resize per frame. Optical field
       // generation is asynchronous and expensive, so wait until the size has
       // settled instead of starting a doomed generation for every frame.
-      this.scheduleGeometryUpdate(64, 'resizing');
+      this.scheduleRuntimeTransition(64, 'resizing');
     });
-  }
-
-  /**
-   * Fast path for animated resizes. Reuses the current field but maps it to the
-   * current viewport immediately, so the backdrop never exposes a stale-size seam
-   * while the matching high-quality field is generated on the slow path.
-   */
-  private previewGeometryAtCurrentSize(): void {
-    if (this.isDestroyed) return;
-
-    const { width, height } = this.host.getViewport();
-    const mat = this.resolveCurrentMaterial(width, height);
-    const syncOptions = this.createSyncOptions(mat, { width, height });
-
-    this.materialStyler.apply(mat);
-    if (this.backendManager.active) {
-      this.backendManager.updateSync(syncOptions);
-    } else {
-      this.backendContext.syncMaterial(syncOptions);
-    }
-  }
-
-  private resolveCurrentMaterial(width: number, height: number): ResolvedMaterial {
-    const activeOptical = this.backendManager.active;
-    return MaterialResolver.resolve(
-      this.options,
-      width,
-      height,
-      activeOptical instanceof OpticalBackend ? activeOptical.physicalAmplitude : 0
-    );
-  }
-
-  private applyStyles(updateFilter = true): void {
-    if (this.isDestroyed) return;
-    const { width, height } = this.host.getViewport();
-
-    const mat = this.resolveCurrentMaterial(width, height);
-    this.materialStyler.apply(mat);
-
-    const syncOptions = this.createSyncOptions(mat, { width, height });
-    const activeBackend = this.backendManager.active;
-    if (updateFilter && activeBackend) {
-      this.backendManager.updateSync(syncOptions);
-      if (this.pendingOpticalBackend && this.pendingOpticalBackend !== activeBackend) {
-        this.pendingOpticalBackend.updateSync(syncOptions);
-      }
-    } else if (updateFilter && this.pendingOpticalBackend) {
-      this.pendingOpticalBackend.updateSync(syncOptions);
-    } else if (!activeBackend) {
-      this.backendContext.syncMaterial(syncOptions);
-    }
-  }
-
-  private createSyncOptions(
-    material: ResolvedMaterial,
-    viewport: { width: number; height: number }
-  ): SvgBackendSyncOptions {
-    return {
-      material,
-      viewport,
-      userRefraction: this.options.refraction,
-    };
-  }
-
-  private getActivePhysicalAmplitude(): number {
-    const activeOptical = this.backendManager.active;
-    return activeOptical instanceof OpticalBackend ? activeOptical.physicalAmplitude : 0;
   }
 
   private resolveCapabilities(): GlassCapabilities {
@@ -214,23 +155,12 @@ export class SvgRendererWrapper implements RendererDelegate {
   }
 
   private createBackend(plan: RenderPlan): OpticalBackend | MaterialBackend | StaticBackend {
-    return this.createBackendForPlan(plan, true);
-  }
-
-  private createBackendForPlan(
-    plan: RenderPlan,
-    trackPendingOptical = false
-  ): OpticalBackend | MaterialBackend | StaticBackend {
     if (plan.targetMode === 'full-optical') {
-      const backend = new OpticalBackend(this.backendContext, this.options);
-      if (trackPendingOptical) this.pendingOpticalBackend = backend;
-      return backend;
+      return new OpticalBackend(this.backendContext, this.options);
     }
     if (plan.targetMode === 'material') {
-      if (trackPendingOptical) this.pendingOpticalBackend = null;
       return new MaterialBackend(this.backendContext, this.options);
     }
-    if (trackPendingOptical) this.pendingOpticalBackend = null;
     return new StaticBackend(this.backendContext, this.options);
   }
 
@@ -271,7 +201,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     const preview = previewPlan
       ? {
           plan: previewPlan,
-          backend: this.createBackendForPlan(previewPlan),
+          backend: this.createBackend(previewPlan),
         }
       : undefined;
 
@@ -282,10 +212,10 @@ export class SvgRendererWrapper implements RendererDelegate {
     );
   }
 
-  /** Schedules an asynchronous candidate transition through RuntimeController. */
-  private scheduleGeometryUpdate(
+  /** Schedules an asynchronous backend transition through RuntimeController. */
+  private scheduleRuntimeTransition(
     debounceMs = 0,
-    reason: 'resizing' | 'backend-switch' = 'backend-switch'
+    reason: RuntimeTransitionReason = 'backend-switch'
   ): void {
     if (this.isDestroyed) return;
 
@@ -299,7 +229,7 @@ export class SvgRendererWrapper implements RendererDelegate {
       }
       this.geometryDebounceTimer = setTimeout(() => {
         this.geometryDebounceTimer = null;
-        this.scheduleGeometryUpdate(0, reason);
+        this.scheduleRuntimeTransition(0, reason);
       }, debounceMs);
       return;
     }
@@ -327,27 +257,19 @@ export class SvgRendererWrapper implements RendererDelegate {
 
   public update(newOptions: LiquidGlassUpdateOptions): void {
     if (this.isDestroyed) return;
-    const requiresOpticalFieldUpdate = OPTICAL_FIELD_OPTION_KEYS.some(
-      (key) =>
-        Object.prototype.hasOwnProperty.call(newOptions, key) &&
-        newOptions[key] !== this.options[key]
-    );
+    const requiresRebuild = this.requiresBackendRebuild(newOptions);
 
     Object.assign(this.options, newOptions);
-    // CSS-backed values and the active SVG filter update synchronously.
-    this.applyStyles(!requiresOpticalFieldUpdate);
-    // Only geometry/calibration changes require a new optical field. Scalar material
-    // controls such as refraction and blur reuse the committed field and stay stable
-    // while the slider is moving.
-    if (requiresOpticalFieldUpdate) {
-      this.scheduleGeometryUpdate(0, 'backend-switch');
+    this.syncCoordinator.syncCurrentFrame(!requiresRebuild);
+    if (requiresRebuild) {
+      this.scheduleRuntimeTransition(0, 'backend-switch');
     }
   }
 
   public resize(): void {
     if (this.isDestroyed) return;
-    this.previewGeometryAtCurrentSize();
-    this.scheduleGeometryUpdate(0, 'resizing');
+    this.syncCoordinator.previewResize();
+    this.scheduleRuntimeTransition(0, 'resizing');
   }
 
   public destroy(): void {
@@ -365,8 +287,13 @@ export class SvgRendererWrapper implements RendererDelegate {
     }
 
     this.backendManager.dispose();
-    this.pendingOpticalBackend?.dispose();
-    this.pendingOpticalBackend = null;
     this.host.destroy();
+  }
+
+  private requiresBackendRebuild(options: LiquidGlassUpdateOptions): boolean {
+    return ASYNC_RESOURCE_OPTION_KEYS.some(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(options, key) && options[key] !== this.options[key]
+    );
   }
 }

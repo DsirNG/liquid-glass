@@ -63,6 +63,7 @@ class FakeBackend implements EffectBackend<void> {
   public readonly mode: RenderMode;
   public prepareCount = 0;
   public commitCount = 0;
+  public syncCount = 0;
   public candidateDisposeCount = 0;
   public backendDisposeCount = 0;
   public gate: Promise<void> | null = null;
@@ -74,7 +75,9 @@ class FakeBackend implements EffectBackend<void> {
     this.mode = mode;
   }
 
-  public updateSync(): void {}
+  public updateSync(): void {
+    this.syncCount += 1;
+  }
 
   public async prepare(
     _plan: RenderPlan,
@@ -124,9 +127,85 @@ describe('BackendManager', () => {
     firstGate.resolve();
     expect(await firstSwitch).toEqual({ status: 'stale' });
     expect(manager.activeMode).toBe('full-optical');
+    expect(manager.pending).toBeNull();
     expect(first.candidateDisposeCount).toBe(1);
     expect(first.backendDisposeCount).toBe(1);
     expect(second.commitCount).toBe(1);
+  });
+
+  it('syncs active and pending candidates without creating resources', async () => {
+    const manager = new BackendManager<void>();
+    const plan = createPlan('full-optical');
+    const active = new FakeBackend('full-optical');
+    await manager.switchTo(active, plan);
+
+    const pendingGate = deferred<void>();
+    const pending = new FakeBackend('full-optical');
+    pending.gate = pendingGate.promise;
+    const pendingSwitch = manager.switchTo(pending, plan);
+
+    expect(manager.pending).toBe(pending);
+    manager.updateSync();
+
+    expect(active.syncCount).toBe(1);
+    expect(pending.syncCount).toBe(1);
+    expect(pending.prepareCount).toBe(1);
+
+    pendingGate.resolve();
+    expect(await pendingSwitch).toEqual({ status: 'committed', mode: 'full-optical' });
+    expect(manager.pending).toBeNull();
+  });
+
+  it('disposes a pending candidate on invalidation while preserving active state', async () => {
+    const manager = new BackendManager<void>();
+    const plan = createPlan('full-optical');
+    const active = new FakeBackend('full-optical');
+    await manager.switchTo(active, plan);
+
+    const pendingGate = deferred<void>();
+    const pending = new FakeBackend('full-optical');
+    pending.gate = pendingGate.promise;
+    const pendingSwitch = manager.switchTo(pending, plan);
+
+    manager.invalidate();
+    expect(manager.active).toBe(active);
+    expect(manager.pending).toBe(pending);
+    expect(pending.backendDisposeCount).toBe(0);
+
+    pendingGate.resolve();
+    expect(await pendingSwitch).toEqual({ status: 'stale' });
+    expect(manager.pending).toBeNull();
+    expect(pending.backendDisposeCount).toBe(1);
+  });
+
+  it('keeps the primary candidate pending while an initial preview commits', async () => {
+    const manager = new BackendManager<void>();
+    const fullPlan = createPlan('full-optical');
+    const materialPlan = createPlan('material');
+    const primaryGate = deferred<void>();
+    const primary = new FakeBackend('full-optical');
+    primary.gate = primaryGate.promise;
+    const preview = new FakeBackend('material');
+    const controller = new RuntimeController<void>({
+      manager,
+      createBackend: () => primary,
+    });
+
+    const transition = controller.transition(fullPlan, 'initializing-optical-field', {
+      plan: materialPlan,
+      backend: preview,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(manager.active).toBe(preview);
+    expect(manager.pending).toBe(primary);
+    manager.updateSync();
+    expect(preview.syncCount).toBe(1);
+    expect(primary.syncCount).toBe(1);
+
+    primaryGate.resolve();
+    expect(await transition).toEqual({ status: 'committed', mode: 'full-optical' });
+    expect(manager.pending).toBeNull();
   });
 
   it('preserves the active backend when a candidate fails', async () => {

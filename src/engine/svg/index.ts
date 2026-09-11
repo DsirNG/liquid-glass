@@ -23,6 +23,7 @@ export { GlassHost, MaterialStyler } from './host';
 export type { GlassHostResizeHandler } from './host';
 export type { MaterialStyleOverrides } from './host';
 export { SvgBackendContextAdapter } from './SvgBackendContextAdapter';
+export { SvgSyncCoordinator } from './SvgSyncCoordinator';
 export type {
   SvgBackendContext,
   SvgBackendSyncOptions,

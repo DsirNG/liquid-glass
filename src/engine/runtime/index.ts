@@ -1,4 +1,5 @@
 export { BackendManager } from './BackendManager';
+export type { BackendSwitchOptions } from './BackendManager';
 export { RuntimeController } from './RuntimeController';
 export type {
   BackendOperationResult,

@@ -6,6 +6,11 @@ import type {
   PreparedBackendCommit,
 } from './backend';
 
+export interface BackendSwitchOptions<TSyncOptions = unknown> {
+  /** Keeps a primary candidate pending while a temporary preview is committed. */
+  preservePending?: EffectBackend<TSyncOptions>;
+}
+
 /**
  * Owns backend transactions and the single revision source for asynchronous work.
  * Recovery decisions intentionally stay outside this class.
@@ -13,6 +18,8 @@ import type {
 export class BackendManager<TSyncOptions = unknown> {
   private revision = 0;
   private activeBackend: EffectBackend<TSyncOptions> | null = null;
+  private pendingBackend: EffectBackend<TSyncOptions> | null = null;
+  private readonly disposedBackends = new WeakSet<EffectBackend<TSyncOptions>>();
 
   public get currentRevision(): number {
     return this.revision;
@@ -26,7 +33,19 @@ export class BackendManager<TSyncOptions = unknown> {
     return this.activeBackend;
   }
 
-  /** Invalidates work that has not reached commit without changing the active backend. */
+  public get pending(): EffectBackend<TSyncOptions> | null {
+    return this.pendingBackend;
+  }
+
+  /** Registers a candidate before a temporary preview transition begins. */
+  public registerPending(candidate: EffectBackend<TSyncOptions>): void {
+    if (this.pendingBackend === candidate) return;
+
+    this.disposePending();
+    this.pendingBackend = candidate;
+  }
+
+  /** Invalidates work without tearing down the still-visible pending preview. */
   public invalidate(): number {
     this.revision += 1;
     return this.revision;
@@ -34,6 +53,9 @@ export class BackendManager<TSyncOptions = unknown> {
 
   public updateSync(options: TSyncOptions): void {
     this.activeBackend?.updateSync(options);
+    if (this.pendingBackend && this.pendingBackend !== this.activeBackend) {
+      this.pendingBackend.updateSync(options);
+    }
   }
 
   public resize(width: number, height: number): void {
@@ -42,9 +64,17 @@ export class BackendManager<TSyncOptions = unknown> {
 
   public async switchTo(
     candidate: EffectBackend<TSyncOptions>,
-    plan: RenderPlan
+    plan: RenderPlan,
+    options: BackendSwitchOptions<TSyncOptions> = {}
   ): Promise<BackendOperationResult> {
     const revision = ++this.revision;
+    const preservesPending = this.pendingBackend === options.preservePending;
+    if (!preservesPending && this.pendingBackend !== candidate) {
+      this.disposePending();
+    }
+    if (!preservesPending) {
+      this.pendingBackend = candidate;
+    }
     const context: BackendPrepareContext = {
       revision,
       isCurrent: () => revision === this.revision,
@@ -54,7 +84,8 @@ export class BackendManager<TSyncOptions = unknown> {
     try {
       prepared = await candidate.prepare(plan, context);
     } catch (error) {
-      candidate.dispose();
+      this.clearPending(candidate);
+      this.disposeBackend(candidate);
       if (!context.isCurrent()) return { status: 'stale' };
 
       return {
@@ -66,7 +97,8 @@ export class BackendManager<TSyncOptions = unknown> {
 
     if (!context.isCurrent()) {
       prepared.dispose();
-      candidate.dispose();
+      this.clearPending(candidate);
+      this.disposeBackend(candidate);
       return { status: 'stale' };
     }
 
@@ -81,7 +113,8 @@ export class BackendManager<TSyncOptions = unknown> {
         // Rollback is best-effort; the candidate is still discarded below.
       }
       prepared.dispose();
-      candidate.dispose();
+      this.clearPending(candidate);
+      this.disposeBackend(candidate);
       if (!context.isCurrent()) return { status: 'stale' };
 
       return {
@@ -92,8 +125,11 @@ export class BackendManager<TSyncOptions = unknown> {
     }
 
     const previous = this.activeBackend;
+    this.clearPending(candidate);
     this.activeBackend = candidate;
-    previous?.dispose();
+    if (previous && previous !== candidate) {
+      this.disposeBackend(previous);
+    }
 
     return {
       status: 'committed',
@@ -104,7 +140,10 @@ export class BackendManager<TSyncOptions = unknown> {
   /** Called only when the active backend itself is known to be unusable. */
   public reportActiveFailure(error: unknown): BackendOperationResult {
     this.invalidate();
-    this.activeBackend?.dispose();
+    this.disposePending();
+    if (this.activeBackend) {
+      this.disposeBackend(this.activeBackend);
+    }
     this.activeBackend = null;
 
     return {
@@ -116,7 +155,33 @@ export class BackendManager<TSyncOptions = unknown> {
 
   public dispose(): void {
     this.invalidate();
-    this.activeBackend?.dispose();
+    this.disposePending();
+    if (this.activeBackend) {
+      this.disposeBackend(this.activeBackend);
+    }
     this.activeBackend = null;
+  }
+
+  private clearPending(candidate: EffectBackend<TSyncOptions>): void {
+    if (this.pendingBackend === candidate) {
+      this.pendingBackend = null;
+    }
+  }
+
+  private disposePending(): void {
+    if (!this.pendingBackend) return;
+
+    const pending = this.pendingBackend;
+    this.pendingBackend = null;
+    if (pending !== this.activeBackend) {
+      this.disposeBackend(pending);
+    }
+  }
+
+  private disposeBackend(backend: EffectBackend<TSyncOptions>): void {
+    if (this.disposedBackends.has(backend)) return;
+
+    this.disposedBackends.add(backend);
+    backend.dispose();
   }
 }
