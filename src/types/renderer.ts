@@ -1,9 +1,12 @@
 import type { LiquidGlassUpdateOptions } from './glass';
+import type { ParameterImpact } from './parameters';
+import type { LiquidGlassStatus } from './status';
 
 /** Public instance lifecycle and material update contract. */
 export interface LiquidGlassInstance {
   readonly isDestroyed: boolean;
   readonly renderer?: string;
+  readonly status: Readonly<LiquidGlassStatus>;
   update(options: LiquidGlassUpdateOptions): void;
   resize(): void;
   destroy(): void;
@@ -11,7 +14,7 @@ export interface LiquidGlassInstance {
 
 /** Internal lifecycle protocol implemented by engine layers. */
 export interface RendererDelegate {
-  update(options: LiquidGlassUpdateOptions): void;
+  update(options: LiquidGlassUpdateOptions, impact?: ParameterImpact): void;
   resize(): void;
   destroy(): void;
 }

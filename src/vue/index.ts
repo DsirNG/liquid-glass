@@ -51,6 +51,7 @@ export type {
   LiquidGlassOptions,
   LiquidGlassUpdateOptions,
   LiquidGlassInstance,
+  LiquidGlassStatus,
   GlassPreset,
   SurfaceShape,
 } from '../types';

@@ -14,6 +14,7 @@ describe('vue/useLiquidGlass and Vue Components', () => {
     const mockInstance: LiquidGlassInstance = {
       renderer: 'dom',
       isDestroyed: false,
+      status: { targetMode: null, activeMode: null, phase: 'initializing', degraded: false },
       update: mockUpdate,
       destroy: vi.fn(),
       resize: vi.fn(),
@@ -34,6 +35,7 @@ describe('vue/useLiquidGlass and Vue Components', () => {
     const mockInstance: LiquidGlassInstance = {
       renderer: 'dom',
       isDestroyed: false,
+      status: { targetMode: null, activeMode: null, phase: 'initializing', degraded: false },
       update: vi.fn(),
       destroy: vi.fn(),
       resize: vi.fn(),
@@ -68,6 +70,7 @@ describe('vue/useLiquidGlass and Vue Components', () => {
     const mockInstance: LiquidGlassInstance = {
       renderer: 'dom',
       isDestroyed: false,
+      status: { targetMode: null, activeMode: null, phase: 'initializing', degraded: false },
       update: vi.fn(),
       destroy: vi.fn(),
       resize: vi.fn(),

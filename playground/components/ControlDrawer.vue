@@ -1,8 +1,15 @@
 <script setup lang="ts">
-import type { GlassPreset, LiquidGlassMaterialOptions } from '@dinqorai/liquid-glass';
+import type {
+  FallbackPolicy,
+  GlassPreset,
+  LiquidGlassMaterialOptions,
+  LiquidGlassStatus,
+} from '@dinqorai/liquid-glass';
+import type { CapabilityReport } from '../../src/engine';
 import type { BackgroundItem, QualityTier } from '../types';
 import { DEFAULT_SOLID_COLORS } from '../types';
 import { t } from '../locales';
+import RuntimeObservabilityPanel from './RuntimeObservabilityPanel.vue';
 
 defineProps<{
   isOpen: boolean;
@@ -12,6 +19,9 @@ defineProps<{
   params: LiquidGlassMaterialOptions;
   currentBg: string;
   backgrounds: BackgroundItem[];
+  status: Readonly<LiquidGlassStatus>;
+  capabilityReport: CapabilityReport;
+  fallbackPolicy: FallbackPolicy;
 }>();
 
 const emit = defineEmits<{
@@ -89,6 +99,12 @@ function onCustomColorInput(e: Event) {
     </div>
 
     <div class="drawer-body">
+      <RuntimeObservabilityPanel
+        :status="status"
+        :capability-report="capabilityReport"
+        :fallback-policy="fallbackPolicy"
+      />
+
       <!-- 🔬 质检观察模式 (Inspection Modes) -->
       <section class="ctrl-group">
         <label class="group-title">{{ t.inspectionMode }}</label>

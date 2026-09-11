@@ -1,0 +1,53 @@
+name: Chromium Visual Regression
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PLAYWRIGHT_VERSION: 1.55.0
+      VISUAL_MAX_DIFF_RATIO: '0.001'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 11.20.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install pinned Chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+        run: pnpm dlx playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium
+
+      - name: Run Chromium visual regression
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+        run: pnpm run visual:test
+
+      - name: Upload visual failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromium-visual-regression-artifacts
+          if-no-files-found: ignore
+          path: |
+            tests/visual/artifacts/actual/
+            tests/visual/artifacts/diff/
+            tests/visual/artifacts/reports/

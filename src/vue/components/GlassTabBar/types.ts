@@ -57,5 +57,5 @@ export interface GlassTabBarProps {
 
 export interface GlassTabBarEmits {
   /** Fired when an enabled tab is pressed. Navigation and state changes belong to the caller. */
-  (event: 'click', item: GlassTabBarItem, index: number, event: MouseEvent): void;
+  (event: 'click', item: GlassTabBarItem, index: number, mouseEvent: MouseEvent): void;
 }
