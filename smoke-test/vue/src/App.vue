@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { LiquidGlass, useLiquidGlass } from 'liquid-glass/vue';
-import 'liquid-glass/style.css';
+import { LiquidGlass, useLiquidGlass } from '@dinqorai/liquid-glass/vue';
+import '@dinqorai/liquid-glass/style.css';
 
 const boxRef = ref<HTMLDivElement | null>(null);
 const { instance } = useLiquidGlass(boxRef, { blur: 18 });

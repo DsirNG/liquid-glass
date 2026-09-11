@@ -7,10 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      liquid-glass:
-        specifier: file:E:/liquid-glass/temp-pack/liquid-glass-0.1.0.tgz
-        version: file:../../temp-pack/liquid-glass-0.1.0.tgz(three@0.185.1)
     devDependencies:
       typescript:
         specifier: ^5.0.0
@@ -215,18 +211,6 @@ packages:
     resolution: {integrity: sha512-WkUDrojuJs0xkgGf2udWxa3yGBRxPtxUkB79i6aCZLRgc7PM8fZe9TosfPDcvEpQZbuFASnHYmRLBLUbmLOIIA==}
     engines: {node: '>= 12.0.0'}
 
-  liquid-glass@file:../../temp-pack/liquid-glass-0.1.0.tgz:
-    resolution: {integrity: sha512-Ul7/rYbT5rllFxbvaWGeL4buUSpXehwa/xQ2Q5kUOtP4KwnlMOnFWZp4C/3kqDTEaAONWKWAeFOOfzfEEIhLxg==, tarball: file:../../temp-pack/liquid-glass-0.1.0.tgz}
-    version: 0.1.0
-    peerDependencies:
-      three: '>=0.185.0'
-      vue: '>=3.3.0'
-    peerDependenciesMeta:
-      three:
-        optional: true
-      vue:
-        optional: true
-
   nanoid@3.3.18:
     resolution: {integrity: sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
@@ -251,9 +235,6 @@ packages:
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
-
-  three@0.185.1:
-    resolution: {integrity: sha512-5aojFCXKwnjBRZvUnt3WFfEcvUJgkN5LlijRFN95hMy8WVkG4I0QNcJE+OuWvuJ0bOdStrbfXn0pkd6/QyiAlg==}
 
   tinyglobby@0.2.17:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
@@ -416,10 +397,6 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.33.0
       lightningcss-win32-x64-msvc: 1.33.0
 
-  liquid-glass@file:../../temp-pack/liquid-glass-0.1.0.tgz(three@0.185.1):
-    optionalDependencies:
-      three: 0.185.1
-
   nanoid@3.3.18: {}
 
   picocolors@1.1.1: {}
@@ -454,9 +431,6 @@ snapshots:
       '@rolldown/binding-win32-x64-msvc': 1.2.7
 
   source-map-js@1.2.1: {}
-
-  three@0.185.1:
-    optional: true
 
   tinyglobby@0.2.17:
     dependencies:

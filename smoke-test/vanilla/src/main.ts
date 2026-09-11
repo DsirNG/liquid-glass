@@ -1,5 +1,5 @@
-import { createLiquidGlass, DEFAULT_GLASS_OPTIONS } from 'liquid-glass';
-import 'liquid-glass/style.css';
+import { createLiquidGlass, DEFAULT_GLASS_OPTIONS } from '@dinqorai/liquid-glass';
+import '@dinqorai/liquid-glass/style.css';
 
 const el = document.getElementById('glass-card');
 if (el) {
