@@ -83,6 +83,37 @@ export class GlassHost {
     this.borderOverlayLayer.className = state.borderOverlayClassName;
   }
 
+  /** Applies the SVG filter to the host and keeps the layer-level contract. */
+  public applyOpticalBackdrop(filterCss: string, saturationPercent = 100): void {
+    if (this.isDestroyed) return;
+
+    this.resetBackdropStyles();
+    this.element.style.filter = `saturate(${saturationPercent}%)`;
+    this.setBackdropFilter(this.element, filterCss);
+    this.setBackdropFilter(this.refractionLayer, filterCss);
+    this.refractionLayer.style.opacity = '0';
+  }
+
+  /** Applies the CSS blur fallback to the host and refraction layer. */
+  public applyMaterialBackdrop(filterCss: string, saturationPercent = 100): void {
+    if (this.isDestroyed) return;
+
+    this.resetBackdropStyles();
+    this.element.style.filter = `saturate(${saturationPercent}%)`;
+    this.setBackdropFilter(this.element, filterCss);
+    this.setBackdropFilter(this.refractionLayer, filterCss);
+    this.refractionLayer.style.opacity = '1';
+  }
+
+  /** Clears all backdrop effects and hides the refraction layer. */
+  public clearBackdrop(): void {
+    if (this.isDestroyed) return;
+
+    this.resetBackdropStyles();
+    this.refractionLayer.style.opacity = '0';
+    this.refractionLayer.style.display = 'none';
+  }
+
   /** Binds the optical Fresnel mask to the host-owned border layers. */
   public setFresnelMask(maskUrl: string | null): void {
     if (this.isDestroyed) return;
@@ -96,6 +127,10 @@ export class GlassHost {
     } else {
       this.element.style.removeProperty('--lg-fresnel-mask-image');
     }
+  }
+
+  public clearFresnelMask(): void {
+    this.setFresnelMask(null);
   }
 
   public destroy(): void {
@@ -140,6 +175,30 @@ export class GlassHost {
     layer.style.zIndex = extraStyles.zIndex;
     if (extraStyles.overflow) layer.style.overflow = extraStyles.overflow;
     return layer;
+  }
+
+  private resetBackdropStyles(): void {
+    this.element.style.filter = '';
+    this.element.style.backgroundImage = '';
+    this.element.style.backgroundColor = '';
+    this.clearBackdropFilter(this.element);
+
+    this.refractionLayer.style.filter = '';
+    this.refractionLayer.style.backgroundImage = '';
+    this.refractionLayer.style.backgroundColor = '';
+    this.clearBackdropFilter(this.refractionLayer);
+    this.refractionLayer.style.opacity = '';
+    this.refractionLayer.style.display = '';
+  }
+
+  private setBackdropFilter(element: HTMLElement, filterCss: string): void {
+    element.style.backdropFilter = filterCss;
+    (element.style as unknown as Record<string, string>).webkitBackdropFilter = filterCss;
+  }
+
+  private clearBackdropFilter(element: HTMLElement): void {
+    element.style.backdropFilter = '';
+    (element.style as unknown as Record<string, string>).webkitBackdropFilter = '';
   }
 
   private protectContent(): void {

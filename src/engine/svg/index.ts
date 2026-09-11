@@ -21,6 +21,8 @@ export { OpticalBackend } from './OpticalBackend';
 export { StaticBackend } from './StaticBackend';
 export { GlassHost, MaterialStyler } from './host';
 export type { GlassHostResizeHandler } from './host';
+export type { MaterialStyleOverrides } from './host';
+export { SvgBackendContextAdapter } from './SvgBackendContextAdapter';
 export type {
   SvgBackendContext,
   SvgBackendSyncOptions,

@@ -4,12 +4,11 @@ import type {
   NormalizedLiquidGlassOptions,
 } from '../../types';
 import type { LiquidGlassStatus } from '../../types/status';
-import { SvgGlassEngine } from './SvgFilterBuilder';
-import type { OpticalFieldAssets } from './OpticalFieldAssets';
 import { CapabilityResolver, type OpticalCapability } from './CapabilityResolver';
 import { MaterialResolver, type ResolvedMaterial } from './MaterialResolver';
 import { InteractionController } from './InteractionController';
 import { GlassHost, MaterialStyler } from './host';
+import { SvgBackendContextAdapter } from './SvgBackendContextAdapter';
 import { canonicalizeOptions } from '../options';
 import { resolveRenderPlan } from '../planning';
 import type { GlassCapabilities, RenderPlan } from '../planning';
@@ -18,7 +17,7 @@ import type { RuntimePreview } from '../runtime';
 import { MaterialBackend } from './MaterialBackend';
 import { OpticalBackend } from './OpticalBackend';
 import { StaticBackend } from './StaticBackend';
-import type { SvgBackendContext, SvgBackendSyncOptions } from './BackendContext';
+import type { SvgBackendSyncOptions } from './BackendContext';
 
 export { OPTICAL_FIELD_DIMENSIONS, resolveOpticalFieldDimension } from './OpticalFieldDimensions';
 
@@ -54,7 +53,7 @@ export class SvgRendererWrapper implements RendererDelegate {
   private capability: OpticalCapability;
   private interactionController: InteractionController | null = null;
   private readonly capabilities: GlassCapabilities;
-  private readonly backendContext: SvgBackendContext;
+  private readonly backendContext: SvgBackendContextAdapter;
   private readonly backendManager: BackendManager<SvgBackendSyncOptions>;
   private readonly runtimeController: RuntimeController<SvgBackendSyncOptions>;
   private pendingOpticalBackend: OpticalBackend | null = null;
@@ -70,20 +69,9 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.capability = CapabilityResolver.resolve({ override: this.options.capability });
     this.capabilities = this.resolveCapabilities();
     this.backendManager = new BackendManager<SvgBackendSyncOptions>();
-    this.backendContext = {
-      getViewport: () => this.host.getViewport(),
-      getActivePhysicalAmplitude: () => this.getActivePhysicalAmplitude(),
-      captureVisualState: () => this.host.captureVisualState(),
-      restoreVisualState: (state) => this.host.restoreVisualState(state),
-      commitOptical: (engine, assets, syncOptions) =>
-        this.commitOpticalFrame(engine, assets, syncOptions),
-      syncOptical: (engine, assets, syncOptions) =>
-        this.syncOpticalFrame(engine, assets, syncOptions),
-      commitMaterial: (syncOptions) => this.commitMaterialFrame(syncOptions),
-      syncMaterial: (syncOptions) => this.syncMaterialFrame(syncOptions),
-      commitStatic: (syncOptions) => this.commitStaticFrame(syncOptions),
-      syncStatic: (syncOptions) => this.syncStaticFrame(syncOptions),
-    };
+    this.backendContext = new SvgBackendContextAdapter(this.host, this.materialStyler, () =>
+      this.getActivePhysicalAmplitude()
+    );
     this.runtimeController = new RuntimeController<SvgBackendSyncOptions>({
       manager: this.backendManager,
       createBackend: (plan) => this.createBackend(plan),
@@ -125,7 +113,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     if (this.backendManager.active) {
       this.backendManager.updateSync(syncOptions);
     } else {
-      this.commitMaterialFrame(syncOptions);
+      this.backendContext.syncMaterial(syncOptions);
     }
   }
 
@@ -156,7 +144,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     } else if (updateFilter && this.pendingOpticalBackend) {
       this.pendingOpticalBackend.updateSync(syncOptions);
     } else if (!activeBackend) {
-      this.commitMaterialFrame(syncOptions);
+      this.backendContext.syncMaterial(syncOptions);
     }
   }
 
@@ -174,115 +162,6 @@ export class SvgRendererWrapper implements RendererDelegate {
   private getActivePhysicalAmplitude(): number {
     const activeOptical = this.backendManager.active;
     return activeOptical instanceof OpticalBackend ? activeOptical.physicalAmplitude : 0;
-  }
-
-  private commitOpticalFrame(
-    engine: SvgGlassEngine,
-    assets: OpticalFieldAssets,
-    options: SvgBackendSyncOptions
-  ): void {
-    this.materialStyler.apply(options.material);
-    this.updateSpecularMask(assets);
-    this.updateBackdropStyle(options.material, { engine, assets });
-  }
-
-  private syncOpticalFrame(
-    engine: SvgGlassEngine,
-    assets: OpticalFieldAssets,
-    options: SvgBackendSyncOptions
-  ): void {
-    this.commitOpticalFrame(engine, assets, options);
-  }
-
-  private commitMaterialFrame(options: SvgBackendSyncOptions): void {
-    this.materialStyler.apply(options.material);
-    this.updateSpecularMask(null);
-    this.updateBackdropStyle(options.material);
-  }
-
-  private syncMaterialFrame(options: SvgBackendSyncOptions): void {
-    this.commitMaterialFrame(options);
-  }
-
-  private commitStaticFrame(options: SvgBackendSyncOptions): void {
-    const material =
-      options.fillOpacity === undefined
-        ? options.material
-        : { ...options.material, tintOpacity: options.fillOpacity };
-    this.materialStyler.apply(material);
-    this.updateSpecularMask(null);
-    this.updateStaticStyle();
-  }
-
-  private syncStaticFrame(options: SvgBackendSyncOptions): void {
-    this.commitStaticFrame(options);
-  }
-
-  private updateBackdropStyle(
-    mat: ResolvedMaterial,
-    optical?: { engine: SvgGlassEngine; assets: OpticalFieldAssets }
-  ): void {
-    // Apply the backdrop effect to the complete glass host so every resize uses
-    // one compositing surface instead of exposing a seam in the inner layer.
-    this.host.element.style.filter = '';
-    this.host.element.style.backgroundImage = '';
-    this.host.element.style.backgroundColor = '';
-    this.host.refractionLayer.style.filter = '';
-    this.host.refractionLayer.style.backgroundImage = '';
-    this.host.refractionLayer.style.backgroundColor = '';
-    this.host.refractionLayer.style.backdropFilter = '';
-    (this.host.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
-      '';
-    this.host.refractionLayer.style.opacity = '';
-    this.host.refractionLayer.style.display = '';
-    const saturationPercent = Math.max(0, Math.round(mat.saturation * 100));
-    this.host.element.style.filter = `saturate(${saturationPercent}%)`;
-    if (optical) {
-      const filterCss = `url(#${optical.engine.filterId})`;
-      this.host.element.style.backdropFilter = filterCss;
-      (this.host.element.style as unknown as Record<string, string>).webkitBackdropFilter =
-        filterCss;
-      // Preserve the public layer-level filter contract without compositing the
-      // same optical result twice; the root host is the visible filter surface.
-      this.host.refractionLayer.style.backdropFilter = filterCss;
-      (this.host.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
-        filterCss;
-      this.host.refractionLayer.style.opacity = '0';
-    } else {
-      // Live Material Fallback (Safari WebKit Bug 245510 or initial mount before assets ready)
-      const blurPx = Math.max(0, Math.round(mat.bodyBlur));
-      const filterCss = `${blurPx > 0 ? `blur(${blurPx}px) ` : ''}saturate(100%)`;
-      this.host.element.style.backdropFilter = filterCss;
-      (this.host.element.style as unknown as Record<string, string>).webkitBackdropFilter =
-        filterCss;
-      // Keep the layer-level fallback for browsers that do not support the
-      // root-level backdrop filter contract used by the optical path.
-      this.host.refractionLayer.style.backdropFilter = filterCss;
-      (this.host.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
-        filterCss;
-      this.host.refractionLayer.style.opacity = '1';
-    }
-  }
-
-  private updateStaticStyle(): void {
-    this.host.element.style.filter = '';
-    this.host.element.style.backgroundImage = '';
-    this.host.element.style.backgroundColor = '';
-    (this.host.element.style as unknown as Record<string, string>).backdropFilter = '';
-    (this.host.element.style as unknown as Record<string, string>).webkitBackdropFilter = '';
-
-    this.host.refractionLayer.style.filter = '';
-    this.host.refractionLayer.style.backgroundImage = '';
-    this.host.refractionLayer.style.backgroundColor = '';
-    this.host.refractionLayer.style.backdropFilter = '';
-    (this.host.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
-      '';
-    this.host.refractionLayer.style.opacity = '0';
-    this.host.refractionLayer.style.display = 'none';
-  }
-
-  private updateSpecularMask(assets: OpticalFieldAssets | null): void {
-    this.host.setFresnelMask(assets?.fresnelMaskUrl ?? null);
   }
 
   private resolveCapabilities(): GlassCapabilities {

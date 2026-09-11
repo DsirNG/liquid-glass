@@ -1,6 +1,10 @@
 import type { ResolvedMaterial } from '../MaterialResolver';
 import type { GlassHost } from './GlassHost';
 
+export interface MaterialStyleOverrides {
+  tintOpacity?: number;
+}
+
 /** Applies shared material variables and specular gradients to a GlassHost. */
 export class MaterialStyler {
   private readonly host: GlassHost;
@@ -9,12 +13,13 @@ export class MaterialStyler {
     this.host = host;
   }
 
-  public apply(material: ResolvedMaterial): void {
+  public apply(material: ResolvedMaterial, overrides?: MaterialStyleOverrides): void {
     const styles = this.host.element.style;
+    const tintOpacity = overrides?.tintOpacity ?? material.tintOpacity;
 
     styles.borderRadius = material.radiusPx;
     styles.setProperty('--lg-tint-rgb', material.tintRgb);
-    styles.setProperty('--lg-tint-alpha', String(material.tintOpacity));
+    styles.setProperty('--lg-tint-alpha', String(tintOpacity));
     styles.setProperty('--lg-radius', material.radiusPx);
     styles.setProperty('--lg-shadow-blur', `${material.shadowBlur}px`);
     styles.setProperty('--lg-shadow-spread', `${material.shadowSpread}px`);
