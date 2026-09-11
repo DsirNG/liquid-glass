@@ -59,3 +59,8 @@ pnpm run visual:test
 Screenshots are taken only after the fixture reports `phase=ready` and its `targetMode` and
 `activeMode` match the manifest. Baselines live in `baselines/`; generated `actual/`, `diff/`, and
 `reports/` files live under `artifacts/` and are ignored by Git.
+
+The GitHub Actions visual job provisions the pinned Chromium version from its workflow and runs
+`pnpm run visual:test` only. It never updates baselines. When a visual change is intentional, run
+`pnpm run visual:update` locally, review the changed PNGs, and commit them with the related code.
+On failure, CI uploads the generated `actual/`, `diff/`, and `reports/` directories.

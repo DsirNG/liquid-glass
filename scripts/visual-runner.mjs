@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from 'node:fs';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
@@ -106,18 +113,65 @@ async function ensureFixtureServer() {
   return server;
 }
 
+function findPlaywrightChromium(root) {
+  const pending = [root];
+
+  while (pending.length > 0) {
+    const directory = pending.pop();
+    if (!directory) continue;
+
+    let entries;
+    try {
+      entries = readdirSync(directory, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        pending.push(path);
+        continue;
+      }
+
+      if (
+        entry.name === 'chrome' ||
+        entry.name === 'chrome.exe' ||
+        entry.name === 'Chromium' ||
+        entry.name === 'chromium'
+      ) {
+        return path;
+      }
+    }
+  }
+
+  return null;
+}
+
 function findChromeExecutable() {
+  const playwrightExecutable = process.env.PLAYWRIGHT_BROWSERS_PATH
+    ? findPlaywrightChromium(process.env.PLAYWRIGHT_BROWSERS_PATH)
+    : null;
+
+  if (playwrightExecutable) return playwrightExecutable;
+
   const candidates = [
     process.env.CHROME_PATH,
     'C:/Program Files/Google/Chrome/Application/chrome.exe',
     'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
   ].filter((candidate) => candidate);
 
   const executablePath = candidates.find((candidate) => existsSync(candidate));
-  if (!executablePath) {
-    throw new Error('Chrome executable not found. Set CHROME_PATH to a Chromium executable.');
-  }
-  return executablePath;
+
+  if (executablePath) return executablePath;
+
+  throw new Error(
+    'Chrome executable not found. Set CHROME_PATH or PLAYWRIGHT_BROWSERS_PATH to a Chromium installation.'
+  );
 }
 
 function paethPredictor(left, above, upperLeft) {
