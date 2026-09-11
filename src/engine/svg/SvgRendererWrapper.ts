@@ -4,12 +4,12 @@ import type {
   NormalizedLiquidGlassOptions,
 } from '../../types';
 import type { LiquidGlassStatus } from '../../types/status';
-import { getElementRect } from '../../utils/dom';
 import { SvgGlassEngine } from './SvgFilterBuilder';
 import type { OpticalFieldAssets } from './OpticalFieldAssets';
 import { CapabilityResolver, type OpticalCapability } from './CapabilityResolver';
 import { MaterialResolver, type ResolvedMaterial } from './MaterialResolver';
 import { InteractionController } from './InteractionController';
+import { GlassHost } from './host';
 import { canonicalizeOptions } from '../options';
 import { resolveRenderPlan } from '../planning';
 import type { GlassCapabilities, RenderPlan } from '../planning';
@@ -18,11 +18,7 @@ import type { RuntimePreview } from '../runtime';
 import { MaterialBackend } from './MaterialBackend';
 import { OpticalBackend } from './OpticalBackend';
 import { StaticBackend } from './StaticBackend';
-import type {
-  SvgBackendContext,
-  SvgBackendSyncOptions,
-  SvgBackendVisualState,
-} from './BackendContext';
+import type { SvgBackendContext, SvgBackendSyncOptions } from './BackendContext';
 
 export { OPTICAL_FIELD_DIMENSIONS, resolveOpticalFieldDimension } from './OpticalFieldDimensions';
 
@@ -52,7 +48,7 @@ export type ExtendedEngineOptions = NormalizedLiquidGlassOptions;
  * 6. 5-Layer DOM stacking context with explicit content protection
  */
 export class SvgRendererWrapper implements RendererDelegate {
-  private element: HTMLElement;
+  private readonly host: GlassHost;
   private options: ExtendedEngineOptions;
   private capability: OpticalCapability;
   private interactionController: InteractionController | null = null;
@@ -62,28 +58,21 @@ export class SvgRendererWrapper implements RendererDelegate {
   private readonly runtimeController: RuntimeController<SvgBackendSyncOptions>;
   private pendingOpticalBackend: OpticalBackend | null = null;
 
-  private refractionLayer: HTMLDivElement;
-  private tintLayer: HTMLDivElement;
-  private borderScreenLayer: HTMLDivElement;
-  private borderOverlayLayer: HTMLDivElement;
-  private contentContainer: HTMLDivElement | null = null;
-
-  private resizeObserver: ResizeObserver | null = null;
   private isDestroyed = false;
   private updateScheduled = false;
   private geometryDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(element: HTMLElement, options: NormalizedLiquidGlassOptions) {
-    this.element = element;
+    this.host = new GlassHost(element);
     this.options = { ...options };
     this.capability = CapabilityResolver.resolve({ override: this.options.capability });
     this.capabilities = this.resolveCapabilities();
     this.backendManager = new BackendManager<SvgBackendSyncOptions>();
     this.backendContext = {
-      getViewport: () => this.getViewport(),
+      getViewport: () => this.host.getViewport(),
       getActivePhysicalAmplitude: () => this.getActivePhysicalAmplitude(),
-      captureVisualState: () => this.captureVisualState(),
-      restoreVisualState: (state) => this.restoreVisualState(state),
+      captureVisualState: () => this.host.captureVisualState(),
+      restoreVisualState: (state) => this.host.restoreVisualState(state),
       commitOptical: (engine, assets, syncOptions) =>
         this.commitOpticalFrame(engine, assets, syncOptions),
       syncOptical: (engine, assets, syncOptions) =>
@@ -99,63 +88,9 @@ export class SvgRendererWrapper implements RendererDelegate {
       getRecoveryChain: (plan) => this.createRecoveryChain(plan),
     });
 
-    // Ensure root host classes
-    if (!this.element.classList.contains('lg-root')) {
-      this.element.classList.add('lg-root');
-    }
-    if (!this.element.classList.contains('lg-svg-container')) {
-      this.element.classList.add('lg-svg-container');
-    }
-
-    // 1. Optical Backdrop Layer (receives SVG optical filter or fallback blur)
-    this.refractionLayer = document.createElement('div');
-    this.refractionLayer.className = 'lg-backdrop lg-svg-refraction';
-    this.refractionLayer.style.position = 'absolute';
-    this.refractionLayer.style.inset = '0';
-    this.refractionLayer.style.borderRadius = 'inherit';
-    this.refractionLayer.style.zIndex = '1';
-    this.refractionLayer.style.pointerEvents = 'none';
-    this.refractionLayer.style.overflow = 'hidden';
-
-    // 2. Physical Material Tint / Glass Fill Layer
-    this.tintLayer = document.createElement('div');
-    this.tintLayer.className = 'lg-material lg-svg-tint';
-    this.tintLayer.style.position = 'absolute';
-    this.tintLayer.style.inset = '0';
-    this.tintLayer.style.borderRadius = 'inherit';
-    this.tintLayer.style.zIndex = '1';
-    this.tintLayer.style.pointerEvents = 'none';
-
-    // 3. Specular Highlight Border 1 (Ambient environmental light rim)
-    this.borderScreenLayer = document.createElement('div');
-    this.borderScreenLayer.className = 'lg-border lg-border-screen';
-    this.borderScreenLayer.style.position = 'absolute';
-    this.borderScreenLayer.style.inset = '0';
-    this.borderScreenLayer.style.borderRadius = 'inherit';
-    this.borderScreenLayer.style.zIndex = '2';
-    this.borderScreenLayer.style.pointerEvents = 'none';
-
-    // 4. Specular Highlight Border 2 (Directional glint line)
-    this.borderOverlayLayer = document.createElement('div');
-    this.borderOverlayLayer.className = 'lg-border lg-border-overlay';
-    this.borderOverlayLayer.style.position = 'absolute';
-    this.borderOverlayLayer.style.inset = '0';
-    this.borderOverlayLayer.style.borderRadius = 'inherit';
-    this.borderOverlayLayer.style.zIndex = '2';
-    this.borderOverlayLayer.style.pointerEvents = 'none';
-
-    // Mount optical layers below content
-    this.element.insertBefore(this.borderOverlayLayer, this.element.firstChild);
-    this.element.insertBefore(this.borderScreenLayer, this.borderOverlayLayer);
-    this.element.insertBefore(this.tintLayer, this.borderScreenLayer);
-    this.element.insertBefore(this.refractionLayer, this.tintLayer);
-
-    // If host element does not have .lg-content, check if there are raw child nodes to protect
-    this.protectContent();
-
     // Fast-path interaction controller
     if (this.options.interactive !== false) {
-      this.interactionController = new InteractionController(this.element, {
+      this.interactionController = new InteractionController(this.host.element, {
         onUpdate: () => {
           this.updateSpecularGradients();
         },
@@ -167,16 +102,13 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.applyStyles(false);
     void this.initializeRuntime();
 
-    if (typeof ResizeObserver !== 'undefined') {
-      this.resizeObserver = new ResizeObserver(() => {
-        this.previewGeometryAtCurrentSize();
-        // Width/height CSS transitions emit one resize per frame. Optical field
-        // generation is asynchronous and expensive, so wait until the size has
-        // settled instead of starting a doomed generation for every frame.
-        this.scheduleGeometryUpdate(64, 'resizing');
-      });
-      this.resizeObserver.observe(this.element);
-    }
+    this.host.observeResize(() => {
+      this.previewGeometryAtCurrentSize();
+      // Width/height CSS transitions emit one resize per frame. Optical field
+      // generation is asynchronous and expensive, so wait until the size has
+      // settled instead of starting a doomed generation for every frame.
+      this.scheduleGeometryUpdate(64, 'resizing');
+    });
   }
 
   /**
@@ -187,7 +119,7 @@ export class SvgRendererWrapper implements RendererDelegate {
   private previewGeometryAtCurrentSize(): void {
     if (this.isDestroyed) return;
 
-    const { width, height } = this.getViewport();
+    const { width, height } = this.host.getViewport();
     const mat = this.resolveCurrentMaterial(width, height);
     const syncOptions = this.createSyncOptions(mat, { width, height });
 
@@ -196,35 +128,6 @@ export class SvgRendererWrapper implements RendererDelegate {
       this.backendManager.updateSync(syncOptions);
     } else {
       this.commitMaterialFrame(syncOptions);
-    }
-  }
-
-  private protectContent(): void {
-    const existingContent = this.element.querySelector(':scope > .lg-content');
-    if (!existingContent) {
-      // Any child node that is not one of our layers should remain on top
-      const reserved = new Set<Node>([
-        this.refractionLayer,
-        this.tintLayer,
-        this.borderScreenLayer,
-        this.borderOverlayLayer,
-      ]);
-      const childrenToWrap: Node[] = [];
-      this.element.childNodes.forEach((node) => {
-        if (!reserved.has(node)) {
-          childrenToWrap.push(node);
-        }
-      });
-
-      if (childrenToWrap.length > 0) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'lg-content';
-        wrapper.style.position = 'relative';
-        wrapper.style.zIndex = '3';
-        childrenToWrap.forEach((child) => wrapper.appendChild(child));
-        this.element.appendChild(wrapper);
-        this.contentContainer = wrapper;
-      }
     }
   }
 
@@ -240,7 +143,7 @@ export class SvgRendererWrapper implements RendererDelegate {
 
   private applyStyles(updateFilter = true): void {
     if (this.isDestroyed) return;
-    const { width, height } = this.getViewport();
+    const { width, height } = this.host.getViewport();
 
     const mat = this.resolveCurrentMaterial(width, height);
     this.applyMaterialStyles(mat);
@@ -260,7 +163,7 @@ export class SvgRendererWrapper implements RendererDelegate {
   }
 
   private applyMaterialStyles(mat: ResolvedMaterial): void {
-    const s = this.element.style;
+    const s = this.host.element.style;
 
     s.borderRadius = mat.radiusPx;
     s.setProperty('--lg-tint-rgb', mat.tintRgb);
@@ -275,7 +178,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     s.setProperty('--lg-fresnel-gain', String(mat.calibration.lighting.fresnelGain));
 
     const isDebugChannel = mat.debug !== 'none' && mat.debug !== 'final';
-    this.tintLayer.style.display = isDebugChannel ? 'none' : '';
+    this.host.tintLayer.style.display = isDebugChannel ? 'none' : '';
     // Specular display state is owned exclusively by updateSpecularGradients().
   }
 
@@ -290,39 +193,9 @@ export class SvgRendererWrapper implements RendererDelegate {
     };
   }
 
-  private getViewport(): { width: number; height: number } {
-    const rect = getElementRect(this.element);
-    return {
-      width: Math.max(16, Math.round(rect.width || this.element.offsetWidth || 300)),
-      height: Math.max(16, Math.round(rect.height || this.element.offsetHeight || 80)),
-    };
-  }
-
   private getActivePhysicalAmplitude(): number {
     const activeOptical = this.backendManager.active;
     return activeOptical instanceof OpticalBackend ? activeOptical.physicalAmplitude : 0;
-  }
-
-  private captureVisualState(): SvgBackendVisualState {
-    return {
-      elementStyle: this.element.style.cssText,
-      refractionStyle: this.refractionLayer.style.cssText,
-      tintStyle: this.tintLayer.style.cssText,
-      borderScreenStyle: this.borderScreenLayer.style.cssText,
-      borderOverlayStyle: this.borderOverlayLayer.style.cssText,
-      borderScreenClassName: this.borderScreenLayer.className,
-      borderOverlayClassName: this.borderOverlayLayer.className,
-    };
-  }
-
-  private restoreVisualState(state: SvgBackendVisualState): void {
-    this.element.style.cssText = state.elementStyle;
-    this.refractionLayer.style.cssText = state.refractionStyle;
-    this.tintLayer.style.cssText = state.tintStyle;
-    this.borderScreenLayer.style.cssText = state.borderScreenStyle;
-    this.borderOverlayLayer.style.cssText = state.borderOverlayStyle;
-    this.borderScreenLayer.className = state.borderScreenClassName;
-    this.borderOverlayLayer.className = state.borderOverlayClassName;
   }
 
   private commitOpticalFrame(
@@ -358,7 +231,7 @@ export class SvgRendererWrapper implements RendererDelegate {
   private commitStaticFrame(options: SvgBackendSyncOptions): void {
     this.applyMaterialStyles(options.material);
     if (options.fillOpacity !== undefined) {
-      this.element.style.setProperty('--lg-tint-alpha', String(options.fillOpacity));
+      this.host.element.style.setProperty('--lg-tint-alpha', String(options.fillOpacity));
     }
     this.updateSpecularMask(null);
     this.updateStaticStyle();
@@ -375,57 +248,61 @@ export class SvgRendererWrapper implements RendererDelegate {
   ): void {
     // Apply the backdrop effect to the complete glass host so every resize uses
     // one compositing surface instead of exposing a seam in the inner layer.
-    this.element.style.filter = '';
-    this.element.style.backgroundImage = '';
-    this.element.style.backgroundColor = '';
-    this.refractionLayer.style.filter = '';
-    this.refractionLayer.style.backgroundImage = '';
-    this.refractionLayer.style.backgroundColor = '';
-    this.refractionLayer.style.backdropFilter = '';
-    (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter = '';
-    this.refractionLayer.style.opacity = '';
-    this.refractionLayer.style.display = '';
+    this.host.element.style.filter = '';
+    this.host.element.style.backgroundImage = '';
+    this.host.element.style.backgroundColor = '';
+    this.host.refractionLayer.style.filter = '';
+    this.host.refractionLayer.style.backgroundImage = '';
+    this.host.refractionLayer.style.backgroundColor = '';
+    this.host.refractionLayer.style.backdropFilter = '';
+    (this.host.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
+      '';
+    this.host.refractionLayer.style.opacity = '';
+    this.host.refractionLayer.style.display = '';
     const saturationPercent = Math.max(0, Math.round(mat.saturation * 100));
-    this.element.style.filter = `saturate(${saturationPercent}%)`;
+    this.host.element.style.filter = `saturate(${saturationPercent}%)`;
     if (optical) {
       const filterCss = `url(#${optical.engine.filterId})`;
-      this.element.style.backdropFilter = filterCss;
-      (this.element.style as unknown as Record<string, string>).webkitBackdropFilter = filterCss;
+      this.host.element.style.backdropFilter = filterCss;
+      (this.host.element.style as unknown as Record<string, string>).webkitBackdropFilter =
+        filterCss;
       // Preserve the public layer-level filter contract without compositing the
       // same optical result twice; the root host is the visible filter surface.
-      this.refractionLayer.style.backdropFilter = filterCss;
-      (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
+      this.host.refractionLayer.style.backdropFilter = filterCss;
+      (this.host.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
         filterCss;
-      this.refractionLayer.style.opacity = '0';
+      this.host.refractionLayer.style.opacity = '0';
     } else {
       // Live Material Fallback (Safari WebKit Bug 245510 or initial mount before assets ready)
       const blurPx = Math.max(0, Math.round(mat.bodyBlur));
       const filterCss = `${blurPx > 0 ? `blur(${blurPx}px) ` : ''}saturate(100%)`;
-      this.element.style.backdropFilter = filterCss;
-      (this.element.style as unknown as Record<string, string>).webkitBackdropFilter = filterCss;
+      this.host.element.style.backdropFilter = filterCss;
+      (this.host.element.style as unknown as Record<string, string>).webkitBackdropFilter =
+        filterCss;
       // Keep the layer-level fallback for browsers that do not support the
       // root-level backdrop filter contract used by the optical path.
-      this.refractionLayer.style.backdropFilter = filterCss;
-      (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
+      this.host.refractionLayer.style.backdropFilter = filterCss;
+      (this.host.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
         filterCss;
-      this.refractionLayer.style.opacity = '1';
+      this.host.refractionLayer.style.opacity = '1';
     }
   }
 
   private updateStaticStyle(): void {
-    this.element.style.filter = '';
-    this.element.style.backgroundImage = '';
-    this.element.style.backgroundColor = '';
-    (this.element.style as unknown as Record<string, string>).backdropFilter = '';
-    (this.element.style as unknown as Record<string, string>).webkitBackdropFilter = '';
+    this.host.element.style.filter = '';
+    this.host.element.style.backgroundImage = '';
+    this.host.element.style.backgroundColor = '';
+    (this.host.element.style as unknown as Record<string, string>).backdropFilter = '';
+    (this.host.element.style as unknown as Record<string, string>).webkitBackdropFilter = '';
 
-    this.refractionLayer.style.filter = '';
-    this.refractionLayer.style.backgroundImage = '';
-    this.refractionLayer.style.backgroundColor = '';
-    this.refractionLayer.style.backdropFilter = '';
-    (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter = '';
-    this.refractionLayer.style.opacity = '0';
-    this.refractionLayer.style.display = 'none';
+    this.host.refractionLayer.style.filter = '';
+    this.host.refractionLayer.style.backgroundImage = '';
+    this.host.refractionLayer.style.backgroundColor = '';
+    this.host.refractionLayer.style.backdropFilter = '';
+    (this.host.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter =
+      '';
+    this.host.refractionLayer.style.opacity = '0';
+    this.host.refractionLayer.style.display = 'none';
   }
 
   private updateSpecularGradients(mat?: ResolvedMaterial): void {
@@ -437,19 +314,19 @@ export class SvgRendererWrapper implements RendererDelegate {
 
     const specular = mat.specular;
     if (specular <= 0) {
-      this.borderScreenLayer.style.display = 'none';
-      this.borderOverlayLayer.style.display = 'none';
+      this.host.borderScreenLayer.style.display = 'none';
+      this.host.borderOverlayLayer.style.display = 'none';
       return;
     }
 
-    this.borderScreenLayer.style.display = '';
-    this.borderOverlayLayer.style.display = '';
+    this.host.borderScreenLayer.style.display = '';
+    this.host.borderOverlayLayer.style.display = '';
 
     const gain = mat.specularGain;
     const effSpec = Math.min(1, specular * gain);
     const borderMode = mat.borderMode;
 
-    const s = this.element.style;
+    const s = this.host.element.style;
 
     if (borderMode === 'adaptive') {
       // 方案二：环境亮度自适应轮廓 (Luma-Adaptive Dual Rim)
@@ -538,15 +415,7 @@ export class SvgRendererWrapper implements RendererDelegate {
   }
 
   private updateSpecularMask(assets: OpticalFieldAssets | null): void {
-    const hasMask = Boolean(assets?.fresnelMaskUrl);
-    for (const layer of [this.borderScreenLayer, this.borderOverlayLayer]) {
-      layer.classList.toggle('lg-border-geometry', hasMask);
-    }
-    if (hasMask) {
-      this.element.style.setProperty('--lg-fresnel-mask-image', `url("${assets?.fresnelMaskUrl}")`);
-    } else {
-      this.element.style.removeProperty('--lg-fresnel-mask-image');
-    }
+    this.host.setFresnelMask(assets?.fresnelMaskUrl ?? null);
   }
 
   private resolveCapabilities(): GlassCapabilities {
@@ -744,11 +613,6 @@ export class SvgRendererWrapper implements RendererDelegate {
       this.geometryDebounceTimer = null;
     }
 
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
-      this.resizeObserver = null;
-    }
-
     if (this.interactionController) {
       this.interactionController.destroy();
       this.interactionController = null;
@@ -757,27 +621,6 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.backendManager.dispose();
     this.pendingOpticalBackend?.dispose();
     this.pendingOpticalBackend = null;
-
-    if (this.refractionLayer?.parentNode) {
-      this.refractionLayer.parentNode.removeChild(this.refractionLayer);
-    }
-    if (this.tintLayer?.parentNode) {
-      this.tintLayer.parentNode.removeChild(this.tintLayer);
-    }
-    if (this.borderScreenLayer?.parentNode) {
-      this.borderScreenLayer.parentNode.removeChild(this.borderScreenLayer);
-    }
-    if (this.borderOverlayLayer?.parentNode) {
-      this.borderOverlayLayer.parentNode.removeChild(this.borderOverlayLayer);
-    }
-    if (this.contentContainer?.parentNode) {
-      // Unwrap children safely
-      while (this.contentContainer.firstChild) {
-        this.element.appendChild(this.contentContainer.firstChild);
-      }
-      this.contentContainer.parentNode.removeChild(this.contentContainer);
-    }
-
-    this.element.classList.remove('lg-root', 'lg-svg-container');
+    this.host.destroy();
   }
 }
