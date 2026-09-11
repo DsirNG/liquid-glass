@@ -51,11 +51,14 @@ export class SvgRendererWrapper implements RendererDelegate {
   private geometryDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(element: HTMLElement, options: NormalizedLiquidGlassOptions) {
-    this.host = new GlassHost(element);
-    this.materialStyler = new MaterialStyler(this.host);
     this.options = { ...options };
     this.capabilityReport = CapabilityProbe.probe();
     this.capabilities = this.resolveCapabilities();
+    // Resolve before creating any owned DOM so strict capability failures are
+    // synchronous and leave no partially initialized host behind.
+    const initialPlan = this.resolvePlan();
+    this.host = new GlassHost(element);
+    this.materialStyler = new MaterialStyler(this.host);
     this.backendManager = new BackendManager<SvgBackendSyncOptions>();
     this.backendContext = new SvgBackendContextAdapter(this.host, this.materialStyler, () => {
       const activeBackend = this.backendManager.active;
@@ -82,7 +85,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     // The initial filter graph is already installed above. CSS styles still
     // apply synchronously, while the first optical field is generated below.
     this.syncCoordinator.syncCurrentFrame();
-    void this.initializeRuntime();
+    void this.initializeRuntime(initialPlan);
 
     this.host.observeResize(() => {
       this.syncCoordinator.previewResize();
@@ -113,7 +116,7 @@ export class SvgRendererWrapper implements RendererDelegate {
       requested: canonicalizeOptions(this.options),
       capabilities: this.capabilities,
       capabilityReport: this.capabilityReport,
-      fallbackPolicy: 'auto',
+      fallbackPolicy: this.options.fallbackPolicy,
     });
   }
 
@@ -127,7 +130,7 @@ export class SvgRendererWrapper implements RendererDelegate {
         dispersion: false,
       },
       capabilityReport: this.capabilityReport,
-      fallbackPolicy: 'auto',
+      fallbackPolicy: this.options.fallbackPolicy,
     });
   }
 
@@ -142,7 +145,7 @@ export class SvgRendererWrapper implements RendererDelegate {
         backdropBlur: false,
       },
       capabilityReport: this.capabilityReport,
-      fallbackPolicy: 'auto',
+      fallbackPolicy: this.options.fallbackPolicy,
     });
   }
 
@@ -159,7 +162,7 @@ export class SvgRendererWrapper implements RendererDelegate {
   private createRecoveryChain(plan: RenderPlan): RuntimePreview<SvgBackendSyncOptions>[] {
     const candidates: RuntimePreview<SvgBackendSyncOptions>[] = [];
 
-    if (plan.targetMode === 'static') return candidates;
+    if (plan.targetMode === 'static' || plan.fallbackPolicy === 'strict') return candidates;
 
     if (plan.targetMode === 'full-optical') {
       const materialPlan = this.resolveMaterialPreviewPlan();
@@ -186,10 +189,11 @@ export class SvgRendererWrapper implements RendererDelegate {
     return this.runtimeController.status;
   }
 
-  private async initializeRuntime(): Promise<void> {
-    const plan = this.resolvePlan();
+  private async initializeRuntime(plan: RenderPlan): Promise<void> {
     const previewPlan =
-      plan.targetMode === 'full-optical' ? this.resolveMaterialPreviewPlan() : null;
+      plan.targetMode === 'full-optical' && plan.fallbackPolicy !== 'strict'
+        ? this.resolveMaterialPreviewPlan()
+        : null;
     const preview = previewPlan
       ? {
           plan: previewPlan,

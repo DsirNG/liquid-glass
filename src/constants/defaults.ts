@@ -22,6 +22,7 @@ export const DEFAULT_GLASS_OPTIONS: Readonly<NormalizedLiquidGlassOptions> = Obj
   ambientLuma: 0.5,
   shape: 'roundedRect',
   capability: 'auto',
+  fallbackPolicy: 'auto',
   debug: 'none',
   interactive: true,
   borderMode: 'directional',

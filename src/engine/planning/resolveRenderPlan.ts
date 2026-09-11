@@ -91,7 +91,8 @@ function resolveDegradationReason(input: RenderPlanningInput, targetMode: 'mater
 
 /** Pure capability + options planner. It does not touch the DOM or create backends. */
 export function resolveRenderPlan(input: RenderPlanningInput): RenderPlan {
-  const { requested, capabilities, capabilityReport, fallbackPolicy = 'auto' } = input;
+  const { requested, capabilities, capabilityReport } = input;
+  const fallbackPolicy = input.fallbackPolicy ?? requested.fallbackPolicy ?? 'auto';
   const rawOpticalCapabilityAvailable =
     capabilityReport === undefined ||
     (capabilityReport.svgBackdropDisplacement && !hasBlockingRestriction(capabilityReport));
@@ -114,6 +115,7 @@ export function resolveRenderPlan(input: RenderPlanningInput): RenderPlan {
     return {
       targetMode: 'full-optical',
       requestedOptions: requested,
+      fallbackPolicy,
       effective: {
         common: resolveCommonOptions(requested, fallbackPolicy, false),
         optical: resolveOpticalOptions(requested),
@@ -127,6 +129,7 @@ export function resolveRenderPlan(input: RenderPlanningInput): RenderPlan {
     return {
       targetMode: 'material',
       requestedOptions: requested,
+      fallbackPolicy,
       effective: {
         common: resolveCommonOptions(requested, fallbackPolicy, true),
         backdrop: resolveBackdropOptions(requested, fallbackPolicy),
@@ -140,6 +143,7 @@ export function resolveRenderPlan(input: RenderPlanningInput): RenderPlan {
   return {
     targetMode: 'static',
     requestedOptions: requested,
+    fallbackPolicy,
     effective: {
       common: resolveCommonOptions(requested, fallbackPolicy, true),
       static: {

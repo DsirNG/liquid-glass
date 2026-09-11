@@ -54,6 +54,7 @@ export function normalizeOptions(options?: LiquidGlassCreateOptions): Normalized
     ambientLuma: sanitizeNumber(o.ambientLuma, d.ambientLuma, 0, 1),
     shape: o.shape ?? d.shape,
     capability: o.capability ?? d.capability,
+    fallbackPolicy: o.fallbackPolicy ?? d.fallbackPolicy,
     debug: o.debug ?? d.debug,
     interactive: typeof o.interactive === 'boolean' ? o.interactive : d.interactive,
     borderMode: o.borderMode ?? d.borderMode,

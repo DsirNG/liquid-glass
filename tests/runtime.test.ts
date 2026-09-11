@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { canonicalizeOptions, normalizeOptions } from '../src/engine/options';
-import { resolveRenderPlan, type RenderPlan, type RenderMode } from '../src/engine/planning';
+import {
+  resolveRenderPlan,
+  type FallbackPolicy,
+  type RenderPlan,
+  type RenderMode,
+} from '../src/engine/planning';
 import { BackendManager } from '../src/engine/runtime/BackendManager';
 import type {
   BackendPrepareContext,
@@ -19,10 +24,19 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function createPlan(mode: 'full-optical' | 'material' | 'static'): RenderPlan {
-  const requested = canonicalizeOptions(normalizeOptions());
+function createPlan(
+  mode: 'full-optical' | 'material' | 'static',
+  fallbackPolicy: FallbackPolicy = 'auto'
+): RenderPlan {
+  const requested = canonicalizeOptions(
+    normalizeOptions({
+      fallbackPolicy,
+      capability: mode === 'material' ? 'material' : 'auto',
+    })
+  );
   return resolveRenderPlan({
     requested,
+    fallbackPolicy,
     capabilities:
       mode === 'full-optical'
         ? {
@@ -293,6 +307,74 @@ describe('RuntimeController', () => {
     });
   });
 
+  it('recovers an optical failure under preserve without enhancing fallback values', async () => {
+    const manager = new BackendManager<void>();
+    const fullPlan = createPlan('full-optical', 'preserve');
+    const materialPlan = createPlan('material', 'preserve');
+    const optical = new FakeBackend('full-optical');
+    optical.prepareError = new Error('optical field failed');
+    const material = new FakeBackend('material');
+
+    const controller = new RuntimeController<void>({
+      manager,
+      createBackend: () => optical,
+      getRecoveryChain: () => [{ plan: materialPlan, backend: material }],
+    });
+
+    const result = await controller.transition(fullPlan, 'initializing-optical-field');
+
+    expect(result.status).toBe('candidate-failed');
+    expect(fullPlan.fallbackPolicy).toBe('preserve');
+    expect(materialPlan.fallbackPolicy).toBe('preserve');
+    expect(controller.status).toMatchObject({
+      targetMode: 'full-optical',
+      activeMode: 'material',
+      phase: 'ready',
+      degraded: true,
+      recoveryMode: 'material',
+    });
+  });
+
+  it('fails without creating recovery candidates when strict optical preparation fails', async () => {
+    const manager = new BackendManager<void>();
+    const fullPlan = createPlan('full-optical', 'strict');
+    const optical = new FakeBackend('full-optical');
+    optical.prepareError = new Error('strict optical field failed');
+    const material = new FakeBackend('material');
+    const preview = new FakeBackend('material');
+    const getRecoveryChain = vi.fn(() => [
+      { plan: createPlan('material', 'strict'), backend: material },
+    ]);
+
+    const controller = new RuntimeController<void>({
+      manager,
+      createBackend: () => optical,
+      getRecoveryChain,
+    });
+
+    const result = await controller.transition(fullPlan, 'initializing-optical-field', {
+      plan: createPlan('material', 'strict'),
+      backend: preview,
+    });
+
+    expect(result.status).toBe('candidate-failed');
+    expect(getRecoveryChain).not.toHaveBeenCalled();
+    expect(preview.prepareCount).toBe(0);
+    expect(preview.commitCount).toBe(0);
+    expect(material.prepareCount).toBe(0);
+    expect(controller.currentState).toMatchObject({
+      targetMode: 'full-optical',
+      activeMode: null,
+      phase: 'failed',
+      runtimeDegraded: true,
+    });
+    expect(controller.status.recoveryMode).toBeUndefined();
+    expect(controller.status.lastOperation).toEqual({
+      status: 'candidate-failed',
+      reason: 'optical-field-failed',
+    });
+  });
+
   it('keeps last-good optical active after a later candidate failure', async () => {
     const manager = new BackendManager<void>();
     const fullPlan = createPlan('full-optical');
@@ -402,6 +484,35 @@ describe('RuntimeController', () => {
     expect(active.backendDisposeCount).toBe(1);
     expect(material.backendDisposeCount).toBe(1);
     expect(staticBackend.commitCount).toBe(1);
+  });
+
+  it('does not recover after an active backend failure under strict policy', async () => {
+    const manager = new BackendManager<void>();
+    const fullPlan = createPlan('full-optical', 'strict');
+    const active = new FakeBackend('full-optical');
+    await manager.switchTo(active, fullPlan);
+    const material = new FakeBackend('material');
+    const getRecoveryChain = vi.fn(() => [
+      { plan: createPlan('material', 'strict'), backend: material },
+    ]);
+    const controller = new RuntimeController<void>({
+      manager,
+      createBackend: () => active,
+      getRecoveryChain,
+    });
+
+    const result = await controller.reportActiveFailure(fullPlan, new Error('strict active failed'));
+
+    expect(result.status).toBe('active-failed');
+    expect(getRecoveryChain).not.toHaveBeenCalled();
+    expect(material.prepareCount).toBe(0);
+    expect(controller.currentState).toMatchObject({
+      targetMode: 'full-optical',
+      activeMode: null,
+      phase: 'failed',
+      runtimeDegraded: true,
+    });
+    expect(controller.status.recoveryMode).toBeUndefined();
   });
 
   it('does not retry the same static mode after an active failure', async () => {

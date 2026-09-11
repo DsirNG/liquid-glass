@@ -20,6 +20,7 @@ export type {
   OpticalDebugMode,
   BorderContrastMode,
   RefractionCoverage,
+  FallbackPolicy,
   LiquidGlassMaterialOptions,
   LiquidGlassCreateOptions,
   LiquidGlassOptions,

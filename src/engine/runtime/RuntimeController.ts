@@ -90,7 +90,7 @@ export class RuntimeController<TSyncOptions = unknown> {
     const candidate = this.createBackend(plan);
     this.manager.registerPending(candidate);
 
-    if (preview && this.manager.activeMode === null) {
+    if (preview && plan.fallbackPolicy !== 'strict' && this.manager.activeMode === null) {
       const previewResult = await this.manager.switchTo(preview.backend, preview.plan, {
         preservePending: candidate,
       });
@@ -163,6 +163,16 @@ export class RuntimeController<TSyncOptions = unknown> {
       return result;
     }
 
+    if (plan.fallbackPolicy === 'strict') {
+      this.setFailed(
+        'backend-prepare-failed',
+        result.error,
+        plan.targetMode,
+        planDegradationReason
+      );
+      return result;
+    }
+
     return this.recoverFromFailure(
       plan,
       result,
@@ -229,6 +239,16 @@ export class RuntimeController<TSyncOptions = unknown> {
     primaryError: unknown,
     planDegradationReason: ReadyRuntimeState['degradationReason']
   ): Promise<BackendOperationResult> {
+    if (plan.fallbackPolicy === 'strict') {
+      this.setFailed(
+        'backend-prepare-failed',
+        primaryError,
+        plan.targetMode,
+        planDegradationReason
+      );
+      return primaryResult;
+    }
+
     let recoveryCandidates: readonly RecoveryCandidate<TSyncOptions>[];
     try {
       recoveryCandidates = this.resolveRecoveryChain(plan, primaryError);

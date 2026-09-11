@@ -21,7 +21,7 @@ describe('ParameterMeta update impact', () => {
 
   it('exhaustively registers every material option that can be updated', () => {
     const normalizedOptionKeys = Object.keys(normalizeOptions())
-      .filter((key) => key !== 'interactive')
+      .filter((key) => key !== 'interactive' && key !== 'fallbackPolicy')
       .sort();
 
     expect(Object.keys(PARAMETER_META).sort()).toEqual(normalizedOptionKeys);

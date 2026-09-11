@@ -101,4 +101,35 @@ describe('unified LiquidGlassEngine native implementation', () => {
       CapabilityProbe.resetForTests();
     }
   });
+
+  it('throws strict capability failures synchronously before creating the host', () => {
+    CapabilityProbe.resetForTests();
+    const hadCss = Object.prototype.hasOwnProperty.call(globalThis, 'CSS');
+    const originalCss = (globalThis as typeof globalThis & { CSS?: unknown }).CSS;
+    Object.defineProperty(globalThis, 'CSS', {
+      configurable: true,
+      value: { supports: () => false },
+    });
+    const el = document.createElement('div');
+
+    try {
+      expect(() =>
+        createLiquidGlass(el, {
+          capability: 'full',
+          fallbackPolicy: 'strict',
+        })
+      ).toThrow(/strict full-optical/);
+      expect(el.classList.contains('lg-svg-container')).toBe(false);
+    } finally {
+      if (hadCss) {
+        Object.defineProperty(globalThis, 'CSS', {
+          configurable: true,
+          value: originalCss,
+        });
+      } else {
+        delete (globalThis as typeof globalThis & { CSS?: unknown }).CSS;
+      }
+      CapabilityProbe.resetForTests();
+    }
+  });
 });

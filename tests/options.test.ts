@@ -20,6 +20,12 @@ describe('engine/options', () => {
     expect(opts.quality).toBe('ultra');
   });
 
+  it('normalizes the public fallback policy with auto as the default', () => {
+    expect(normalizeOptions().fallbackPolicy).toBe('auto');
+    expect(normalizeOptions({ fallbackPolicy: 'preserve' }).fallbackPolicy).toBe('preserve');
+    expect(normalizeOptions({ fallbackPolicy: 'strict' }).fallbackPolicy).toBe('strict');
+  });
+
   it('safely clamps invalid numbers', () => {
     const opts = normalizeOptions({
       blur: NaN,
@@ -110,6 +116,7 @@ describe('engine/options', () => {
 
     expect(plan.effective.backdrop.blur).toBe(0);
     expect(plan.effective.common.opacity).toBe(0);
+    expect(plan.fallbackPolicy).toBe('preserve');
   });
 
   it('reports unsupported instead of silently degrading under strict policy', () => {

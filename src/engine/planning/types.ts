@@ -1,5 +1,6 @@
 import type { CanonicalGlassOptions } from '../options';
 import type { CapabilityReport } from '../capabilities';
+import type { FallbackPolicy } from '../../types';
 
 export type RenderMode = 'full-optical' | 'material' | 'static';
 
@@ -7,7 +8,7 @@ export type RenderMode = 'full-optical' | 'material' | 'static';
  * Controls what the planner may change when the requested backend is unavailable.
  * `strict` does not produce a degraded plan; the planner reports unsupported instead.
  */
-export type FallbackPolicy = 'auto' | 'preserve' | 'strict';
+export type { FallbackPolicy } from '../../types';
 
 export type StrictRequestedMode = 'full-optical' | 'material';
 
@@ -65,6 +66,7 @@ export interface StaticBackendOptions {
 export interface RenderPlanBase {
   requestedOptions: CanonicalGlassOptions;
   capabilities: GlassCapabilities;
+  fallbackPolicy: FallbackPolicy;
 }
 
 export interface FullOpticalRenderPlan extends RenderPlanBase {
