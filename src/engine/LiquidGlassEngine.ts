@@ -4,11 +4,18 @@ import type {
   NormalizedLiquidGlassOptions,
 } from '../types';
 import { SvgRendererWrapper } from './svg/SvgRendererWrapper';
+import {
+  canonicalizeOptions,
+  normalizeOptionPatch,
+  normalizeOptions,
+  type CanonicalGlassOptions,
+} from './options';
 
 /** DOM-native Liquid Glass engine. SVG filters are an internal implementation detail. */
 export class LiquidGlassEngine implements LiquidGlassInstance {
   public readonly renderer = 'dom' as const;
   private readonly delegate: SvgRendererWrapper;
+  private requestedOptions: CanonicalGlassOptions;
   private _isDestroyed = false;
 
   public get isDestroyed(): boolean {
@@ -16,12 +23,21 @@ export class LiquidGlassEngine implements LiquidGlassInstance {
   }
 
   constructor(element: HTMLElement, options: NormalizedLiquidGlassOptions) {
+    this.requestedOptions = canonicalizeOptions(options);
     this.delegate = new SvgRendererWrapper(element, options);
   }
 
   public update(options: LiquidGlassUpdateOptions): void {
     this.assertNotDestroyed('update');
-    this.delegate.update(options);
+
+    const canonicalPatch = normalizeOptionPatch(options);
+    const nextOptions = normalizeOptions({
+      ...this.requestedOptions,
+      ...canonicalPatch,
+    });
+
+    this.requestedOptions = canonicalizeOptions(nextOptions);
+    this.delegate.update(nextOptions);
   }
 
   public resize(): void {

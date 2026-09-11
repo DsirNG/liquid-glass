@@ -2,29 +2,23 @@ import type {
   LiquidGlassUpdateOptions,
   RendererDelegate,
   NormalizedLiquidGlassOptions,
-  LiquidGlassQuality,
 } from '../../types';
 import { getElementRect } from '../../utils/dom';
 import { SvgGlassEngine } from './SvgFilterBuilder';
-import { OpticalFieldGenerator } from './OpticalFieldGenerator';
 import type { OpticalFieldAssets } from './OpticalFieldAssets';
 import { CapabilityResolver, type OpticalCapability } from './CapabilityResolver';
 import { MaterialResolver, type ResolvedMaterial } from './MaterialResolver';
 import { InteractionController } from './InteractionController';
-import type { SurfaceProfile } from './geometry/surfaceProfiles';
+import { canonicalizeOptions } from '../options';
+import { resolveRenderPlan } from '../planning';
+import type { GlassCapabilities, RenderPlan } from '../planning';
+import { BackendManager, RuntimeController } from '../runtime';
+import type { RuntimePreview } from '../runtime';
+import { MaterialBackend } from './MaterialBackend';
+import { OpticalBackend } from './OpticalBackend';
+import type { SvgBackendContext, SvgBackendSyncOptions } from './BackendContext';
 
-export const OPTICAL_FIELD_DIMENSIONS: Readonly<Record<LiquidGlassQuality, number>> = Object.freeze(
-  {
-    low: 128,
-    medium: 256,
-    high: 512,
-    ultra: 1024,
-  }
-);
-
-export function resolveOpticalFieldDimension(quality: LiquidGlassQuality = 'high'): number {
-  return OPTICAL_FIELD_DIMENSIONS[quality] ?? OPTICAL_FIELD_DIMENSIONS.high;
-}
+export { OPTICAL_FIELD_DIMENSIONS, resolveOpticalFieldDimension } from './OpticalFieldDimensions';
 
 const OPTICAL_FIELD_OPTION_KEYS = [
   'radius',
@@ -54,8 +48,12 @@ export class SvgRendererWrapper implements RendererDelegate {
   private element: HTMLElement;
   private options: ExtendedEngineOptions;
   private capability: OpticalCapability;
-  private svgEngine: SvgGlassEngine | null = null;
   private interactionController: InteractionController | null = null;
+  private readonly capabilities: GlassCapabilities;
+  private readonly backendContext: SvgBackendContext;
+  private readonly backendManager: BackendManager<SvgBackendSyncOptions>;
+  private readonly runtimeController: RuntimeController<SvgBackendSyncOptions>;
+  private pendingOpticalBackend: OpticalBackend | null = null;
 
   private refractionLayer: HTMLDivElement;
   private tintLayer: HTMLDivElement;
@@ -65,17 +63,30 @@ export class SvgRendererWrapper implements RendererDelegate {
 
   private resizeObserver: ResizeObserver | null = null;
   private isDestroyed = false;
-  private fieldRevision = 0;
-  private currentAssets: OpticalFieldAssets | null = null;
   private updateScheduled = false;
   private geometryDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-  private geometryGenerationInFlight = false;
-  private isPreviewingResize = false;
 
   constructor(element: HTMLElement, options: NormalizedLiquidGlassOptions) {
     this.element = element;
     this.options = { ...options };
     this.capability = CapabilityResolver.resolve({ override: this.options.capability });
+    this.capabilities = this.resolveCapabilities();
+    this.backendManager = new BackendManager<SvgBackendSyncOptions>();
+    this.backendContext = {
+      getViewport: () => this.getViewport(),
+      getActivePhysicalAmplitude: () => this.getActivePhysicalAmplitude(),
+      commitOptical: (engine, assets, syncOptions) =>
+        this.commitOpticalFrame(engine, assets, syncOptions),
+      syncOptical: (engine, assets, syncOptions) =>
+        this.syncOpticalFrame(engine, assets, syncOptions),
+      commitMaterial: (syncOptions) => this.commitMaterialFrame(syncOptions),
+      syncMaterial: (syncOptions) => this.syncMaterialFrame(syncOptions),
+    };
+    this.runtimeController = new RuntimeController<SvgBackendSyncOptions>({
+      manager: this.backendManager,
+      createBackend: (plan) => this.createBackend(plan),
+      recover: (plan) => this.createRecoveryCandidate(plan),
+    });
 
     // Ensure root host classes
     if (!this.element.classList.contains('lg-root')) {
@@ -131,18 +142,6 @@ export class SvgRendererWrapper implements RendererDelegate {
     // If host element does not have .lg-content, check if there are raw child nodes to protect
     this.protectContent();
 
-    if (this.capability === 'full') {
-      this.svgEngine = new SvgGlassEngine();
-      const rect = getElementRect(this.element);
-      const w = Math.max(16, Math.round(rect.width || this.element.offsetWidth || 300));
-      const h = Math.max(16, Math.round(rect.height || this.element.offsetHeight || 80));
-      const initialMat = this.resolveCurrentMaterial(w, h);
-      this.svgEngine.update(initialMat, null, this.options.refraction ?? 1.0, {
-        width: w,
-        height: h,
-      });
-    }
-
     // Fast-path interaction controller
     if (this.options.interactive !== false) {
       this.interactionController = new InteractionController(this.element, {
@@ -155,7 +154,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     // The initial filter graph is already installed above. CSS styles still
     // apply synchronously, while the first optical field is generated below.
     this.applyStyles(false);
-    this.scheduleGeometryUpdate();
+    void this.initializeRuntime();
 
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver(() => {
@@ -163,7 +162,7 @@ export class SvgRendererWrapper implements RendererDelegate {
         // Width/height CSS transitions emit one resize per frame. Optical field
         // generation is asynchronous and expensive, so wait until the size has
         // settled instead of starting a doomed generation for every frame.
-        this.scheduleGeometryUpdate(64);
+        this.scheduleGeometryUpdate(64, 'resizing');
       });
       this.resizeObserver.observe(this.element);
     }
@@ -177,19 +176,16 @@ export class SvgRendererWrapper implements RendererDelegate {
   private previewGeometryAtCurrentSize(): void {
     if (this.isDestroyed) return;
 
-    this.isPreviewingResize = true;
-
-    const rect = getElementRect(this.element);
-    const width = Math.max(16, Math.round(rect.width || this.element.offsetWidth || 300));
-    const height = Math.max(16, Math.round(rect.height || this.element.offsetHeight || 80));
+    const { width, height } = this.getViewport();
     const mat = this.resolveCurrentMaterial(width, height);
+    const syncOptions = this.createSyncOptions(mat, { width, height });
 
-    this.applyStyles(false);
-    if (this.capability !== 'full' || !this.svgEngine || !this.currentAssets) return;
-
-    this.svgEngine.resizeViewport({ width, height }, mat.samplingMargin);
-    this.updateBackdropStyle(mat);
-    this.updateSpecularGradients(mat);
+    this.applyMaterialStyles(mat);
+    if (this.backendManager.active) {
+      this.backendManager.updateSync(syncOptions);
+    } else {
+      this.commitMaterialFrame(syncOptions);
+    }
   }
 
   private protectContent(): void {
@@ -222,21 +218,37 @@ export class SvgRendererWrapper implements RendererDelegate {
   }
 
   private resolveCurrentMaterial(width: number, height: number): ResolvedMaterial {
+    const activeOptical = this.backendManager.active;
     return MaterialResolver.resolve(
       this.options,
       width,
       height,
-      this.currentAssets?.physicalAmplitude ?? 0
+      activeOptical instanceof OpticalBackend ? activeOptical.physicalAmplitude : 0
     );
   }
 
   private applyStyles(updateFilter = true): void {
     if (this.isDestroyed) return;
-    const rect = getElementRect(this.element);
-    const width = rect.width || this.element.offsetWidth || 300;
-    const height = rect.height || this.element.offsetHeight || 80;
+    const { width, height } = this.getViewport();
 
     const mat = this.resolveCurrentMaterial(width, height);
+    this.applyMaterialStyles(mat);
+
+    const syncOptions = this.createSyncOptions(mat, { width, height });
+    const activeBackend = this.backendManager.active;
+    if (updateFilter && activeBackend) {
+      this.backendManager.updateSync(syncOptions);
+      if (this.pendingOpticalBackend && this.pendingOpticalBackend !== activeBackend) {
+        this.pendingOpticalBackend.updateSync(syncOptions);
+      }
+    } else if (updateFilter && this.pendingOpticalBackend) {
+      this.pendingOpticalBackend.updateSync(syncOptions);
+    } else if (!activeBackend) {
+      this.commitMaterialFrame(syncOptions);
+    }
+  }
+
+  private applyMaterialStyles(mat: ResolvedMaterial): void {
     const s = this.element.style;
 
     s.borderRadius = mat.radiusPx;
@@ -251,29 +263,69 @@ export class SvgRendererWrapper implements RendererDelegate {
     s.setProperty('--lg-press-scale', String(mat.calibration.interaction.pressScale));
     s.setProperty('--lg-fresnel-gain', String(mat.calibration.lighting.fresnelGain));
 
-    // Keep the currently displayed optical field in sync with every material update.
-    // Geometry-affecting changes still schedule a new field below, but scalar changes
-    // (blur, saturation, dispersion, refraction, and debug) must not wait for it.
-    if (this.capability === 'full' && this.svgEngine && updateFilter) {
-      // Keep scalar controls synchronous. SvgGlassEngine patches existing
-      // filter nodes when the graph structure has not changed, avoiding a full
-      // innerHTML rebuild for every slider event.
-      this.svgEngine.update(mat, this.currentAssets, this.options.refraction ?? 1.0, {
-        width,
-        height,
-      });
-    }
-    // Bind the filter after its graph is updated. Chromium does not reliably repaint
-    // backdrop-filter when only the referenced SVG nodes change.
-    this.updateBackdropStyle(mat);
-    this.updateSpecularGradients(mat);
-
     const isDebugChannel = mat.debug !== 'none' && mat.debug !== 'final';
     this.tintLayer.style.display = isDebugChannel ? 'none' : '';
     // Specular display state is owned exclusively by updateSpecularGradients().
   }
 
-  private updateBackdropStyle(mat: ResolvedMaterial): void {
+  private createSyncOptions(
+    material: ResolvedMaterial,
+    viewport: { width: number; height: number }
+  ): SvgBackendSyncOptions {
+    return {
+      material,
+      viewport,
+      userRefraction: this.options.refraction,
+    };
+  }
+
+  private getViewport(): { width: number; height: number } {
+    const rect = getElementRect(this.element);
+    return {
+      width: Math.max(16, Math.round(rect.width || this.element.offsetWidth || 300)),
+      height: Math.max(16, Math.round(rect.height || this.element.offsetHeight || 80)),
+    };
+  }
+
+  private getActivePhysicalAmplitude(): number {
+    const activeOptical = this.backendManager.active;
+    return activeOptical instanceof OpticalBackend ? activeOptical.physicalAmplitude : 0;
+  }
+
+  private commitOpticalFrame(
+    engine: SvgGlassEngine,
+    assets: OpticalFieldAssets,
+    options: SvgBackendSyncOptions
+  ): void {
+    this.applyMaterialStyles(options.material);
+    this.updateSpecularMask(assets);
+    this.updateBackdropStyle(options.material, { engine, assets });
+    this.updateSpecularGradients(options.material);
+  }
+
+  private syncOpticalFrame(
+    engine: SvgGlassEngine,
+    assets: OpticalFieldAssets,
+    options: SvgBackendSyncOptions
+  ): void {
+    this.commitOpticalFrame(engine, assets, options);
+  }
+
+  private commitMaterialFrame(options: SvgBackendSyncOptions): void {
+    this.applyMaterialStyles(options.material);
+    this.updateSpecularMask(null);
+    this.updateBackdropStyle(options.material);
+    this.updateSpecularGradients(options.material);
+  }
+
+  private syncMaterialFrame(options: SvgBackendSyncOptions): void {
+    this.commitMaterialFrame(options);
+  }
+
+  private updateBackdropStyle(
+    mat: ResolvedMaterial,
+    optical?: { engine: SvgGlassEngine; assets: OpticalFieldAssets }
+  ): void {
     // Apply the backdrop effect to the complete glass host so every resize uses
     // one compositing surface instead of exposing a seam in the inner layer.
     this.element.style.filter = '';
@@ -287,13 +339,8 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.refractionLayer.style.opacity = '';
     const saturationPercent = Math.max(0, Math.round(mat.saturation * 100));
     this.element.style.filter = `saturate(${saturationPercent}%)`;
-    if (
-      this.capability === 'full' &&
-      this.svgEngine &&
-      this.currentAssets &&
-      !this.isPreviewingResize
-    ) {
-      const filterCss = `url(#${this.svgEngine.filterId})`;
+    if (optical) {
+      const filterCss = `url(#${optical.engine.filterId})`;
       this.element.style.backdropFilter = filterCss;
       (this.element.style as unknown as Record<string, string>).webkitBackdropFilter = filterCss;
       // Preserve the public layer-level filter contract without compositing the
@@ -304,11 +351,7 @@ export class SvgRendererWrapper implements RendererDelegate {
       this.refractionLayer.style.opacity = '0';
     } else {
       // Live Material Fallback (Safari WebKit Bug 245510 or initial mount before assets ready)
-      // During an animated resize, use a continuous native preview instead of
-      // exposing a partially-mapped optical texture and its hard seam.
-      const blurPx = this.isPreviewingResize
-        ? Math.max(6, Math.round(mat.bodyBlur))
-        : Math.max(0, Math.round(mat.bodyBlur));
+      const blurPx = Math.max(0, Math.round(mat.bodyBlur));
       const filterCss = `${blurPx > 0 ? `blur(${blurPx}px) ` : ''}saturate(100%)`;
       this.element.style.backdropFilter = filterCss;
       (this.element.style as unknown as Record<string, string>).webkitBackdropFilter = filterCss;
@@ -442,14 +485,95 @@ export class SvgRendererWrapper implements RendererDelegate {
     }
   }
 
-  /**
-   * Slow Path: Asynchronous optical field generation with revision race guard and transactional swap.
-   */
-  private scheduleGeometryUpdate(debounceMs = 0): void {
+  private resolveCapabilities(): GlassCapabilities {
+    const opticalField = this.capability === 'full';
+    return {
+      opticalField,
+      refraction: opticalField,
+      dispersion: opticalField,
+      // CapabilityResolver has already rejected runtimes where the CSS fallback
+      // cannot be used. The material path remains the safe backend for this wrapper.
+      backdropBlur: true,
+      saturation: true,
+      tint: true,
+      shadow: true,
+      specular: true,
+    };
+  }
+
+  private resolvePlan(): RenderPlan {
+    return resolveRenderPlan({
+      requested: canonicalizeOptions(this.options),
+      capabilities: this.capabilities,
+      fallbackPolicy: 'auto',
+    });
+  }
+
+  private resolveMaterialPreviewPlan(): RenderPlan {
+    return resolveRenderPlan({
+      requested: canonicalizeOptions(this.options),
+      capabilities: {
+        ...this.capabilities,
+        opticalField: false,
+        refraction: false,
+        dispersion: false,
+      },
+      fallbackPolicy: 'auto',
+    });
+  }
+
+  private createBackend(plan: RenderPlan): OpticalBackend | MaterialBackend {
+    if (plan.targetMode === 'full-optical') {
+      const backend = new OpticalBackend(this.backendContext, this.options);
+      this.pendingOpticalBackend = backend;
+      return backend;
+    }
+    if (plan.targetMode === 'material') {
+      this.pendingOpticalBackend = null;
+      return new MaterialBackend(this.backendContext, this.options);
+    }
+    throw new Error('Static backend is not yet implemented for SvgRendererWrapper.');
+  }
+
+  private createRecoveryCandidate(plan: RenderPlan): RuntimePreview<SvgBackendSyncOptions> | null {
+    if (plan.targetMode !== 'full-optical') return null;
+
+    const fallbackPlan = this.resolveMaterialPreviewPlan();
+    if (fallbackPlan.targetMode !== 'material') return null;
+
+    return {
+      plan: fallbackPlan,
+      backend: new MaterialBackend(this.backendContext, this.options),
+    };
+  }
+
+  private async initializeRuntime(): Promise<void> {
+    const plan = this.resolvePlan();
+    const preview =
+      plan.targetMode === 'full-optical'
+        ? {
+            plan: this.resolveMaterialPreviewPlan(),
+            backend: new MaterialBackend(this.backendContext, this.options),
+          }
+        : undefined;
+
+    await this.runtimeController.transition(
+      plan,
+      plan.targetMode === 'full-optical' ? 'initializing-optical-field' : 'backend-switch',
+      preview
+    );
+  }
+
+  /** Schedules an asynchronous candidate transition through RuntimeController. */
+  private scheduleGeometryUpdate(
+    debounceMs = 0,
+    reason: 'resizing' | 'backend-switch' = 'backend-switch'
+  ): void {
     if (this.isDestroyed) return;
-    // Invalidate in-flight work immediately. This prevents a fast slider sequence
-    // from committing an optical field generated from stale options.
-    this.fieldRevision += 1;
+
+    const plan = this.resolvePlan();
+    this.backendManager.invalidate();
+    this.runtimeController.beginTransition(plan, reason);
 
     if (debounceMs > 0) {
       if (this.geometryDebounceTimer !== null) {
@@ -457,7 +581,7 @@ export class SvgRendererWrapper implements RendererDelegate {
       }
       this.geometryDebounceTimer = setTimeout(() => {
         this.geometryDebounceTimer = null;
-        this.scheduleGeometryUpdate();
+        this.scheduleGeometryUpdate(0, reason);
       }, debounceMs);
       return;
     }
@@ -467,90 +591,19 @@ export class SvgRendererWrapper implements RendererDelegate {
       this.geometryDebounceTimer = null;
     }
 
-    if (this.geometryGenerationInFlight) return;
     if (this.updateScheduled) return;
     this.updateScheduled = true;
 
-    requestAnimationFrame(async () => {
+    requestAnimationFrame(() => {
       this.updateScheduled = false;
       if (this.isDestroyed) return;
 
-      const rect = getElementRect(this.element);
-      const width = Math.max(16, Math.round(rect.width || this.element.offsetWidth || 300));
-      const height = Math.max(16, Math.round(rect.height || this.element.offsetHeight || 80));
-
-      this.applyStyles(false);
-
-      if (this.capability !== 'full' || !this.svgEngine) {
-        return; // Fallback does not need SVG displacement texture
-      }
-
-      const revision = this.fieldRevision;
-      const opts = { ...this.options };
-      const radius = opts.radius ?? 40;
-      const bezel = opts.bezel ?? 36;
-      const ior = opts.ior ?? 2.2;
-      const surfaceProfile: SurfaceProfile = opts.surfaceProfile ?? 'convex_squircle';
-      const resolvedMat = this.resolveCurrentMaterial(width, height);
-
-      this.geometryGenerationInFlight = true;
-      try {
-        const nextAssets = await OpticalFieldGenerator.generate({
-          geometry: {
-            shape: opts.shape || 'roundedRect',
-            width,
-            height,
-            radius,
-          },
-          bezel,
-          thickness: resolvedMat.perceivedThickness,
-          ior,
-          surfaceProfile,
-          basis: resolvedMat.calibration.geometry,
-          revision,
-          maxFieldDimension: resolveOpticalFieldDimension(opts.quality),
-          refractionCoverage: resolvedMat.refractionCoverage,
-        });
-
-        // Revision race guard: discard if superseded or destroyed
-        if (revision !== this.fieldRevision || this.isDestroyed) {
-          nextAssets.dispose();
-          return;
+      const latestPlan = this.resolvePlan();
+      void this.runtimeController.transition(latestPlan, reason).catch((error: unknown) => {
+        if (!this.isDestroyed) {
+          console.warn('[LiquidGlass] Runtime transition failed:', error);
         }
-
-        // Transactional swap: install new assets, update SVG filter graph, then switch backdrop style
-        const previousAssets = this.currentAssets;
-        this.currentAssets = nextAssets;
-        this.updateSpecularMask(nextAssets);
-
-        const committedMat = this.resolveCurrentMaterial(width, height);
-        this.isPreviewingResize = false;
-        this.svgEngine.update(committedMat, nextAssets, this.options.refraction ?? 1.0, {
-          width,
-          height,
-        });
-        this.updateBackdropStyle(committedMat);
-
-        requestAnimationFrame(() => {
-          previousAssets?.dispose();
-        });
-      } catch (err) {
-        // Fallback silently if offscreen rendering is constrained
-        console.warn('[LiquidGlass] Failed to generate optical field:', err);
-      } finally {
-        this.geometryGenerationInFlight = false;
-
-        // A newer geometry update may have arrived while the current field was
-        // being generated. Start exactly one follow-up pass for the latest
-        // revision, while preserving an active resize debounce timer.
-        if (
-          !this.isDestroyed &&
-          revision !== this.fieldRevision &&
-          this.geometryDebounceTimer === null
-        ) {
-          this.scheduleGeometryUpdate();
-        }
-      }
+      });
     });
   }
 
@@ -569,13 +622,14 @@ export class SvgRendererWrapper implements RendererDelegate {
     // controls such as refraction and blur reuse the committed field and stay stable
     // while the slider is moving.
     if (requiresOpticalFieldUpdate) {
-      this.scheduleGeometryUpdate();
+      this.scheduleGeometryUpdate(0, 'backend-switch');
     }
   }
 
   public resize(): void {
     if (this.isDestroyed) return;
-    this.scheduleGeometryUpdate();
+    this.previewGeometryAtCurrentSize();
+    this.scheduleGeometryUpdate(0, 'resizing');
   }
 
   public destroy(): void {
@@ -597,15 +651,9 @@ export class SvgRendererWrapper implements RendererDelegate {
       this.interactionController = null;
     }
 
-    if (this.svgEngine) {
-      this.svgEngine.destroy();
-      this.svgEngine = null;
-    }
-
-    if (this.currentAssets) {
-      this.currentAssets.dispose();
-      this.currentAssets = null;
-    }
+    this.backendManager.dispose();
+    this.pendingOpticalBackend?.dispose();
+    this.pendingOpticalBackend = null;
 
     if (this.refractionLayer?.parentNode) {
       this.refractionLayer.parentNode.removeChild(this.refractionLayer);

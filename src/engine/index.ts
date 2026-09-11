@@ -3,7 +3,44 @@ import { normalizeOptions } from './options';
 import { LiquidGlassEngine } from './LiquidGlassEngine';
 
 export { LiquidGlassEngine } from './LiquidGlassEngine';
-export { normalizeOptions } from './options';
+export { canonicalizeOptions, normalizeOptionPatch, normalizeOptions } from './options';
+export type { CanonicalGlassOptions, CanonicalGlassUpdateOptions } from './options';
+export { RenderPlanUnsupportedError, resolveRenderPlan } from './planning';
+export { BackendManager, RuntimeController } from './runtime';
+export type {
+  BackdropBackendOptions,
+  CapabilityDegradeReason,
+  CommonMaterialOptions,
+  FallbackPolicy,
+  FullOpticalRenderPlan,
+  GlassCapabilities,
+  MaterialRenderPlan,
+  OpticalBackendOptions,
+  RenderMode,
+  RenderPlan,
+  RenderPlanningInput,
+  StaticBackendOptions,
+  StaticRenderPlan,
+  StrictRequestedMode,
+} from './planning';
+export type {
+  BackendOperationResult,
+  BackendPrepareContext,
+  EffectBackend,
+  FailedRuntimeState,
+  InitializingRuntimeState,
+  PreparedBackendCommit,
+  ReadyRuntimeState,
+  RecoveryCandidate,
+  RuntimeControllerOptions,
+  RuntimeFailureSeverity,
+  RuntimePhase,
+  RuntimePreview,
+  RuntimeReason,
+  RuntimeState,
+  RuntimeTransitionReason,
+  TransitioningRuntimeState,
+} from './runtime';
 
 /** Creates the DOM-native Liquid Glass engine. */
 export function createLiquidGlass(

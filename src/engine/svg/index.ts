@@ -16,6 +16,13 @@ export type { ResolvedMaterial, MaterialPreset } from './MaterialResolver';
 export { IOS_MATERIAL_PRESET, PURE_MATERIAL_PRESET } from './presets';
 export type { CalibrationPreset } from './presets';
 export { InteractionController } from './InteractionController';
+export { MaterialBackend } from './MaterialBackend';
+export { OpticalBackend } from './OpticalBackend';
+export type {
+  SvgBackendContext,
+  SvgBackendSyncOptions,
+  SvgBackendViewport,
+} from './BackendContext';
 
 export type { GlassInteractionState, InteractionControllerOptions } from './InteractionController';
 
