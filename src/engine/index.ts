@@ -7,6 +7,14 @@ export { canonicalizeOptions, normalizeOptionPatch, normalizeOptions } from './o
 export type { CanonicalGlassOptions, CanonicalGlassUpdateOptions } from './options';
 export { RenderPlanUnsupportedError, resolveRenderPlan } from './planning';
 export { BackendManager, RuntimeController } from './runtime';
+export {
+  PARAMETER_META,
+  UnknownParameterError,
+  maxImpact,
+  resolveUpdateImpact,
+} from './parameters';
+export type { CanonicalOptionKey, CapabilityKey, ParameterKey, ParameterMeta } from './parameters';
+export type { ParameterImpact } from '../types';
 export { CapabilityProbe, hasBlockingRestriction } from './capabilities';
 export type { CapabilityReport, KnownRestriction } from './capabilities';
 export type {

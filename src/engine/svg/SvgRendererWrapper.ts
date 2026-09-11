@@ -18,21 +18,9 @@ import { MaterialBackend } from './MaterialBackend';
 import { OpticalBackend } from './OpticalBackend';
 import { StaticBackend } from './StaticBackend';
 import type { SvgBackendSyncOptions } from './BackendContext';
+import type { ParameterImpact } from '../parameters';
 
 export { OPTICAL_FIELD_DIMENSIONS, resolveOpticalFieldDimension } from './OpticalFieldDimensions';
-
-const ASYNC_RESOURCE_OPTION_KEYS = [
-  'radius',
-  'bezel',
-  'thickness',
-  'ior',
-  'surfaceShape',
-  'surfaceProfile',
-  'materialPreset',
-  'quality',
-  'shape',
-  'refractionCoverage',
-] as const satisfies readonly (keyof LiquidGlassUpdateOptions)[];
 
 export type ExtendedEngineOptions = NormalizedLiquidGlassOptions;
 
@@ -259,13 +247,15 @@ export class SvgRendererWrapper implements RendererDelegate {
     });
   }
 
-  public update(newOptions: LiquidGlassUpdateOptions): void {
+  public update(newOptions: LiquidGlassUpdateOptions, impact?: ParameterImpact): void {
     if (this.isDestroyed) return;
-    const requiresRebuild = this.requiresBackendRebuild(newOptions);
 
     Object.assign(this.options, newOptions);
-    this.syncCoordinator.syncCurrentFrame(!requiresRebuild);
-    if (requiresRebuild) {
+    this.syncCoordinator.syncCurrentFrame();
+    // LiquidGlassEngine always supplies the resolved impact. Keep a field
+    // fallback for direct legacy wrapper callers so correctness wins over
+    // update granularity when they bypass the engine boundary.
+    if ((impact ?? 'field') === 'field') {
       this.scheduleRuntimeTransition(0, 'backend-switch');
     }
   }
@@ -292,12 +282,5 @@ export class SvgRendererWrapper implements RendererDelegate {
 
     this.backendManager.dispose();
     this.host.destroy();
-  }
-
-  private requiresBackendRebuild(options: LiquidGlassUpdateOptions): boolean {
-    return ASYNC_RESOURCE_OPTION_KEYS.some(
-      (key) =>
-        Object.prototype.hasOwnProperty.call(options, key) && options[key] !== this.options[key]
-    );
   }
 }

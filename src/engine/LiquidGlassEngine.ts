@@ -11,6 +11,7 @@ import {
   normalizeOptions,
   type CanonicalGlassOptions,
 } from './options';
+import { resolveUpdateImpact } from './parameters';
 
 /** DOM-native Liquid Glass engine. SVG filters are an internal implementation detail. */
 export class LiquidGlassEngine implements LiquidGlassInstance {
@@ -40,9 +41,21 @@ export class LiquidGlassEngine implements LiquidGlassInstance {
       ...this.requestedOptions,
       ...canonicalPatch,
     });
+    // Validate every incoming key before filtering no-op values. This keeps
+    // runtime JavaScript callers from silently bypassing ParameterMeta.
+    resolveUpdateImpact(canonicalPatch);
+    const nextCanonicalOptions = canonicalizeOptions(nextOptions);
+    const changedPatch: Record<string, unknown> = {};
+    for (const key of Object.keys(canonicalPatch)) {
+      const canonicalKey = key as keyof CanonicalGlassOptions;
+      if (nextCanonicalOptions[canonicalKey] !== this.requestedOptions[canonicalKey]) {
+        changedPatch[key] = nextCanonicalOptions[canonicalKey];
+      }
+    }
+    const impact = resolveUpdateImpact(changedPatch as LiquidGlassUpdateOptions);
 
-    this.requestedOptions = canonicalizeOptions(nextOptions);
-    this.delegate.update(nextOptions);
+    this.requestedOptions = nextCanonicalOptions;
+    this.delegate.update(nextOptions, impact);
   }
 
   public resize(): void {

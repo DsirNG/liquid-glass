@@ -1,4 +1,5 @@
 export type { LiquidGlassInstance, RendererDelegate } from './renderer';
+export type { ParameterImpact } from './parameters';
 export type {
   LiquidGlassCapabilityDegradeReason,
   LiquidGlassOperationResult,
