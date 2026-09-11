@@ -14,9 +14,6 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^21.2.2
         version: 21.2.2
-      '@dinqorai/liquid-glass':
-        specifier: 0.1.0-test.2
-        version: 0.1.0-test.2(vue@3.5.42(typescript@6.0.3))
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.9.1(jiti@2.6.1)(supports-color@10.2.2))
@@ -267,14 +264,6 @@ packages:
     engines: {node: '>=20.19.0'}
     peerDependencies:
       postcss-selector-parser: ^7.1.1
-
-  '@dinqorai/liquid-glass@0.1.0-test.2':
-    resolution: {integrity: sha512-or+cUYJXKSjS3kKa5hTNhordE0SFCIr1EV2xik8jJVY16vaPxaStrMHXICYrh/zArx4zuATR4pO7tBobwnc7yw==}
-    peerDependencies:
-      vue: '>=3.3.0'
-    peerDependenciesMeta:
-      vue:
-        optional: true
 
   '@eslint-community/eslint-utils@4.10.1':
     resolution: {integrity: sha512-cuadcxVFE8sDK6iWJbs8Sn0av2Nrh2QSGQhVlBW9AaAHqHwjWsZHT8LJ4hFGPh7ASBV2deFdM7H/DPjulmh8rg==}
@@ -2186,10 +2175,6 @@ snapshots:
   '@csstools/selector-specificity@6.0.0(postcss-selector-parser@7.1.5)':
     dependencies:
       postcss-selector-parser: 7.1.5
-
-  '@dinqorai/liquid-glass@0.1.0-test.2(vue@3.5.42(typescript@6.0.3))':
-    optionalDependencies:
-      vue: 3.5.42(typescript@6.0.3)
 
   '@eslint-community/eslint-utils@4.10.1(eslint@10.9.1(jiti@2.6.1)(supports-color@10.2.2))':
     dependencies:
