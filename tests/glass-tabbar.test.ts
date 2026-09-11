@@ -8,6 +8,7 @@ function createMockInstance(): LiquidGlassInstance {
   return {
     renderer: 'dom',
     isDestroyed: false,
+    status: { targetMode: null, activeMode: null, phase: 'initializing', degraded: false },
     update: vi.fn(),
     destroy: vi.fn(),
     resize: vi.fn(),

@@ -1,4 +1,13 @@
 export type { LiquidGlassInstance, RendererDelegate } from './renderer';
+export type {
+  LiquidGlassCapabilityDegradeReason,
+  LiquidGlassOperationResult,
+  LiquidGlassRecoveryMode,
+  LiquidGlassRenderMode,
+  LiquidGlassRuntimePhase,
+  LiquidGlassRuntimeReason,
+  LiquidGlassStatus,
+} from './status';
 
 export type {
   GlassPreset,

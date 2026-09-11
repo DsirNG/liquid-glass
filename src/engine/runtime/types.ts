@@ -1,24 +1,35 @@
+import type {
+  LiquidGlassCapabilityDegradeReason,
+  LiquidGlassOperationResult,
+  LiquidGlassRuntimePhase,
+  LiquidGlassRuntimeReason,
+  LiquidGlassStatus,
+} from '../../types/status';
 import type { RenderMode } from '../planning';
 
-export type RuntimePhase = 'initializing' | 'transitioning' | 'ready' | 'failed';
+export type RuntimePhase = LiquidGlassRuntimePhase;
 
+/** @deprecated Failure severity now belongs to `lastOperation`, not stable runtime state. */
 export type RuntimeFailureSeverity = 'candidate-failed' | 'active-backend-failed';
 
-export type RuntimeReason =
-  | 'initializing-optical-field'
-  | 'resizing'
-  | 'backend-switch'
-  | 'optical-field-failed'
-  | 'backend-prepare-failed'
-  | 'recovery-failed';
+export type RuntimeReason = LiquidGlassRuntimeReason;
 
-export type RuntimeTransitionReason = 'initializing-optical-field' | 'resizing' | 'backend-switch';
+export type RuntimeTransitionReason = Extract<
+  RuntimeReason,
+  'initializing-optical-field' | 'resizing' | 'backend-switch'
+>;
+
+export type RuntimeOperationResult = LiquidGlassOperationResult;
+
+export type RuntimeStatus = LiquidGlassStatus;
 
 export interface InitializingRuntimeState {
   phase: 'initializing';
   targetMode: RenderMode | null;
   activeMode: null;
   runtimeDegraded: false;
+  degradationReason?: LiquidGlassCapabilityDegradeReason;
+  runtimeReason?: RuntimeReason;
 }
 
 export interface TransitioningRuntimeState {
@@ -27,6 +38,7 @@ export interface TransitioningRuntimeState {
   activeMode: RenderMode | null;
   runtimeDegraded: false;
   runtimeReason: RuntimeTransitionReason;
+  degradationReason?: LiquidGlassCapabilityDegradeReason;
 }
 
 export interface ReadyRuntimeState {
@@ -35,8 +47,8 @@ export interface ReadyRuntimeState {
   activeMode: RenderMode;
   runtimeDegraded: boolean;
   runtimeReason?: RuntimeReason;
+  degradationReason?: LiquidGlassCapabilityDegradeReason;
   recoveryMode?: Exclude<RenderMode, 'full-optical'>;
-  failureSeverity?: RuntimeFailureSeverity;
 }
 
 export interface FailedRuntimeState {
@@ -45,6 +57,7 @@ export interface FailedRuntimeState {
   activeMode: null;
   runtimeDegraded: true;
   runtimeReason: 'backend-prepare-failed' | 'recovery-failed';
+  degradationReason?: LiquidGlassCapabilityDegradeReason;
   error?: unknown;
 }
 

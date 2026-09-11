@@ -11,9 +11,11 @@ export type {
   InitializingRuntimeState,
   ReadyRuntimeState,
   RuntimeFailureSeverity,
+  RuntimeOperationResult,
   RuntimePhase,
   RuntimeReason,
   RuntimeState,
+  RuntimeStatus,
   RuntimeTransitionReason,
   TransitioningRuntimeState,
 } from './types';

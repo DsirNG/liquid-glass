@@ -19,7 +19,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function createPlan(mode: 'full-optical' | 'material'): RenderPlan {
+function createPlan(mode: 'full-optical' | 'material' | 'static'): RenderPlan {
   const requested = canonicalizeOptions(normalizeOptions());
   return resolveRenderPlan({
     requested,
@@ -35,16 +35,27 @@ function createPlan(mode: 'full-optical' | 'material'): RenderPlan {
             shadow: true,
             specular: true,
           }
-        : {
-            opticalField: false,
-            refraction: false,
-            dispersion: false,
-            backdropBlur: true,
-            saturation: true,
-            tint: true,
-            shadow: true,
-            specular: true,
-          },
+        : mode === 'material'
+          ? {
+              opticalField: false,
+              refraction: false,
+              dispersion: false,
+              backdropBlur: true,
+              saturation: true,
+              tint: true,
+              shadow: true,
+              specular: true,
+            }
+          : {
+              opticalField: false,
+              refraction: false,
+              dispersion: false,
+              backdropBlur: false,
+              saturation: true,
+              tint: true,
+              shadow: true,
+              specular: true,
+            },
   });
 }
 
@@ -172,7 +183,10 @@ describe('RuntimeController', () => {
       runtimeDegraded: true,
       runtimeReason: 'optical-field-failed',
       recoveryMode: 'material',
-      failureSeverity: 'candidate-failed',
+    });
+    expect(controller.status.lastOperation).toEqual({
+      status: 'candidate-failed',
+      reason: 'optical-field-failed',
     });
   });
 
@@ -198,10 +212,50 @@ describe('RuntimeController', () => {
       targetMode: 'full-optical',
       activeMode: 'full-optical',
       runtimeDegraded: false,
-      runtimeReason: 'optical-field-failed',
-      failureSeverity: 'candidate-failed',
+    });
+    expect(controller.status.lastOperation).toEqual({
+      status: 'candidate-failed',
+      reason: 'optical-field-failed',
     });
     expect(manager.active).toBe(first);
+  });
+
+  it('walks the ordered material-to-static recovery chain', async () => {
+    const manager = new BackendManager<void>();
+    const fullPlan = createPlan('full-optical');
+    const materialPlan = createPlan('material');
+    const staticPlan = createPlan('static');
+    const optical = new FakeBackend('full-optical');
+    optical.prepareError = new Error('optical field failed');
+    const material = new FakeBackend('material');
+    material.prepareError = new Error('material fallback failed');
+    const staticBackend = new FakeBackend('static');
+
+    const controller = new RuntimeController<void>({
+      manager,
+      createBackend: () => optical,
+      getRecoveryChain: () => [
+        { plan: materialPlan, backend: material },
+        { plan: staticPlan, backend: staticBackend },
+      ],
+    });
+
+    const result = await controller.transition(fullPlan, 'initializing-optical-field');
+
+    expect(result.status).toBe('candidate-failed');
+    expect(controller.status).toMatchObject({
+      targetMode: 'full-optical',
+      activeMode: 'static',
+      phase: 'ready',
+      degraded: true,
+      recoveryMode: 'static',
+      lastOperation: {
+        status: 'candidate-failed',
+        reason: 'optical-field-failed',
+      },
+    });
+    expect(material.backendDisposeCount).toBe(1);
+    expect(staticBackend.commitCount).toBe(1);
   });
 
   it('enters failed only when there is no active backend and recovery fails', async () => {

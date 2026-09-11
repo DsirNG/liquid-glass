@@ -133,6 +133,30 @@ describe('engine/options', () => {
     ).toThrow(RenderPlanUnsupportedError);
   });
 
+  it('selects the static backend when backdrop filtering is unavailable', () => {
+    const requested = canonicalizeOptions(normalizeOptions({ opacity: 0 }));
+    const plan = resolveRenderPlan({
+      requested,
+      capabilities: {
+        opticalField: false,
+        refraction: false,
+        dispersion: false,
+        backdropBlur: false,
+        saturation: true,
+        tint: true,
+        shadow: true,
+        specular: true,
+      },
+    });
+
+    expect(plan.targetMode).toBe('static');
+    if (plan.targetMode !== 'static') throw new Error('Expected static render plan');
+
+    expect(plan.requestedOptions.opacity).toBe(0);
+    expect(plan.effective.static.fillOpacity).toBe(0.08);
+    expect(plan.degradationReason).toBe('backdrop-filter-unsupported');
+  });
+
   it('defines every standard preset as an independent adjustable material snapshot', () => {
     const adjustableKeys = [
       'blur',

@@ -3,6 +3,7 @@ import type {
   LiquidGlassUpdateOptions,
   NormalizedLiquidGlassOptions,
 } from '../types';
+import type { LiquidGlassStatus } from '../types/status';
 import { SvgRendererWrapper } from './svg/SvgRendererWrapper';
 import {
   canonicalizeOptions,
@@ -20,6 +21,10 @@ export class LiquidGlassEngine implements LiquidGlassInstance {
 
   public get isDestroyed(): boolean {
     return this._isDestroyed;
+  }
+
+  public get status(): Readonly<LiquidGlassStatus> {
+    return this.delegate.status;
   }
 
   constructor(element: HTMLElement, options: NormalizedLiquidGlassOptions) {

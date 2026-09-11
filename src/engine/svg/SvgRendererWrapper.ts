@@ -3,6 +3,7 @@ import type {
   RendererDelegate,
   NormalizedLiquidGlassOptions,
 } from '../../types';
+import type { LiquidGlassStatus } from '../../types/status';
 import { getElementRect } from '../../utils/dom';
 import { SvgGlassEngine } from './SvgFilterBuilder';
 import type { OpticalFieldAssets } from './OpticalFieldAssets';
@@ -16,6 +17,7 @@ import { BackendManager, RuntimeController } from '../runtime';
 import type { RuntimePreview } from '../runtime';
 import { MaterialBackend } from './MaterialBackend';
 import { OpticalBackend } from './OpticalBackend';
+import { StaticBackend } from './StaticBackend';
 import type { SvgBackendContext, SvgBackendSyncOptions } from './BackendContext';
 
 export { OPTICAL_FIELD_DIMENSIONS, resolveOpticalFieldDimension } from './OpticalFieldDimensions';
@@ -38,11 +40,12 @@ export type ExtendedEngineOptions = NormalizedLiquidGlassOptions;
 /**
  * High-level SVG DOM Wrapper implementing RendererDelegate.
  * Orchestrates:
- * 1. CapabilityResolver (Full Optical vs Live Material fallback)
- * 2. OpticalFieldGenerator (Slow Path: async PNG Blobs with revision race guard)
- * 3. MaterialResolver (Size adaptation & parameter resolution)
- * 4. InteractionController (Fast Path: pointer/touch/specular light vector)
- * 5. 5-Layer DOM stacking context with explicit content protection
+ * 1. CapabilityResolver + RenderPlan (selects the requested backend tier)
+ * 2. RuntimeController + BackendManager (transaction, recovery, and last-good state)
+ * 3. Optical/Material/Static backends (effect-specific resource ownership)
+ * 4. MaterialResolver (size adaptation & parameter resolution)
+ * 5. InteractionController (Fast Path: pointer/touch/specular light vector)
+ * 6. 5-Layer DOM stacking context with explicit content protection
  */
 export class SvgRendererWrapper implements RendererDelegate {
   private element: HTMLElement;
@@ -81,11 +84,13 @@ export class SvgRendererWrapper implements RendererDelegate {
         this.syncOpticalFrame(engine, assets, syncOptions),
       commitMaterial: (syncOptions) => this.commitMaterialFrame(syncOptions),
       syncMaterial: (syncOptions) => this.syncMaterialFrame(syncOptions),
+      commitStatic: (syncOptions) => this.commitStaticFrame(syncOptions),
+      syncStatic: (syncOptions) => this.syncStaticFrame(syncOptions),
     };
     this.runtimeController = new RuntimeController<SvgBackendSyncOptions>({
       manager: this.backendManager,
       createBackend: (plan) => this.createBackend(plan),
-      recover: (plan) => this.createRecoveryCandidate(plan),
+      getRecoveryChain: (plan) => this.createRecoveryChain(plan),
     });
 
     // Ensure root host classes
@@ -322,6 +327,20 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.commitMaterialFrame(options);
   }
 
+  private commitStaticFrame(options: SvgBackendSyncOptions): void {
+    this.applyMaterialStyles(options.material);
+    if (options.fillOpacity !== undefined) {
+      this.element.style.setProperty('--lg-tint-alpha', String(options.fillOpacity));
+    }
+    this.updateSpecularMask(null);
+    this.updateStaticStyle();
+    this.updateSpecularGradients(options.material);
+  }
+
+  private syncStaticFrame(options: SvgBackendSyncOptions): void {
+    this.commitStaticFrame(options);
+  }
+
   private updateBackdropStyle(
     mat: ResolvedMaterial,
     optical?: { engine: SvgGlassEngine; assets: OpticalFieldAssets }
@@ -337,6 +356,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     this.refractionLayer.style.backdropFilter = '';
     (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter = '';
     this.refractionLayer.style.opacity = '';
+    this.refractionLayer.style.display = '';
     const saturationPercent = Math.max(0, Math.round(mat.saturation * 100));
     this.element.style.filter = `saturate(${saturationPercent}%)`;
     if (optical) {
@@ -362,6 +382,22 @@ export class SvgRendererWrapper implements RendererDelegate {
         filterCss;
       this.refractionLayer.style.opacity = '1';
     }
+  }
+
+  private updateStaticStyle(): void {
+    this.element.style.filter = '';
+    this.element.style.backgroundImage = '';
+    this.element.style.backgroundColor = '';
+    (this.element.style as unknown as Record<string, string>).backdropFilter = '';
+    (this.element.style as unknown as Record<string, string>).webkitBackdropFilter = '';
+
+    this.refractionLayer.style.filter = '';
+    this.refractionLayer.style.backgroundImage = '';
+    this.refractionLayer.style.backgroundColor = '';
+    this.refractionLayer.style.backdropFilter = '';
+    (this.refractionLayer.style as unknown as Record<string, string>).webkitBackdropFilter = '';
+    this.refractionLayer.style.opacity = '0';
+    this.refractionLayer.style.display = 'none';
   }
 
   private updateSpecularGradients(mat?: ResolvedMaterial): void {
@@ -491,9 +527,7 @@ export class SvgRendererWrapper implements RendererDelegate {
       opticalField,
       refraction: opticalField,
       dispersion: opticalField,
-      // CapabilityResolver has already rejected runtimes where the CSS fallback
-      // cannot be used. The material path remains the safe backend for this wrapper.
-      backdropBlur: true,
+      backdropBlur: CapabilityResolver.supportsBackdropFilter(),
       saturation: true,
       tint: true,
       shadow: true,
@@ -522,7 +556,21 @@ export class SvgRendererWrapper implements RendererDelegate {
     });
   }
 
-  private createBackend(plan: RenderPlan): OpticalBackend | MaterialBackend {
+  private resolveStaticPlan(): RenderPlan {
+    return resolveRenderPlan({
+      requested: canonicalizeOptions(this.options),
+      capabilities: {
+        ...this.capabilities,
+        opticalField: false,
+        refraction: false,
+        dispersion: false,
+        backdropBlur: false,
+      },
+      fallbackPolicy: 'auto',
+    });
+  }
+
+  private createBackend(plan: RenderPlan): OpticalBackend | MaterialBackend | StaticBackend {
     if (plan.targetMode === 'full-optical') {
       const backend = new OpticalBackend(this.backendContext, this.options);
       this.pendingOpticalBackend = backend;
@@ -532,19 +580,36 @@ export class SvgRendererWrapper implements RendererDelegate {
       this.pendingOpticalBackend = null;
       return new MaterialBackend(this.backendContext, this.options);
     }
-    throw new Error('Static backend is not yet implemented for SvgRendererWrapper.');
+    this.pendingOpticalBackend = null;
+    return new StaticBackend(this.backendContext, this.options);
   }
 
-  private createRecoveryCandidate(plan: RenderPlan): RuntimePreview<SvgBackendSyncOptions> | null {
-    if (plan.targetMode !== 'full-optical') return null;
+  private createRecoveryChain(plan: RenderPlan): RuntimePreview<SvgBackendSyncOptions>[] {
+    const candidates: RuntimePreview<SvgBackendSyncOptions>[] = [];
 
-    const fallbackPlan = this.resolveMaterialPreviewPlan();
-    if (fallbackPlan.targetMode !== 'material') return null;
+    if (plan.targetMode === 'full-optical') {
+      const materialPlan = this.resolveMaterialPreviewPlan();
+      if (materialPlan.targetMode === 'material') {
+        candidates.push({
+          plan: materialPlan,
+          backend: new MaterialBackend(this.backendContext, this.options),
+        });
+      }
+    }
 
-    return {
-      plan: fallbackPlan,
-      backend: new MaterialBackend(this.backendContext, this.options),
-    };
+    const staticPlan = this.resolveStaticPlan();
+    if (staticPlan.targetMode === 'static') {
+      candidates.push({
+        plan: staticPlan,
+        backend: new StaticBackend(this.backendContext, this.options),
+      });
+    }
+
+    return candidates;
+  }
+
+  public get status(): Readonly<LiquidGlassStatus> {
+    return this.runtimeController.status;
   }
 
   private async initializeRuntime(): Promise<void> {

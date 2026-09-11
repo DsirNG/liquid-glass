@@ -33,4 +33,69 @@ describe('unified LiquidGlassEngine native implementation', () => {
 
     el.remove();
   });
+
+  it('exposes the runtime status without leaking backend internals', async () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+
+    const instance = createLiquidGlass(el, { capability: 'full' });
+
+    expect(instance.status).toMatchObject({
+      targetMode: 'full-optical',
+      phase: 'transitioning',
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(instance.status).toMatchObject({
+      targetMode: 'full-optical',
+      activeMode: 'full-optical',
+      phase: 'ready',
+      degraded: false,
+      lastOperation: { status: 'committed', mode: 'full-optical' },
+    });
+
+    instance.destroy();
+    el.remove();
+  });
+
+  it('commits the static backend when the runtime has no backdrop-filter support', async () => {
+    const hadCss = Object.prototype.hasOwnProperty.call(globalThis, 'CSS');
+    const originalCss = (globalThis as typeof globalThis & { CSS?: unknown }).CSS;
+    Object.defineProperty(globalThis, 'CSS', {
+      configurable: true,
+      value: { supports: () => false },
+    });
+
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+
+    try {
+      const instance = createLiquidGlass(el, { capability: 'full' });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(instance.status).toMatchObject({
+        targetMode: 'static',
+        activeMode: 'static',
+        phase: 'ready',
+        degraded: true,
+        degradationReason: 'backdrop-filter-unsupported',
+        lastOperation: { status: 'committed', mode: 'static' },
+      });
+      expect((el.querySelector('.lg-svg-refraction') as HTMLElement).style.display).toBe('none');
+      expect(el.style.backdropFilter).toBe('');
+
+      instance.destroy();
+      el.remove();
+    } finally {
+      if (hadCss) {
+        Object.defineProperty(globalThis, 'CSS', {
+          configurable: true,
+          value: originalCss,
+        });
+      } else {
+        delete (globalThis as typeof globalThis & { CSS?: unknown }).CSS;
+      }
+    }
+  });
 });

@@ -34,10 +34,12 @@ export type {
   RecoveryCandidate,
   RuntimeControllerOptions,
   RuntimeFailureSeverity,
+  RuntimeOperationResult,
   RuntimePhase,
   RuntimePreview,
   RuntimeReason,
   RuntimeState,
+  RuntimeStatus,
   RuntimeTransitionReason,
   TransitioningRuntimeState,
 } from './runtime';

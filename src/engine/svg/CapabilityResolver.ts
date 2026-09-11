@@ -47,15 +47,27 @@ export class CapabilityResolver {
     }
 
     // Check basic CSS backdrop-filter support
-    if (typeof CSS !== 'undefined' && typeof CSS.supports === 'function') {
-      const supportsBackdrop =
-        CSS.supports('backdrop-filter', 'blur(1px)') ||
-        CSS.supports('-webkit-backdrop-filter', 'blur(1px)');
-      if (!supportsBackdrop) {
-        return 'material';
-      }
+    if (!this.supportsBackdropFilter()) {
+      return 'material';
     }
 
     return 'full';
+  }
+
+  /** Returns false only when the browser explicitly reports no backdrop filter support. */
+  public static supportsBackdropFilter(): boolean {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      return false;
+    }
+
+    if (typeof CSS === 'undefined' || typeof CSS.supports !== 'function') {
+      // Unknown test/runtime environments keep the existing optimistic behavior.
+      return true;
+    }
+
+    return (
+      CSS.supports('backdrop-filter', 'blur(1px)') ||
+      CSS.supports('-webkit-backdrop-filter', 'blur(1px)')
+    );
   }
 }

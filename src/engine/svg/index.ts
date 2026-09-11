@@ -18,6 +18,7 @@ export type { CalibrationPreset } from './presets';
 export { InteractionController } from './InteractionController';
 export { MaterialBackend } from './MaterialBackend';
 export { OpticalBackend } from './OpticalBackend';
+export { StaticBackend } from './StaticBackend';
 export type {
   SvgBackendContext,
   SvgBackendSyncOptions,

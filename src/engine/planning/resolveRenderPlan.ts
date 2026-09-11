@@ -80,16 +80,19 @@ function resolveOpticalOptions(
 }
 
 function resolveDegradationReason(input: RenderPlanningInput, targetMode: 'material' | 'static') {
+  if (targetMode === 'static' && !input.capabilities.backdropBlur) {
+    return 'backdrop-filter-unsupported' as const;
+  }
   if (input.requested.capability === 'material') return 'forced-material' as const;
   if (input.requested.capability === 'full') return 'optical-unsupported' as const;
-  if (targetMode === 'static') return 'backdrop-filter-unsupported' as const;
   return 'optical-unsupported' as const;
 }
 
 /** Pure capability + options planner. It does not touch the DOM or create backends. */
 export function resolveRenderPlan(input: RenderPlanningInput): RenderPlan {
   const { requested, capabilities, fallbackPolicy = 'auto' } = input;
-  const canUseOptical = capabilities.opticalField && capabilities.refraction;
+  const canUseOptical =
+    capabilities.opticalField && capabilities.refraction && capabilities.backdropBlur;
   const canUseBackdrop = capabilities.backdropBlur;
   const strictRequestedMode: StrictRequestedMode =
     requested.capability === 'material' ? 'material' : 'full-optical';
