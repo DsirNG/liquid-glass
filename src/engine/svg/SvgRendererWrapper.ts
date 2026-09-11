@@ -9,7 +9,7 @@ import type { OpticalFieldAssets } from './OpticalFieldAssets';
 import { CapabilityResolver, type OpticalCapability } from './CapabilityResolver';
 import { MaterialResolver, type ResolvedMaterial } from './MaterialResolver';
 import { InteractionController } from './InteractionController';
-import { GlassHost } from './host';
+import { GlassHost, MaterialStyler } from './host';
 import { canonicalizeOptions } from '../options';
 import { resolveRenderPlan } from '../planning';
 import type { GlassCapabilities, RenderPlan } from '../planning';
@@ -49,6 +49,7 @@ export type ExtendedEngineOptions = NormalizedLiquidGlassOptions;
  */
 export class SvgRendererWrapper implements RendererDelegate {
   private readonly host: GlassHost;
+  private readonly materialStyler: MaterialStyler;
   private options: ExtendedEngineOptions;
   private capability: OpticalCapability;
   private interactionController: InteractionController | null = null;
@@ -64,6 +65,7 @@ export class SvgRendererWrapper implements RendererDelegate {
 
   constructor(element: HTMLElement, options: NormalizedLiquidGlassOptions) {
     this.host = new GlassHost(element);
+    this.materialStyler = new MaterialStyler(this.host);
     this.options = { ...options };
     this.capability = CapabilityResolver.resolve({ override: this.options.capability });
     this.capabilities = this.resolveCapabilities();
@@ -90,11 +92,7 @@ export class SvgRendererWrapper implements RendererDelegate {
 
     // Fast-path interaction controller
     if (this.options.interactive !== false) {
-      this.interactionController = new InteractionController(this.host.element, {
-        onUpdate: () => {
-          this.updateSpecularGradients();
-        },
-      });
+      this.interactionController = new InteractionController(this.host.element);
     }
 
     // The initial filter graph is already installed above. CSS styles still
@@ -123,7 +121,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     const mat = this.resolveCurrentMaterial(width, height);
     const syncOptions = this.createSyncOptions(mat, { width, height });
 
-    this.applyMaterialStyles(mat);
+    this.materialStyler.apply(mat);
     if (this.backendManager.active) {
       this.backendManager.updateSync(syncOptions);
     } else {
@@ -146,7 +144,7 @@ export class SvgRendererWrapper implements RendererDelegate {
     const { width, height } = this.host.getViewport();
 
     const mat = this.resolveCurrentMaterial(width, height);
-    this.applyMaterialStyles(mat);
+    this.materialStyler.apply(mat);
 
     const syncOptions = this.createSyncOptions(mat, { width, height });
     const activeBackend = this.backendManager.active;
@@ -160,26 +158,6 @@ export class SvgRendererWrapper implements RendererDelegate {
     } else if (!activeBackend) {
       this.commitMaterialFrame(syncOptions);
     }
-  }
-
-  private applyMaterialStyles(mat: ResolvedMaterial): void {
-    const s = this.host.element.style;
-
-    s.borderRadius = mat.radiusPx;
-    s.setProperty('--lg-tint-rgb', mat.tintRgb);
-    s.setProperty('--lg-tint-alpha', String(mat.tintOpacity));
-    s.setProperty('--lg-radius', mat.radiusPx);
-    s.setProperty('--lg-shadow-blur', `${mat.shadowBlur}px`);
-    s.setProperty('--lg-shadow-spread', `${mat.shadowSpread}px`);
-    s.setProperty('--lg-shadow-color', mat.shadowColor);
-    s.setProperty('--lg-outer-shadow-blur', `${Math.round(mat.shadowBlur * 1.3)}px`);
-    s.setProperty('--lg-shadow-opacity', String(mat.shadowOpacity));
-    s.setProperty('--lg-press-scale', String(mat.calibration.interaction.pressScale));
-    s.setProperty('--lg-fresnel-gain', String(mat.calibration.lighting.fresnelGain));
-
-    const isDebugChannel = mat.debug !== 'none' && mat.debug !== 'final';
-    this.host.tintLayer.style.display = isDebugChannel ? 'none' : '';
-    // Specular display state is owned exclusively by updateSpecularGradients().
   }
 
   private createSyncOptions(
@@ -203,10 +181,9 @@ export class SvgRendererWrapper implements RendererDelegate {
     assets: OpticalFieldAssets,
     options: SvgBackendSyncOptions
   ): void {
-    this.applyMaterialStyles(options.material);
+    this.materialStyler.apply(options.material);
     this.updateSpecularMask(assets);
     this.updateBackdropStyle(options.material, { engine, assets });
-    this.updateSpecularGradients(options.material);
   }
 
   private syncOpticalFrame(
@@ -218,10 +195,9 @@ export class SvgRendererWrapper implements RendererDelegate {
   }
 
   private commitMaterialFrame(options: SvgBackendSyncOptions): void {
-    this.applyMaterialStyles(options.material);
+    this.materialStyler.apply(options.material);
     this.updateSpecularMask(null);
     this.updateBackdropStyle(options.material);
-    this.updateSpecularGradients(options.material);
   }
 
   private syncMaterialFrame(options: SvgBackendSyncOptions): void {
@@ -229,13 +205,13 @@ export class SvgRendererWrapper implements RendererDelegate {
   }
 
   private commitStaticFrame(options: SvgBackendSyncOptions): void {
-    this.applyMaterialStyles(options.material);
-    if (options.fillOpacity !== undefined) {
-      this.host.element.style.setProperty('--lg-tint-alpha', String(options.fillOpacity));
-    }
+    const material =
+      options.fillOpacity === undefined
+        ? options.material
+        : { ...options.material, tintOpacity: options.fillOpacity };
+    this.materialStyler.apply(material);
     this.updateSpecularMask(null);
     this.updateStaticStyle();
-    this.updateSpecularGradients(options.material);
   }
 
   private syncStaticFrame(options: SvgBackendSyncOptions): void {
@@ -303,115 +279,6 @@ export class SvgRendererWrapper implements RendererDelegate {
       '';
     this.host.refractionLayer.style.opacity = '0';
     this.host.refractionLayer.style.display = 'none';
-  }
-
-  private updateSpecularGradients(mat?: ResolvedMaterial): void {
-    if (this.isDestroyed) return;
-    // InteractionController updates --lg-light-angle directly. Material
-    // changes call this method with a resolved material, while interaction
-    // frames do not need to touch gradient declarations at all.
-    if (!mat) return;
-
-    const specular = mat.specular;
-    if (specular <= 0) {
-      this.host.borderScreenLayer.style.display = 'none';
-      this.host.borderOverlayLayer.style.display = 'none';
-      return;
-    }
-
-    this.host.borderScreenLayer.style.display = '';
-    this.host.borderOverlayLayer.style.display = '';
-
-    const gain = mat.specularGain;
-    const effSpec = Math.min(1, specular * gain);
-    const borderMode = mat.borderMode;
-
-    const s = this.host.element.style;
-
-    if (borderMode === 'adaptive') {
-      // 方案二：环境亮度自适应轮廓 (Luma-Adaptive Dual Rim)
-      // 根据环境明度 (ambientLuma)，在纯白/浅色底时平滑过渡为深冷灰精细墨线，暗底保持晶亮白高光
-      const luma = mat?.ambientLuma ?? this.options.ambientLuma ?? 0.5;
-      const isLight = luma >= 0.6;
-      const factor = Math.max(0, Math.min(1, (luma - 0.45) / 0.4));
-
-      // 在亮白底使用深灰墨线 (15, 23, 42)，暗底使用纯白 (255, 255, 255)
-      const r = Math.round(255 * (1 - factor) + 15 * factor);
-      const g = Math.round(255 * (1 - factor) + 23 * factor);
-      const b = Math.round(255 * (1 - factor) + 42 * factor);
-
-      const a1 = isLight ? (0.28 * effSpec).toFixed(3) : (0.85 * effSpec).toFixed(3);
-      const a2 = isLight ? (0.08 * effSpec).toFixed(3) : (0.2 * effSpec).toFixed(3);
-      const a3 = isLight ? (0.18 * effSpec).toFixed(3) : (0.55 * effSpec).toFixed(3);
-
-      const o1 = isLight ? (0.35 * effSpec).toFixed(3) : (0.95 * effSpec).toFixed(3);
-      const o2 = isLight ? (0.05 * effSpec).toFixed(3) : (0.05 * effSpec).toFixed(3);
-      const o3 = isLight ? (0.24 * effSpec).toFixed(3) : (0.4 * effSpec).toFixed(3);
-
-      const screenStops = [
-        `rgba(${r},${g},${b},${a1})`,
-        `rgba(${r},${g},${b},${a2})`,
-        `rgba(${r},${g},${b},${a3})`,
-      ];
-      const overlayStops = [
-        `rgba(${r},${g},${b},${o1})`,
-        `rgba(${r},${g},${b},${o2})`,
-        `rgba(${r},${g},${b},${o3})`,
-      ];
-
-      s.setProperty('--lg-border-screen-stop-1', screenStops[0]);
-      s.setProperty('--lg-border-screen-stop-2', screenStops[1]);
-      s.setProperty('--lg-border-screen-stop-3', screenStops[2]);
-      s.setProperty('--lg-border-overlay-stop-1', overlayStops[0]);
-      s.setProperty('--lg-border-overlay-stop-2', overlayStops[1]);
-      s.setProperty('--lg-border-overlay-stop-3', overlayStops[2]);
-
-      s.setProperty(
-        '--lg-border-screen-bg',
-        `linear-gradient(135deg, ${screenStops[0]} 0%, ${screenStops[1]} 50%, ${screenStops[2]} 100%)`
-      );
-      s.setProperty(
-        '--lg-border-overlay-bg',
-        `linear-gradient(135deg, ${overlayStops[0]} 0%, ${overlayStops[1]} 60%, ${overlayStops[2]} 100%)`
-      );
-    } else {
-      // 方案一：明暗双向流动光影边 (Directional Contrast Rim)
-      // 迎光面保持通透镜面白高光，背光面自然沉降为真实物理折射的微弱暗影线 (rgba(15,23,42,0.18))
-      // 在深底白光璀璨，在纯白底背光暗切角立即突显立体几何边缘
-      const s1 = (0.92 * effSpec).toFixed(3);
-      const s2 = (0.15 * effSpec).toFixed(3);
-      const s3 = (0.18 * effSpec).toFixed(3);
-      const o1 = (0.95 * effSpec).toFixed(3);
-      const o2 = (0.05 * effSpec).toFixed(3);
-      const o3 = (0.24 * effSpec).toFixed(3);
-
-      const screenStops = [
-        `rgba(255,255,255,${s1})`,
-        `rgba(255,255,255,${s2})`,
-        `rgba(15,23,42,${s3})`,
-      ];
-      const overlayStops = [
-        `rgba(255,255,255,${o1})`,
-        `rgba(255,255,255,${o2})`,
-        `rgba(15,23,42,${o3})`,
-      ];
-
-      s.setProperty('--lg-border-screen-stop-1', screenStops[0]);
-      s.setProperty('--lg-border-screen-stop-2', screenStops[1]);
-      s.setProperty('--lg-border-screen-stop-3', screenStops[2]);
-      s.setProperty('--lg-border-overlay-stop-1', overlayStops[0]);
-      s.setProperty('--lg-border-overlay-stop-2', overlayStops[1]);
-      s.setProperty('--lg-border-overlay-stop-3', overlayStops[2]);
-
-      s.setProperty(
-        '--lg-border-screen-bg',
-        `linear-gradient(135deg, ${screenStops[0]} 0%, ${screenStops[1]} 50%, ${screenStops[2]} 100%)`
-      );
-      s.setProperty(
-        '--lg-border-overlay-bg',
-        `linear-gradient(135deg, ${overlayStops[0]} 0%, ${overlayStops[1]} 60%, ${overlayStops[2]} 100%)`
-      );
-    }
   }
 
   private updateSpecularMask(assets: OpticalFieldAssets | null): void {

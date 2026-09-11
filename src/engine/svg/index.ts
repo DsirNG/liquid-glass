@@ -19,7 +19,7 @@ export { InteractionController } from './InteractionController';
 export { MaterialBackend } from './MaterialBackend';
 export { OpticalBackend } from './OpticalBackend';
 export { StaticBackend } from './StaticBackend';
-export { GlassHost } from './host';
+export { GlassHost, MaterialStyler } from './host';
 export type { GlassHostResizeHandler } from './host';
 export type {
   SvgBackendContext,
