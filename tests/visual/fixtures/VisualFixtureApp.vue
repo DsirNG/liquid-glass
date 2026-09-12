@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, shallowRef, useTemplateRef } from 'vue';
-import { LiquidGlass } from '../../../src/vue';
+import { GlassCard, LiquidGlass } from '../../../src/vue';
 import type { LiquidGlassStatus } from '../../../src/types';
 import { resolveVisualFixtureScene } from './scenarios';
 
@@ -35,6 +35,7 @@ onUnmounted(() => {
     :class="[`visual-fixture--${scene.background}`]"
     :data-visual-fixture="scene.fixtureKey"
     :data-fixture-scene="scene.id"
+    :data-fixture-component="scene.component"
     :data-fixture-mode="scene.mode"
     :data-fixture-phase="status?.phase ?? 'initializing'"
     :data-fixture-ready="String(status?.phase === 'ready')"
@@ -53,6 +54,7 @@ onUnmounted(() => {
       </div>
 
       <LiquidGlass
+        v-if="scene.component === 'liquid-glass'"
         ref="glassRef"
         class="fixture-glass"
         :options="scene.options"
@@ -65,6 +67,84 @@ onUnmounted(() => {
           <span class="fixture-glass__mode">{{ scene.mode }}</span>
         </div>
       </LiquidGlass>
+
+      <LiquidGlass
+        v-else
+        ref="glassRef"
+        class="fixture-status-probe"
+        :options="scene.options"
+        :interactive="scene.card?.interactive === true && scene.card.disabled !== true"
+        aria-hidden="true"
+      />
+
+      <GlassCard
+        v-if="scene.component === 'glass-card'"
+        class="fixture-glass fixture-glass-card"
+        :size="scene.card?.size ?? 'md'"
+        :options="scene.options"
+        :interactive="scene.card?.interactive ?? false"
+        :disabled="scene.card?.disabled ?? false"
+        :style="{ width: `${scene.width}px`, height: `${scene.height}px` }"
+        :aria-label="scene.label"
+      >
+        <template
+          v-if="scene.card?.variant === 'rich-content' || scene.card?.variant === 'disabled'"
+          #header
+        >
+          <div class="fixture-card__header">
+            <span class="fixture-glass__eyebrow">
+              {{ scene.card.variant === 'disabled' ? 'DISABLED CARD' : 'RICH CONTENT' }}
+            </span>
+            <span v-if="scene.card.variant === 'rich-content'" class="fixture-card__badge"
+              >iOS</span
+            >
+            <span v-else class="fixture-card__badge">INTERACTION OFF</span>
+          </div>
+        </template>
+
+        <div class="fixture-card__content">
+          <span v-if="scene.card?.variant === 'default'" class="fixture-glass__eyebrow">
+            DEFAULT CARD
+          </span>
+          <span v-else-if="scene.card?.variant === 'interactive'" class="fixture-glass__eyebrow">
+            INTERACTIVE CARD
+          </span>
+          <strong>
+            {{
+              scene.card?.variant === 'disabled'
+                ? 'A quiet disabled state'
+                : scene.card?.variant === 'interactive'
+                  ? 'Pointer-ready by contract'
+                  : scene.card?.variant === 'rich-content'
+                    ? 'Header, body and footer'
+                    : 'A calm glass container'
+            }}
+          </strong>
+          <span class="fixture-card__copy">
+            {{
+              scene.card?.variant === 'disabled'
+                ? 'Slot content remains part of the normal document flow.'
+                : scene.card?.variant === 'interactive'
+                  ? 'Interactive is enabled without relying on hover timing.'
+                  : scene.card?.variant === 'rich-content'
+                    ? 'Structured content stays inside the public component slots.'
+                    : 'Layout semantics are separate from optical material options.'
+            }}
+          </span>
+        </div>
+
+        <template
+          v-if="scene.card?.variant === 'rich-content' || scene.card?.variant === 'disabled'"
+          #footer
+        >
+          <div class="fixture-card__footer">
+            <span>{{
+              scene.card.variant === 'disabled' ? 'disabled=true' : 'header / body / footer'
+            }}</span>
+            <span aria-hidden="true">↗</span>
+          </div>
+        </template>
+      </GlassCard>
 
       <dl class="fixture-status" data-fixture-status>
         <div>
@@ -219,6 +299,73 @@ onUnmounted(() => {
 .fixture-glass {
   display: block;
   flex: none;
+}
+
+.fixture-status-probe {
+  position: fixed;
+  top: -10px;
+  left: -10px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fixture-glass-card {
+  color: #fff;
+}
+
+.fixture-glass-card :deep(.lg-content) {
+  justify-content: space-between;
+}
+
+.fixture-card__content {
+  display: grid;
+  align-content: center;
+  gap: 9px;
+  min-height: 0;
+}
+
+.fixture-card__content strong {
+  font-size: 24px;
+  letter-spacing: -0.045em;
+}
+
+.fixture-card__copy {
+  max-width: 400px;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.fixture-card__header,
+.fixture-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fixture-card__badge {
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fixture-card__footer {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.fixture-card__footer span:last-child {
+  color: #7dd3fc;
+  font-size: 16px;
 }
 
 .fixture-glass__content {

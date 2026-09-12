@@ -23,14 +23,14 @@ const dockerArgs = [
   '--volume',
   `${ROOT}:/workspace`,
   '--tmpfs',
-  '/workspace/node_modules',
+  '/workspace/node_modules:exec',
   '--workdir',
   '/workspace',
   IMAGE,
   'bash',
   '-lc',
   `corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate && ` +
-    `pnpm install --frozen-lockfile && pnpm run ${visualScript}`,
+    `pnpm install --frozen-lockfile --ignore-scripts && pnpm run ${visualScript}`,
 ];
 
 const result = spawnSync(dockerCommand, dockerArgs, {

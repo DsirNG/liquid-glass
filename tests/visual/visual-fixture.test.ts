@@ -12,6 +12,10 @@ const expectedSceneIds: VisualFixtureSceneId[] = [
   'small-pill',
   'material-fallback',
   'static-fallback',
+  'glass-card-default',
+  'glass-card-rich-content',
+  'glass-card-interactive',
+  'glass-card-disabled',
 ];
 
 describe('visual fixture scenarios', () => {
@@ -25,7 +29,39 @@ describe('visual fixture scenarios', () => {
       expect(scene.height).toBeGreaterThan(0);
       expect(scene.options.interactive).toBe(false);
       expect(scene.options.fallbackPolicy).toBe('auto');
+      expect(scene.component).toBe(
+        sceneId.startsWith('glass-card-') ? 'glass-card' : 'liquid-glass'
+      );
     }
+  });
+
+  it('keeps GlassCard visual scenes explicit and deterministic', () => {
+    const cardSceneIds: VisualFixtureSceneId[] = [
+      'glass-card-default',
+      'glass-card-rich-content',
+      'glass-card-interactive',
+      'glass-card-disabled',
+    ];
+
+    expect(cardSceneIds.map((sceneId) => VISUAL_FIXTURE_SCENARIOS[sceneId].card?.variant)).toEqual([
+      'default',
+      'rich-content',
+      'interactive',
+      'disabled',
+    ]);
+    expect(VISUAL_FIXTURE_SCENARIOS['glass-card-default'].card).toEqual({
+      size: 'md',
+      variant: 'default',
+      interactive: false,
+      disabled: false,
+    });
+    expect(VISUAL_FIXTURE_SCENARIOS['glass-card-interactive'].card?.interactive).toBe(true);
+    expect(VISUAL_FIXTURE_SCENARIOS['glass-card-disabled'].card).toEqual({
+      size: 'md',
+      variant: 'disabled',
+      interactive: true,
+      disabled: true,
+    });
   });
 
   it('maps forced fallback scenes to the intended planner inputs', () => {

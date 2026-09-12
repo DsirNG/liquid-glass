@@ -7,14 +7,28 @@ export type VisualFixtureSceneId =
   | 'ios-image-card'
   | 'small-pill'
   | 'material-fallback'
-  | 'static-fallback';
+  | 'static-fallback'
+  | 'glass-card-default'
+  | 'glass-card-rich-content'
+  | 'glass-card-interactive'
+  | 'glass-card-disabled';
 
 export type VisualFixtureBackground = 'dark' | 'light' | 'image';
 export type VisualFixtureMode = 'full-optical' | 'material' | 'static';
+export type VisualFixtureComponent = 'liquid-glass' | 'glass-card';
+export type VisualFixtureCardVariant = 'default' | 'rich-content' | 'interactive' | 'disabled';
+
+export interface VisualFixtureCardConfig {
+  readonly size: 'sm' | 'md' | 'lg';
+  readonly variant: VisualFixtureCardVariant;
+  readonly interactive: boolean;
+  readonly disabled: boolean;
+}
 
 export interface VisualFixtureScene {
   readonly id: VisualFixtureSceneId;
   readonly fixtureKey: string;
+  readonly component: VisualFixtureComponent;
   readonly label: string;
   readonly mode: VisualFixtureMode;
   readonly background: VisualFixtureBackground;
@@ -23,11 +37,13 @@ export interface VisualFixtureScene {
   readonly height: number;
   readonly baseline: string;
   readonly options: Readonly<LiquidGlassCreateOptions>;
+  readonly card?: VisualFixtureCardConfig;
 }
 
 interface VisualFixtureManifestEntry {
   readonly id: VisualFixtureSceneId;
   readonly fixtureKey: string;
+  readonly component: VisualFixtureComponent;
   readonly mode: VisualFixtureMode;
   readonly background: VisualFixtureBackground;
   readonly preset: MaterialPreset;
@@ -133,6 +149,72 @@ export const VISUAL_FIXTURE_SCENARIOS: Readonly<Record<VisualFixtureSceneId, Vis
         opacity: 0.12,
         radius: 30,
         bezel: 24,
+      }),
+    },
+    'glass-card-default': {
+      ...sceneMetadata('glass-card-default'),
+      label: 'GlassCard / Default / Pure',
+      card: Object.freeze({
+        size: 'md',
+        variant: 'default',
+        interactive: false,
+        disabled: false,
+      }),
+      options: Object.freeze({
+        ...commonOptions,
+        materialPreset: 'pure',
+        radius: 20,
+        bezel: 22,
+      }),
+    },
+    'glass-card-rich-content': {
+      ...sceneMetadata('glass-card-rich-content'),
+      label: 'GlassCard / Rich Content / iOS',
+      card: Object.freeze({
+        size: 'lg',
+        variant: 'rich-content',
+        interactive: false,
+        disabled: false,
+      }),
+      options: Object.freeze({
+        ...commonOptions,
+        materialPreset: 'ios',
+        radius: 28,
+        bezel: 28,
+        tint: '#f4f8ff',
+      }),
+    },
+    'glass-card-interactive': {
+      ...sceneMetadata('glass-card-interactive'),
+      label: 'GlassCard / Interactive / Pure',
+      card: Object.freeze({
+        size: 'md',
+        variant: 'interactive',
+        interactive: true,
+        disabled: false,
+      }),
+      options: Object.freeze({
+        ...commonOptions,
+        materialPreset: 'pure',
+        radius: 20,
+        bezel: 22,
+      }),
+    },
+    'glass-card-disabled': {
+      ...sceneMetadata('glass-card-disabled'),
+      label: 'GlassCard / Disabled / iOS',
+      card: Object.freeze({
+        size: 'md',
+        variant: 'disabled',
+        interactive: true,
+        disabled: true,
+      }),
+      options: Object.freeze({
+        ...commonOptions,
+        materialPreset: 'ios',
+        radius: 20,
+        bezel: 22,
+        opacity: 0.12,
       }),
     },
   });

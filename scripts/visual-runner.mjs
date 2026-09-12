@@ -365,7 +365,9 @@ function getObservedStatus(element) {
 async function runScene(page, scene) {
   const sceneUrl = `${BASE_URL}/tests/visual/fixtures/index.html?scene=${encodeURIComponent(scene.id)}`;
   const selector = `[data-visual-fixture="${scene.fixtureKey}"]`;
-  await page.goto(sceneUrl, { waitUntil: 'networkidle0' });
+  // Vite's first transform can exceed network-idle timing on Windows bind mounts.
+  // Runtime readiness below remains the authoritative screenshot gate.
+  await page.goto(sceneUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForSelector(`${selector}[data-fixture-ready="true"]`, {
     visible: true,
     timeout: 15000,

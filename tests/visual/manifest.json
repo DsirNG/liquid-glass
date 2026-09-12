@@ -2,6 +2,7 @@
   {
     "id": "pure-dark-button",
     "fixtureKey": "full-optical-dark-button",
+    "component": "liquid-glass",
     "mode": "full-optical",
     "background": "dark",
     "preset": "pure",
@@ -12,6 +13,7 @@
   {
     "id": "pure-light-button",
     "fixtureKey": "full-optical-light-button",
+    "component": "liquid-glass",
     "mode": "full-optical",
     "background": "light",
     "preset": "pure",
@@ -22,6 +24,7 @@
   {
     "id": "ios-image-card",
     "fixtureKey": "ios-image-card",
+    "component": "liquid-glass",
     "mode": "full-optical",
     "background": "image",
     "preset": "ios",
@@ -32,6 +35,7 @@
   {
     "id": "small-pill",
     "fixtureKey": "small-pill",
+    "component": "liquid-glass",
     "mode": "full-optical",
     "background": "dark",
     "preset": "pure",
@@ -42,6 +46,7 @@
   {
     "id": "material-fallback",
     "fixtureKey": "material-fallback",
+    "component": "liquid-glass",
     "mode": "material",
     "background": "image",
     "preset": "pure",
@@ -52,11 +57,56 @@
   {
     "id": "static-fallback",
     "fixtureKey": "static-fallback",
+    "component": "liquid-glass",
     "mode": "static",
     "background": "dark",
     "preset": "ios",
     "width": 320,
     "height": 120,
     "baseline": "static-fallback.png"
+  },
+  {
+    "id": "glass-card-default",
+    "fixtureKey": "glass-card-default",
+    "component": "glass-card",
+    "mode": "full-optical",
+    "background": "dark",
+    "preset": "pure",
+    "width": 420,
+    "height": 220,
+    "baseline": "glass-card-default.png"
+  },
+  {
+    "id": "glass-card-rich-content",
+    "fixtureKey": "glass-card-rich-content",
+    "component": "glass-card",
+    "mode": "full-optical",
+    "background": "image",
+    "preset": "ios",
+    "width": 520,
+    "height": 310,
+    "baseline": "glass-card-rich-content.png"
+  },
+  {
+    "id": "glass-card-interactive",
+    "fixtureKey": "glass-card-interactive",
+    "component": "glass-card",
+    "mode": "full-optical",
+    "background": "light",
+    "preset": "pure",
+    "width": 420,
+    "height": 220,
+    "baseline": "glass-card-interactive.png"
+  },
+  {
+    "id": "glass-card-disabled",
+    "fixtureKey": "glass-card-disabled",
+    "component": "glass-card",
+    "mode": "full-optical",
+    "background": "dark",
+    "preset": "ios",
+    "width": 420,
+    "height": 220,
+    "baseline": "glass-card-disabled.png"
   }
 ]
