@@ -20,6 +20,7 @@ temp-pack
 .vscode/*
 !.vscode/extensions.json
 .idea
+.husky/_/
 .DS_Store
 *.suo
 *.ntvs*
