@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CapabilityReport } from '../src/engine';
-import { getParameterSupportRows } from '../playground/utils/runtime-observability';
+import { getParameterSupportRows } from '../playground/debug/runtime-observability';
 
 const fullReport: CapabilityReport = {
   backdropFilter: true,

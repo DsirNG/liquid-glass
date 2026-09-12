@@ -6,12 +6,11 @@ import type {
   LiquidGlassStatus,
 } from '@dinqorai/liquid-glass';
 import { LiquidGlass } from '@dinqorai/liquid-glass/vue';
-import { CapabilityProbe, type CapabilityReport } from '../../src/engine';
 
 import { t } from '../locales';
 import type { BackgroundItem, QualityTier } from '../types';
 import { useCardDrag } from '../composables/useCardDrag';
-import { installPlaygroundTestHook } from '../utils/browser-test-hook';
+import { createDebugObservability, installPlaygroundTestHook } from '../debug';
 
 import ControlDrawer from '../components/ControlDrawer.vue';
 import StageBackdrop from '../components/StageBackdrop.vue';
@@ -76,7 +75,7 @@ const currentBgModel = computed<string>({
 const contentMode = shallowRef<ContentMode>('auto');
 const calibrationMode = shallowRef(false);
 const glassRef = ref<InstanceType<typeof LiquidGlass> | null>(null);
-const capabilityReport: CapabilityReport = CapabilityProbe.probe();
+const capabilityReport = createDebugObservability();
 const fallbackPolicy = 'auto' as const;
 const runtimeStatus = shallowRef<LiquidGlassStatus>({
   targetMode: null,
@@ -89,7 +88,7 @@ let statusTimer: ReturnType<typeof setInterval> | null = null;
 let disposePlaygroundTestHook: (() => void) | null = null;
 
 function syncRuntimeStatus(): void {
-  const status = glassRef.value?.instance?.status;
+  const status = glassRef.value?.getStatus();
   if (!status) return;
 
   runtimeStatus.value = {

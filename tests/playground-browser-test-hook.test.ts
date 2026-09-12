@@ -4,7 +4,7 @@ import type { FallbackPolicy, LiquidGlassStatus } from '../src/types';
 import {
   installPlaygroundTestHook,
   type PlaygroundRuntimeSnapshot,
-} from '../playground/utils/browser-test-hook';
+} from '../playground/debug/browser-test-hook';
 
 const capabilityReport: CapabilityReport = {
   backdropFilter: true,

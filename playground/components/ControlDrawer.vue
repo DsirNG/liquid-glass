@@ -5,11 +5,10 @@ import type {
   LiquidGlassMaterialOptions,
   LiquidGlassStatus,
 } from '@dinqorai/liquid-glass';
-import type { CapabilityReport } from '../../src/engine';
+import { type CapabilityReport, RuntimeObservabilityPanel } from '../debug';
 import type { BackgroundItem, QualityTier } from '../types';
 import { DEFAULT_SOLID_COLORS } from '../types';
 import { t } from '../locales';
-import RuntimeObservabilityPanel from './RuntimeObservabilityPanel.vue';
 
 defineProps<{
   isOpen: boolean;

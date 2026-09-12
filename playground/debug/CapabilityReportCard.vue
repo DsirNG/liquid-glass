@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CapabilityReport } from '../../src/engine';
+import type { CapabilityReport } from './types';
 
 defineProps<{
   report: CapabilityReport;

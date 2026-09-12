@@ -8,7 +8,7 @@ import type {
   LiquidGlassRuntimePhase,
   LiquidGlassRuntimeReason,
   LiquidGlassStatus,
-} from '../../src/types';
+} from '@dinqorai/liquid-glass';
 
 const props = defineProps<{
   status: Readonly<LiquidGlassStatus>;

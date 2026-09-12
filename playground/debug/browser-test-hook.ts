@@ -1,5 +1,5 @@
-import type { CapabilityReport } from '../../src/engine';
-import type { FallbackPolicy, LiquidGlassStatus } from '../../src/types';
+import type { FallbackPolicy, LiquidGlassStatus } from '@dinqorai/liquid-glass';
+import type { CapabilityReport } from './types';
 
 export interface PlaygroundRuntimeSnapshot {
   readonly fallbackPolicy: FallbackPolicy;

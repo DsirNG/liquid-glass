@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue';
-import type { FallbackPolicy, LiquidGlassStatus } from '../../src/types';
-import type { CapabilityReport } from '../../src/engine';
+import type { FallbackPolicy, LiquidGlassStatus } from '@dinqorai/liquid-glass';
+import type { CapabilityReport } from './types';
 import CapabilityReportCard from './CapabilityReportCard.vue';
 import ParameterSupportCard from './ParameterSupportCard.vue';
 import RuntimeStatusCard from './RuntimeStatusCard.vue';
-import { getParameterSupportRows } from '../utils/runtime-observability';
+import { getParameterSupportRows } from './runtime-observability';
 
 const props = defineProps<{
   status: Readonly<LiquidGlassStatus>;

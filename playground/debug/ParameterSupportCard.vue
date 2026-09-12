@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ParameterSupportRow, SupportLevel } from '../utils/runtime-observability';
+import type { ParameterSupportRow, SupportLevel } from './runtime-observability';
 
 defineProps<{
   rows: readonly ParameterSupportRow[];

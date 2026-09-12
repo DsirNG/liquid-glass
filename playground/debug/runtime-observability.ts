@@ -1,12 +1,9 @@
 import {
   hasBlockingRestriction,
   PARAMETER_META,
-  type CapabilityKey,
-  type CapabilityReport,
-  type ParameterKey,
-  type ParameterMeta,
 } from '../../src/engine';
-import type { LiquidGlassRenderMode, LiquidGlassStatus } from '../../src/types';
+import type { CapabilityKey, CapabilityReport, ParameterKey, ParameterMeta } from './types';
+import type { LiquidGlassRenderMode, LiquidGlassStatus } from '@dinqorai/liquid-glass';
 
 export type SupportLevel = 'full' | 'approximate' | 'unsupported';
 
