@@ -119,6 +119,27 @@ React SSR does not create a Core instance or access browser globals. The React d
 covered independently by runtime smoke and declaration checks for `dist/react/index.js` and
 `dist/react/index.d.ts`.
 
+## Phase 7D — Cross-Adapter Contract
+
+Vanilla, Vue, and React must interpret the Frozen Core contract identically. The canonical
+cross-adapter scenario uses the same creation options at every entry point:
+
+```ts
+{
+  materialPreset: 'pure',
+  fallbackPolicy: 'auto',
+  capability: 'auto',
+  refraction: 0.8,
+  blur: 4,
+  interactive: false,
+}
+```
+
+`tests/adapters/cross-adapter-contract.test.tsx` verifies that all three entries preserve the
+same creation options, changed update patch, creation-only boundaries, status snapshot, resize
+semantics, create-once behavior, and cleanup behavior. This phase adds no adapter-specific Core
+API. Any mismatch must be fixed in the adapter or test harness before considering a Core reopen.
+
 ## Adapter dependency boundary
 
 ```text
@@ -129,6 +150,6 @@ Core internals:   may continue to use src/engine and Runtime internals
 
 ## Release gate
 
-Cross-adapter and Playground work remain blocked until React covers mount, material patch updates,
-resize, status snapshot, unmount cleanup, attrs, SSR, and dist contracts without changing Core
-public behavior.
+Playground migration remains blocked until React covers mount, material patch updates, resize,
+status snapshot, unmount cleanup, attrs, SSR, and dist contracts, and the cross-adapter contract
+passes without changing Core public behavior.
