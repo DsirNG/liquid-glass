@@ -41,6 +41,9 @@ jobs:
       - name: Run Unit & Lifecycle Tests (Vitest)
         run: pnpm run test
 
+      - name: Run Performance Behavior Contracts
+        run: pnpm run test:performance
+
       - name: Build Library (Vite Library Mode & .d.ts generation)
         run: pnpm run build
 

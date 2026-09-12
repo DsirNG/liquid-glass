@@ -52,6 +52,8 @@
     "visual:test:canonical": "node scripts/visual-docker.mjs",
     "visual:update:canonical": "node scripts/visual-docker.mjs --update",
     "runtime:matrix": "node scripts/runtime-matrix.mjs",
+    "test:performance": "vitest run tests/performance",
+    "bench": "vitest bench tests/performance",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint .",
