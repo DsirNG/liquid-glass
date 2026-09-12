@@ -5,12 +5,14 @@ import { LiquidGlass } from '@dinqorai/liquid-glass/vue';
 
 import GlassButtonPreview from '../components/GlassButtonPreview.vue';
 import CleanNavPreview from '../components/CleanNavPreview.vue';
+import GlassCardPreview from '../components/GlassCardPreview.vue';
 import MusicPlayerCard from '../components/MusicPlayerCard.vue';
 import UsageCodePanel from '../components/UsageCodePanel.vue';
 import { withPureRefraction } from '../utils/material';
 import { USAGE_CODE } from '../utils/usage-code';
 
-type LibraryComponentId = 'glass-button' | 'glass-tab-bar' | 'liquid-glass' | 'music-card';
+type LibraryComponentId =
+  'glass-button' | 'glass-tab-bar' | 'glass-card' | 'liquid-glass' | 'music-card';
 
 interface LibraryComponent {
   id: LibraryComponentId;
@@ -111,8 +113,50 @@ const libraryComponents: LibraryComponent[] = [
     ),
   },
   {
-    id: 'liquid-glass',
+    id: 'glass-card',
     number: '03',
+    name: 'GlassCard',
+    description: '提供 header、body、footer 插槽的内容容器型玻璃组件。',
+    props: [
+      { name: 'size', description: '卡片尺寸：sm、md、lg。' },
+      { name: 'interactive', description: '是否启用卡片自身的视觉交互反馈。' },
+      { name: 'disabled', description: '关闭卡片自身反馈，但不阻断插槽内控件。' },
+      { name: 'header / footer', description: '可选的头部和底部内容插槽。' },
+      { name: 'materialPreset', description: '沿用 Core 的材质预设名称。' },
+    ],
+    usageCode: joinCode(
+      '<script setup lang="ts">',
+      "import { GlassCard } from '@dinqorai/liquid-glass/vue';",
+      '',
+      'const glassOptions = {',
+      '  refraction: 0.8,',
+      '  blur: 4,',
+      '};',
+      scriptClose,
+      '',
+      '<template>',
+      '  <GlassCard',
+      '    size="md"',
+      '    :options="glassOptions"',
+      '    material-preset="pure"',
+      '    fallback-policy="auto"',
+      '  >',
+      '    <template #header>',
+      '      <h3>Liquid Glass</h3>',
+      '    </template>',
+      '',
+      '    <p>Content stays in the default slot.</p>',
+      '',
+      '    <template #footer>',
+      '      <button type="button">Continue</button>',
+      '    </template>',
+      '  </GlassCard>',
+      '</template>'
+    ),
+  },
+  {
+    id: 'liquid-glass',
+    number: '04',
     name: 'LiquidGlass',
     description: '底层液态玻璃容器，承载折射、色散与高光效果。',
     props: [
@@ -147,7 +191,7 @@ const libraryComponents: LibraryComponent[] = [
   },
   {
     id: 'music-card',
-    number: '04',
+    number: '05',
     name: 'MusicPlayerCard',
     description: '用于验证不同尺寸下内容布局和液态玻璃容器的组合示例。',
     props: [
@@ -212,7 +256,7 @@ function selectComponent(id: LibraryComponentId): void {
       </div>
       <div class="library-heading__meta">
         <span class="library-heading__dot" />
-        <span>4 COMPONENTS</span>
+        <span>5 COMPONENTS</span>
       </div>
     </header>
 
@@ -286,6 +330,11 @@ function selectComponent(id: LibraryComponentId): void {
           />
           <CleanNavPreview
             v-else-if="selectedId === 'glass-tab-bar'"
+            :glass-options="previewOptions"
+          />
+
+          <GlassCardPreview
+            v-else-if="selectedId === 'glass-card'"
             :glass-options="previewOptions"
           />
 

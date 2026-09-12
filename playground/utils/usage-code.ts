@@ -1,4 +1,5 @@
-export type UsageCodeId = 'glass-button' | 'glass-tab-bar' | 'liquid-glass' | 'music-card';
+export type UsageCodeId =
+  'glass-button' | 'glass-tab-bar' | 'glass-card' | 'liquid-glass' | 'music-card';
 
 function joinLines(lines: string[]): string {
   return lines.join('\n');
@@ -179,7 +180,7 @@ const glassTabBarCode = joinLines([
   '    </div>',
   '',
   '    <GlassTabBar',
-      '      :items="navItems"',
+  '      :items="navItems"',
   '      @click="activeTab = $event.value"',
   '      :height="76"',
   '      :item-width="88"',
@@ -296,6 +297,37 @@ const glassTabBarCode = joinLines([
   '  }',
   '}',
   '</style>',
+]);
+
+const glassCardCode = joinLines([
+  '<script setup lang="ts">',
+  "import { GlassCard } from '@dinqorai/liquid-glass/vue';",
+  "import type { LiquidGlassMaterialOptions } from '@dinqorai/liquid-glass';",
+  '',
+  'const glassOptions: LiquidGlassMaterialOptions = {',
+  '  refraction: 0.8,',
+  '  blur: 4,',
+  '};',
+  '</script>',
+  '',
+  '<template>',
+  '  <GlassCard',
+  '    size="md"',
+  '    :options="glassOptions"',
+  '    material-preset="pure"',
+  '    fallback-policy="auto"',
+  '  >',
+  '    <template #header>',
+  '      <h3>Liquid Glass</h3>',
+  '    </template>',
+  '',
+  '    <p>Content stays in the default slot.</p>',
+  '',
+  '    <template #footer>',
+  '      <button type="button">Continue</button>',
+  '    </template>',
+  '  </GlassCard>',
+  '</template>',
 ]);
 
 const liquidGlassCode = joinLines([
@@ -460,6 +492,7 @@ const musicCardCode = joinLines([
 export const USAGE_CODE: Record<UsageCodeId, string> = {
   'glass-button': glassButtonCode,
   'glass-tab-bar': glassTabBarCode,
+  'glass-card': glassCardCode,
   'liquid-glass': liquidGlassCode,
   'music-card': musicCardCode,
 };
