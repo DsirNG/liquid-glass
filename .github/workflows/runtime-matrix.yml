@@ -1,4 +1,4 @@
-name: Chromium Visual Regression
+name: Browser Runtime Matrix
 
 on:
   push:
@@ -7,16 +7,19 @@ on:
     branches: [main, master]
 
 jobs:
-  visual:
+  runtime:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
     container:
       image: mcr.microsoft.com/playwright:v1.55.0-noble
       options: --ipc=host
     env:
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
-      VISUAL_MAX_DIFF_RATIO: '0.001'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,16 +38,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run Chromium visual regression
-        run: pnpm run visual:test
+      - name: Run ${{ matrix.browser }} runtime matrix
+        run: pnpm run runtime:matrix -- --browser=${{ matrix.browser }}
 
-      - name: Upload visual failure artifacts
-        if: failure()
+      - name: Upload runtime matrix report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chromium-visual-regression-artifacts
+          name: runtime-matrix-${{ matrix.browser }}
           if-no-files-found: ignore
-          path: |
-            tests/visual/artifacts/actual/
-            tests/visual/artifacts/diff/
-            tests/visual/artifacts/reports/
+          path: tests/runtime-matrix/artifacts/

@@ -34,3 +34,4 @@ smoke-test/**/dist
 liquid-glass-react/
 
 tests/visual/artifacts/
+tests/runtime-matrix/artifacts/
