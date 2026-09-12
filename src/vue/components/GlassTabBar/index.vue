@@ -277,6 +277,42 @@ function handleItemMove(index: number, event: PointerEvent): void {
   scheduleLensTarget(index, event.clientX);
 }
 
+function moveFocus(index: number, direction: 'next' | 'previous' | 'first' | 'last'): void {
+  const enabledIndices = props.items.reduce<number[]>((indices, item, itemIndex) => {
+    if (!item.disabled) indices.push(itemIndex);
+    return indices;
+  }, []);
+  if (enabledIndices.length === 0) return;
+
+  const currentPosition = Math.max(0, enabledIndices.indexOf(index));
+  const nextPosition =
+    direction === 'first'
+      ? 0
+      : direction === 'last'
+        ? enabledIndices.length - 1
+        : direction === 'next'
+          ? (currentPosition + 1) % enabledIndices.length
+          : (currentPosition - 1 + enabledIndices.length) % enabledIndices.length;
+
+  itemRefs.value[enabledIndices[nextPosition]]?.focus();
+}
+
+function handleItemKeydown(index: number, event: KeyboardEvent): void {
+  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+    event.preventDefault();
+    moveFocus(index, 'next');
+  } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    moveFocus(index, 'previous');
+  } else if (event.key === 'Home') {
+    event.preventDefault();
+    moveFocus(index, 'first');
+  } else if (event.key === 'End') {
+    event.preventDefault();
+    moveFocus(index, 'last');
+  }
+}
+
 function handleNavLeave(): void {
   hoverIndex.value = null;
   scheduleLensTarget(selectedIndex.value);
@@ -363,7 +399,7 @@ defineExpose({
       :options="baseCreateOptions"
       :interactive="false"
     >
-      <nav ref="navRef" class="glass-tabbar__content">
+      <nav ref="navRef" class="glass-tabbar__content" role="tablist">
         <div v-if="$slots.prefix" class="glass-tabbar__prefix">
           <slot name="prefix" />
         </div>
@@ -389,6 +425,10 @@ defineExpose({
           :ref="(element) => setItemRef(element as Element | null, index)"
           type="button"
           class="glass-tabbar__item"
+          role="tab"
+          :aria-selected="selectedIndex === index"
+          :aria-disabled="item.disabled ? 'true' : undefined"
+          :tabindex="selectedIndex === index ? 0 : -1"
           :class="{
             'is-selected': selectedIndex === index,
             'is-hovered': hoverIndex === index,
@@ -399,6 +439,7 @@ defineExpose({
           :disabled="item.disabled"
           @pointerenter="handleItemEnter(index, $event)"
           @pointermove="handleItemMove(index, $event)"
+          @keydown="handleItemKeydown(index, $event)"
           @click="handleClick(index, $event)"
         >
           <slot

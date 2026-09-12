@@ -1,5 +1,5 @@
 import type { Component } from 'vue';
-import type { LiquidGlassCreateOptions } from '../../../types';
+import type { LiquidGlassMaterialOptions } from '../../../types';
 
 export interface GlassTabBarItem {
   /** Stable identifier returned by the click event. */
@@ -20,7 +20,7 @@ export interface GlassTabBarItem {
 
 export interface GlassTabBarProps {
   /** Tab configuration. The component renders icon + name, or name alone when icon is omitted. */
-  items: GlassTabBarItem[];
+  items: readonly GlassTabBarItem[];
   /** Height of the outer glass bar in pixels. */
   height?: number;
   /** Fixed width reserved by every tab item in pixels. */
@@ -50,9 +50,9 @@ export interface GlassTabBarProps {
    * (highlight strength, 0–1), shadow (shadow strength, 0–1), tint (glass color).
    * See LiquidGlassMaterialOptions for the full field documentation.
    */
-  baseOptions?: LiquidGlassCreateOptions;
+  baseOptions?: LiquidGlassMaterialOptions;
   /** Material overrides for the active/hover lens; uses the same fields as baseOptions. */
-  lensOptions?: LiquidGlassCreateOptions;
+  lensOptions?: LiquidGlassMaterialOptions;
 }
 
 export interface GlassTabBarEmits {

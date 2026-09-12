@@ -1,5 +1,6 @@
 import type {
   BorderContrastMode,
+  FallbackPolicy,
   FootprintShape,
   LiquidGlassMaterialOptions,
   LiquidGlassQuality,
@@ -25,6 +26,8 @@ export interface GlassButtonProps extends LiquidGlassMaterialOptions {
   type?: 'button' | 'submit' | 'reset';
   /** Enables pointer-driven optical interaction. */
   interactive?: boolean;
+  /** Controls capability degradation and runtime recovery behavior. */
+  fallbackPolicy?: FallbackPolicy;
   /** Optional per-component material overrides. */
   options?: LiquidGlassMaterialOptions;
   surfaceShape?: SurfaceShape;

@@ -159,11 +159,12 @@ const createOptions = computed<LiquidGlassCreateOptions>(() => {
     baseOptions.refractionCoverage = props.refractionCoverage;
   }
   if (props.capability !== undefined) baseOptions.capability = props.capability;
+  if (props.fallbackPolicy !== undefined) baseOptions.fallbackPolicy = props.fallbackPolicy;
 
   return baseOptions;
 });
 
-const { instance, update, resize, destroy } = useLiquidGlass(buttonRef, createOptions);
+const { instance, update, resize, destroy, getStatus } = useLiquidGlass(buttonRef, createOptions);
 
 function handleClick(e: MouseEvent): void {
   if (props.disabled) {
@@ -179,6 +180,7 @@ defineExpose({
   update,
   resize,
   destroy,
+  getStatus,
 });
 </script>
 
