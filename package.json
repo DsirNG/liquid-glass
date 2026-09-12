@@ -49,6 +49,8 @@
     "visual:fixture": "vite --host 127.0.0.1 --port 4174",
     "visual:test": "node scripts/visual-runner.mjs",
     "visual:update": "node scripts/visual-runner.mjs --update",
+    "visual:test:canonical": "node scripts/visual-docker.mjs",
+    "visual:update:canonical": "node scripts/visual-docker.mjs --update",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint .",

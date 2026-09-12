@@ -38,29 +38,38 @@ The root element exposes stable selectors for browser automation:
 `static-fallback` uses a fixture-only capability simulation that makes `backdrop-filter` report as
 unsupported. It does not modify the library capability probe or runtime code.
 
-## Chromium screenshot baselines
+## Canonical Chromium screenshot environment
 
-6D-2 uses the locally available Chromium and `puppeteer-core` to run deterministic screenshots.
-The runner fixes the viewport to `1440 × 1200`, device scale factor to `1`, prefers-reduced-motion,
-dark color scheme, and disables animation and interaction in the fixture.
+The official visual baseline environment is the pinned Playwright Docker image
+`mcr.microsoft.com/playwright:v1.55.0-noble`. It fixes the Linux distribution, Chromium build,
+browser dependencies, and fonts used by both baseline generation and GitHub Actions. The runner
+also fixes the viewport to `1440 × 1200`, device scale factor to `1`, prefers-reduced-motion, dark
+color scheme, and disables animation and interaction in the fixture.
+
+Do not generate official baselines with the host Windows/macOS browser. Use Docker Desktop locally
+so the generated pixels come from the same environment as CI:
 
 Generate or intentionally update all baselines with:
 
 ```bash
-pnpm run visual:update
+pnpm run visual:update:canonical
 ```
 
 Compare against the checked-in baselines without updating them with:
 
 ```bash
-pnpm run visual:test
+pnpm run visual:test:canonical
 ```
+
+The lower-level `visual:update` and `visual:test` commands remain available for debugging with a
+locally installed browser, but their pixels are not the official baseline.
 
 Screenshots are taken only after the fixture reports `phase=ready` and its `targetMode` and
 `activeMode` match the manifest. Baselines live in `baselines/`; generated `actual/`, `diff/`, and
 `reports/` files live under `artifacts/` and are ignored by Git.
 
-The GitHub Actions visual job provisions the pinned Chromium version from its workflow and runs
-`pnpm run visual:test` only. It never updates baselines. When a visual change is intentional, run
-`pnpm run visual:update` locally, review the changed PNGs, and commit them with the related code.
-On failure, CI uploads the generated `actual/`, `diff/`, and `reports/` directories.
+The GitHub Actions visual job runs inside the same `v1.55.0-noble` image and uses the Chromium
+already provisioned at `/ms-playwright`; it never updates baselines. When a visual change is
+intentional, run `pnpm run visual:update:canonical`, review the changed PNGs, and commit them with
+the related code. On failure, CI uploads the generated `actual/`, `diff/`, and `reports/`
+directories.

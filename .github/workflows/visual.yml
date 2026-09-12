@@ -10,8 +10,11 @@ jobs:
   visual:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright:v1.55.0-noble
+      options: --ipc=host
     env:
-      PLAYWRIGHT_VERSION: 1.55.0
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       VISUAL_MAX_DIFF_RATIO: '0.001'
     steps:
       - name: Checkout repository
@@ -31,14 +34,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install pinned Chromium
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
-        run: pnpm dlx playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium
-
       - name: Run Chromium visual regression
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
         run: pnpm run visual:test
 
       - name: Upload visual failure artifacts

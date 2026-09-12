@@ -420,7 +420,9 @@ async function runScene(page, scene) {
   }
 
   if (!existsSync(baselinePath)) {
-    throw new Error(`Missing baseline ${baselinePath}; run "pnpm run visual:update" explicitly.`);
+    throw new Error(
+      `Missing baseline ${baselinePath}; run "pnpm run visual:update:canonical" explicitly.`
+    );
   }
 
   const comparison = comparePng(decodePng(baselinePath), decodePng(actualPath));
@@ -449,11 +451,13 @@ async function runScene(page, scene) {
 async function main() {
   ensureDirectories();
   const fixtureServer = await ensureFixtureServer();
+  const chromeExecutable = findChromeExecutable();
   const browser = await puppeteer.launch({
-    executablePath: findChromeExecutable(),
+    executablePath: chromeExecutable,
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
+  const browserVersion = await browser.version();
   const page = await browser.newPage();
   await page.setViewport(VIEWPORT);
   await page.emulateMediaType('screen');
@@ -486,7 +490,11 @@ async function main() {
     JSON.stringify(
       {
         mode: IS_UPDATE ? 'update' : 'compare',
-        browser: 'chromium',
+        browser: {
+          engine: 'chromium',
+          version: browserVersion,
+          executablePath: chromeExecutable,
+        },
         viewport: VIEWPORT,
         maxDiffPixelRatio: MAX_DIFF_PIXEL_RATIO,
         channelThreshold: CHANNEL_THRESHOLD,
