@@ -73,6 +73,8 @@
     "visual:test:canonical": "node scripts/visual-docker.mjs",
     "visual:update:canonical": "node scripts/visual-docker.mjs --update",
     "runtime:matrix": "node scripts/runtime-matrix.mjs",
+    "test:adapter:vanilla:runtime": "node scripts/vanilla-dist-smoke.mjs",
+    "test:adapter:vanilla:types": "tsc -p tsconfig.vanilla-dist-type-contract.json --noEmit",
     "test:performance": "vitest run tests/performance",
     "bench": "vitest bench tests/performance",
     "preview": "vite preview",

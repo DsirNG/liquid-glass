@@ -47,6 +47,12 @@ jobs:
       - name: Build Library (Vite Library Mode & .d.ts generation)
         run: pnpm run build
 
+      - name: Vanilla Dist Runtime Smoke
+        run: pnpm run test:adapter:vanilla:runtime
+
+      - name: Vanilla Dist Type Contract
+        run: pnpm run test:adapter:vanilla:types
+
       - name: Package Smoke Test (pnpm pack + Vanilla/Vue fixtures)
         run: pnpm run test:smoke
 

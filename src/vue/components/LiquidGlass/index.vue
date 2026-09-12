@@ -10,6 +10,7 @@ import type {
   LiquidGlassQuality,
   OpticalDebugMode,
   RefractionCoverage,
+  FallbackPolicy,
 } from '../../../types';
 
 import { useLiquidGlass } from '../../composables/useLiquidGlass';
@@ -41,6 +42,8 @@ const props = withDefaults(
     borderMode?: 'directional' | 'adaptive';
     colorBleed?: number;
     refractionCoverage?: RefractionCoverage;
+    capability?: LiquidGlassMaterialOptions['capability'];
+    fallbackPolicy?: FallbackPolicy;
     options?: LiquidGlassMaterialOptions;
   }>(),
   { interactive: true }
@@ -76,13 +79,18 @@ const createOptions = computed<LiquidGlassCreateOptions>(() => {
   if (props.borderMode !== undefined) options.borderMode = props.borderMode;
   if (props.colorBleed !== undefined) options.colorBleed = props.colorBleed;
   if (props.refractionCoverage !== undefined) options.refractionCoverage = props.refractionCoverage;
+  if (props.capability !== undefined) options.capability = props.capability;
+  if (props.fallbackPolicy !== undefined) options.fallbackPolicy = props.fallbackPolicy;
 
   return options;
 });
 
-const { instance, update, resize, destroy } = useLiquidGlass(containerRef, createOptions);
+const { instance, update, resize, destroy, getStatus } = useLiquidGlass(
+  containerRef,
+  createOptions
+);
 
-defineExpose({ instance, update, resize, destroy });
+defineExpose({ instance, getStatus, update, resize, destroy });
 </script>
 
 <template>
