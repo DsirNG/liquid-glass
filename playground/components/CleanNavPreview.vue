@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, h, shallowRef } from 'vue';
-import { GlassTabBar, type GlassTabBarItem } from '../../src/vue';
-import type { LiquidGlassMaterialOptions } from '../../src/core';
+import { GlassTabBar, type GlassTabBarItem } from '@dinqorai/liquid-glass/vue';
+import type { LiquidGlassMaterialOptions } from '@dinqorai/liquid-glass';
 
 const props = defineProps<{
   glassOptions?: LiquidGlassMaterialOptions;
