@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.react-dist-type-contract.tsbuildinfo"
+  },
+  "include": ["tests/adapters/react-dist-type-contract.ts"]
+}

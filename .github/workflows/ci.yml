@@ -53,6 +53,12 @@ jobs:
       - name: Vanilla Dist Type Contract
         run: pnpm run test:adapter:vanilla:types
 
+      - name: React Dist Runtime Smoke
+        run: pnpm run test:adapter:react:runtime
+
+      - name: React Dist Type Contract
+        run: pnpm run test:adapter:react:types
+
       - name: Package Smoke Test (pnpm pack + Vanilla/Vue fixtures)
         run: pnpm run test:smoke
 

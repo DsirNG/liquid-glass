@@ -30,7 +30,7 @@ only the framework's normal mapping to the frozen camelCase names.
 7B-0   Vue Adapter Contract Tests
 7B-1   Vue Adapter Repair
 7B-2   getStatus / SSR / lifecycle contract
-7C     React Adapter (not started until Vue is stable)
+7C     React Adapter
 7D     Cross-Adapter Contract
 7E     Playground Migration
 ```
@@ -95,6 +95,30 @@ The adapter must preserve normal HTML attribute fallthrough (`class`, `style`, `
 `getStatus()` returns the current Core snapshot. No Core subscription or polling API is added in
 this phase.
 
+## Phase 7C — React Adapter v1
+
+The React adapter follows the same consumer boundary and lifecycle contract as Vue:
+
+```text
+mount
+  → createLiquidGlass()
+material prop diff
+  → glass.update(changedPatch)
+resize()
+  → glass.resize()
+unmount
+  → glass.destroy()
+```
+
+`LiquidGlass` accepts `LiquidGlassMaterialOptions`, `fallbackPolicy`, `interactive`, the
+material-only `options` compatibility object, and normal `HTMLDivElement` attributes. Direct
+material props override `options`. Its imperative ref exposes `instance`, `getStatus()`,
+`update()`, `resize()`, and `destroy()`.
+
+React SSR does not create a Core instance or access browser globals. The React dist contract is
+covered independently by runtime smoke and declaration checks for `dist/react/index.js` and
+`dist/react/index.d.ts`.
+
 ## Adapter dependency boundary
 
 ```text
@@ -105,5 +129,6 @@ Core internals:   may continue to use src/engine and Runtime internals
 
 ## Release gate
 
-React and Playground work remain blocked until Vue covers mount, material patch updates, resize,
-status snapshot, slots, unmount cleanup, attrs, and SSR without changing Core public behavior.
+Cross-adapter and Playground work remain blocked until React covers mount, material patch updates,
+resize, status snapshot, unmount cleanup, attrs, SSR, and dist contracts without changing Core
+public behavior.

@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - Added browser runtime matrix, visual regression, and performance contract verification to the
   release checklist.
 - Added npm package metadata for the GitHub repository, issue tracker, keywords, and MIT license.
+- Added the React adapter with lifecycle, SSR, dist runtime, and declaration contract coverage.
 
 The next beta version is intentionally not published or version-bumped by this documentation
 change. The release operator should set the final beta version and publish it after the checklist

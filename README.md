@@ -18,6 +18,12 @@ Vue users also install Vue:
 pnpm add @dinqorai/liquid-glass vue
 ```
 
+React users also install React:
+
+```bash
+pnpm add @dinqorai/liquid-glass react
+```
+
 ## Public API
 
 The DOM-native entry point is `createLiquidGlass`. Import the stylesheet once in the application
@@ -195,6 +201,28 @@ function navigate(item: GlassTabBarItem) {
   <GlassTabBar :items="items" @click="navigate" />
 </template>
 ```
+
+## React API
+
+The React adapter maps the same frozen Core contract to React lifecycle and props. Import the
+stylesheet once in the application entry point:
+
+```tsx
+import { LiquidGlass } from '@dinqorai/liquid-glass/react';
+import '@dinqorai/liquid-glass/style.css';
+
+export function Example() {
+  return (
+    <LiquidGlass materialPreset="pure" fallbackPolicy="auto" refraction={0.8}>
+      <button type="button">Continue</button>
+    </LiquidGlass>
+  );
+}
+```
+
+React material props are diffed into `glass.update()` patches. `fallbackPolicy` and `interactive`
+are creation-only options; changing them does not enter `update()` and emits a development warning.
+An imperative ref exposes `instance`, `getStatus()`, `update()`, `resize()`, and `destroy()`.
 
 ## Playground and runtime observability
 
