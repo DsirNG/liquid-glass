@@ -9,6 +9,7 @@ describe('Phase 6E resize contracts', () => {
     expect(result.committedCount).toBe(1);
     expect(result.staleCount).toBe(19);
     expect(result.disposedCandidateCount).toBe(19);
+    expect(result.disposedBackendCount).toBe(19);
     expect(result.previousActiveDisposed).toBe(true);
     expect(result.activeLabel).toBe('resize-19');
   });

@@ -115,6 +115,7 @@ export interface TransitionBurstResult {
   readonly committedCount: number;
   readonly staleCount: number;
   readonly disposedCandidateCount: number;
+  readonly disposedBackendCount: number;
   readonly activeLabel: string | null;
 }
 
@@ -151,7 +152,11 @@ export async function runStaleTransitionBurst(
     committedCount,
     staleCount,
     disposedCandidateCount: allCandidates.reduce(
-      (countValue, candidate) => countValue + candidate.cleanupCount,
+      (countValue, candidate) => countValue + candidate.candidateDisposeCount,
+      0
+    ),
+    disposedBackendCount: allCandidates.reduce(
+      (countValue, candidate) => countValue + candidate.backendDisposeCount,
       0
     ),
     activeLabel: (manager.active as CountingBackend | null)?.label ?? null,
@@ -197,7 +202,11 @@ export async function runResizeTransitionBurst(count = 20): Promise<ResizeBurstR
     committedCount,
     staleCount,
     disposedCandidateCount: allCandidates.reduce(
-      (countValue, candidate) => countValue + candidate.cleanupCount,
+      (countValue, candidate) => countValue + candidate.candidateDisposeCount,
+      0
+    ),
+    disposedBackendCount: allCandidates.reduce(
+      (countValue, candidate) => countValue + candidate.backendDisposeCount,
       0
     ),
     activeLabel: (manager.active as CountingBackend | null)?.label ?? null,
