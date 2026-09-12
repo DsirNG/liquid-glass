@@ -18,6 +18,7 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.55.0-noble
       options: --ipc=host
     env:
+      HOME: /root
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
     steps:
