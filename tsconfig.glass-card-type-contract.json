@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.glass-card-type-contract.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "tests/components/glass-card-type-contract.ts"]
+}

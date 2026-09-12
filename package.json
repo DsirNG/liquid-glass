@@ -86,6 +86,7 @@
     "test:adapter:vanilla:types": "tsc -p tsconfig.vanilla-dist-type-contract.json --noEmit",
     "test:adapter:react:runtime": "node scripts/react-dist-smoke.mjs",
     "test:adapter:react:types": "tsc -p tsconfig.react-dist-type-contract.json --noEmit",
+    "test:component:glass-card:types": "vue-tsc -p tsconfig.glass-card-type-contract.json --noEmit",
     "test:performance": "vitest run tests/performance",
     "bench": "vitest bench tests/performance",
     "preview": "vite preview",
