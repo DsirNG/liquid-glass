@@ -37,6 +37,7 @@ export const GlassTabBar = GlassTabBarComponent as unknown as GlassTabBarPublicC
 export {
   LiquidGlass,
   GlassCard,
+  GlassDock,
   type GlassButtonProps,
   type GlassButtonSize,
   type GlassButtonVariant,
@@ -46,6 +47,14 @@ export {
   type GlassCardProps,
   type GlassCardSize,
   type GlassCardSlots,
+  type GlassDockEmits,
+  type GlassDockItem,
+  type GlassDockItemSlotProps,
+  type GlassDockItemValue,
+  type GlassDockOrientation,
+  type GlassDockProps,
+  type GlassDockSize,
+  type GlassDockSlots,
 } from './components';
 export { useLiquidGlass, type UseLiquidGlassReturn } from './composables';
 

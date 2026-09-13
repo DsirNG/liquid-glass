@@ -35,6 +35,7 @@ foundation is intentionally a convention document, not a base component class.
 | `LiquidGlass` | Container with a default slot                                | Direct Core material props, `options`, `interactive`, `fallbackPolicy`                                     |
 | `GlassButton` | `size: sm \| md \| lg`, `variant`, `disabled`, native `type` | Same Core material names, `options`, `interactive`, `fallbackPolicy`                                       |
 | `GlassTabBar` | Items, responsive dimensions, active/disabled item state     | `baseOptions` and `lensOptions` use `LiquidGlassMaterialOptions`; nested surfaces own `interactive: false` |
+| `GlassDock`   | Items, controlled `modelValue`, orientation, roving focus    | Same Core material names, material-only `options`, `interactive`, `fallbackPolicy`                         |
 
 `GlassTabBar` uses the ARIA `tablist`/`tab` pattern, exposes a roving tab stop, and supports arrow,
 Home, and End key navigation while leaving selection state controlled by the caller.
