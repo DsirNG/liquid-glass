@@ -1,5 +1,5 @@
 export type UsageCodeId =
-  'glass-button' | 'glass-tab-bar' | 'glass-card' | 'liquid-glass' | 'music-card';
+  'glass-button' | 'glass-tab-bar' | 'glass-card' | 'glass-dock' | 'liquid-glass' | 'music-card';
 
 function joinLines(lines: string[]): string {
   return lines.join('\n');
@@ -330,6 +330,35 @@ const glassCardCode = joinLines([
   '</template>',
 ]);
 
+const glassDockCode = joinLines([
+  '<script setup lang="ts">',
+  "import { shallowRef } from 'vue';",
+  "import { GlassDock, type GlassDockItem } from '@dinqorai/liquid-glass/vue';",
+  '',
+  "const activeDock = shallowRef('home');",
+  'const items: GlassDockItem[] = [',
+  "  { value: 'home', label: 'Home' },",
+  "  { value: 'search', label: 'Search' },",
+  "  { value: 'settings', label: 'Settings', disabled: true },",
+  "  { value: 'profile', label: 'Profile' },",
+  '];',
+  '</script>',
+  '',
+  '<template>',
+  '  <GlassDock',
+  '    v-model="activeDock"',
+  '    :items="items"',
+  '    size="md"',
+  '    orientation="horizontal"',
+  '    interactive',
+  '  >',
+  '    <template #item="{ item, active, disabled }">',
+  '      <span :class="{ active, disabled }">{{ item.label }}</span>',
+  '    </template>',
+  '  </GlassDock>',
+  '</template>',
+]);
+
 const liquidGlassCode = joinLines([
   '<script setup lang="ts">',
   "import { LiquidGlass } from '@dinqorai/liquid-glass/vue';",
@@ -493,6 +522,7 @@ export const USAGE_CODE: Record<UsageCodeId, string> = {
   'glass-button': glassButtonCode,
   'glass-tab-bar': glassTabBarCode,
   'glass-card': glassCardCode,
+  'glass-dock': glassDockCode,
   'liquid-glass': liquidGlassCode,
   'music-card': musicCardCode,
 };

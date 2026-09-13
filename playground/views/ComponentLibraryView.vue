@@ -6,13 +6,14 @@ import { LiquidGlass } from '@dinqorai/liquid-glass/vue';
 import GlassButtonPreview from '../components/GlassButtonPreview.vue';
 import CleanNavPreview from '../components/CleanNavPreview.vue';
 import GlassCardPreview from '../components/GlassCardPreview.vue';
+import GlassDockPreview from '../components/GlassDockPreview.vue';
 import MusicPlayerCard from '../components/MusicPlayerCard.vue';
 import UsageCodePanel from '../components/UsageCodePanel.vue';
 import { withPureRefraction } from '../utils/material';
 import { USAGE_CODE } from '../utils/usage-code';
 
 type LibraryComponentId =
-  'glass-button' | 'glass-tab-bar' | 'glass-card' | 'liquid-glass' | 'music-card';
+  'glass-button' | 'glass-tab-bar' | 'glass-card' | 'glass-dock' | 'liquid-glass' | 'music-card';
 
 interface LibraryComponent {
   id: LibraryComponentId;
@@ -155,8 +156,36 @@ const libraryComponents: LibraryComponent[] = [
     ),
   },
   {
-    id: 'liquid-glass',
+    id: 'glass-dock',
     number: '04',
+    name: 'GlassDock',
+    description: '支持受控选中、键盘导航和自定义插槽的多项玻璃容器。',
+    props: [
+      { name: 'items', description: '数据驱动的 value、label 和 disabled 项数组。' },
+      { name: 'v-model', description: '受控的 active item value。' },
+      { name: 'orientation', description: '布局方向：horizontal 或 vertical。' },
+      { name: 'size', description: 'Dock 尺寸：sm、md、lg。' },
+      { name: '#item', description: '自定义 item 内容和 active / hover / focus 状态。' },
+    ],
+    usageCode: joinCode(
+      '<script setup lang="ts">',
+      "import { GlassDock } from '@dinqorai/liquid-glass/vue';",
+      '',
+      'const items = [',
+      "  { value: 'home', label: 'Home' },",
+      "  { value: 'search', label: 'Search' },",
+      "  { value: 'settings', label: 'Settings', disabled: true },",
+      '];',
+      scriptClose,
+      '',
+      '<template>',
+      '  <GlassDock :items="items" size="md" interactive />',
+      '</template>'
+    ),
+  },
+  {
+    id: 'liquid-glass',
+    number: '05',
     name: 'LiquidGlass',
     description: '底层液态玻璃容器，承载折射、色散与高光效果。',
     props: [
@@ -191,7 +220,7 @@ const libraryComponents: LibraryComponent[] = [
   },
   {
     id: 'music-card',
-    number: '05',
+    number: '06',
     name: 'MusicPlayerCard',
     description: '用于验证不同尺寸下内容布局和液态玻璃容器的组合示例。',
     props: [
@@ -256,7 +285,7 @@ function selectComponent(id: LibraryComponentId): void {
       </div>
       <div class="library-heading__meta">
         <span class="library-heading__dot" />
-        <span>5 COMPONENTS</span>
+        <span>6 COMPONENTS</span>
       </div>
     </header>
 
@@ -335,6 +364,11 @@ function selectComponent(id: LibraryComponentId): void {
 
           <GlassCardPreview
             v-else-if="selectedId === 'glass-card'"
+            :glass-options="previewOptions"
+          />
+
+          <GlassDockPreview
+            v-else-if="selectedId === 'glass-dock'"
             :glass-options="previewOptions"
           />
 
