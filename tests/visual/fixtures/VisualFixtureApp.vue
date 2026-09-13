@@ -1,12 +1,24 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, shallowRef, useTemplateRef } from 'vue';
-import { GlassCard, LiquidGlass } from '../../../src/vue';
+import { computed, onMounted, onUnmounted, shallowRef, useTemplateRef } from 'vue';
+import { GlassCard, GlassDock, LiquidGlass } from '../../../src/vue';
+import type { GlassDockItem } from '../../../src/vue';
 import type { LiquidGlassStatus } from '../../../src/types';
 import { resolveVisualFixtureScene } from './scenarios';
 
 const scene = resolveVisualFixtureScene(window.location.search);
 const glassRef = useTemplateRef<InstanceType<typeof LiquidGlass>>('glassRef');
 const status = shallowRef<Readonly<LiquidGlassStatus> | null>(null);
+
+const dockItems = computed<GlassDockItem[]>(() => [
+  { value: 'home', label: 'Home' },
+  { value: 'search', label: 'Search' },
+  {
+    value: 'settings',
+    label: 'Settings',
+    disabled: scene.dock?.variant === 'disabled',
+  },
+  { value: 'profile', label: 'Profile' },
+]);
 
 let statusTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -145,6 +157,28 @@ onUnmounted(() => {
           </div>
         </template>
       </GlassCard>
+
+      <GlassDock
+        v-if="scene.component === 'glass-dock'"
+        class="fixture-glass fixture-glass-dock"
+        :items="dockItems"
+        :model-value="scene.dock?.active"
+        :size="scene.dock?.size ?? 'md'"
+        :orientation="scene.dock?.orientation ?? 'horizontal'"
+        :options="scene.options"
+        :interactive="false"
+        :style="{ width: `${scene.width}px`, height: `${scene.height}px` }"
+        :aria-label="scene.label"
+      >
+        <template v-if="scene.dock?.variant === 'custom-slot'" #item="{ item, active, disabled }">
+          <span class="fixture-dock__custom-item" :class="{ active, disabled }">
+            <span class="fixture-dock__custom-icon" aria-hidden="true">
+              {{ item.value === 'home' ? '⌂' : item.value === 'search' ? '⌕' : '◉' }}
+            </span>
+            <span>{{ item.label }}</span>
+          </span>
+        </template>
+      </GlassDock>
 
       <dl class="fixture-status" data-fixture-status>
         <div>
@@ -317,6 +351,40 @@ onUnmounted(() => {
 
 .fixture-glass-card :deep(.lg-content) {
   justify-content: space-between;
+}
+
+.fixture-glass-dock {
+  color: #fff;
+}
+
+.fixture-glass-dock :deep(.lg-content) {
+  justify-content: center;
+}
+
+.fixture-dock__custom-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 100%;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.fixture-dock__custom-item.active {
+  color: #fff;
+}
+
+.fixture-dock__custom-icon {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: #7dd3fc;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .fixture-card__content {

@@ -108,5 +108,49 @@
     "width": 420,
     "height": 220,
     "baseline": "glass-card-disabled.png"
+  },
+  {
+    "id": "glass-dock-horizontal",
+    "fixtureKey": "glass-dock-horizontal",
+    "component": "glass-dock",
+    "mode": "full-optical",
+    "background": "dark",
+    "preset": "pure",
+    "width": 480,
+    "height": 96,
+    "baseline": "glass-dock-horizontal.png"
+  },
+  {
+    "id": "glass-dock-vertical",
+    "fixtureKey": "glass-dock-vertical",
+    "component": "glass-dock",
+    "mode": "full-optical",
+    "background": "image",
+    "preset": "ios",
+    "width": 180,
+    "height": 260,
+    "baseline": "glass-dock-vertical.png"
+  },
+  {
+    "id": "glass-dock-disabled",
+    "fixtureKey": "glass-dock-disabled",
+    "component": "glass-dock",
+    "mode": "full-optical",
+    "background": "light",
+    "preset": "pure",
+    "width": 480,
+    "height": 96,
+    "baseline": "glass-dock-disabled.png"
+  },
+  {
+    "id": "glass-dock-custom-slot",
+    "fixtureKey": "glass-dock-custom-slot",
+    "component": "glass-dock",
+    "mode": "full-optical",
+    "background": "dark",
+    "preset": "ios",
+    "width": 560,
+    "height": 112,
+    "baseline": "glass-dock-custom-slot.png"
   }
 ]

@@ -11,18 +11,30 @@ export type VisualFixtureSceneId =
   | 'glass-card-default'
   | 'glass-card-rich-content'
   | 'glass-card-interactive'
-  | 'glass-card-disabled';
+  | 'glass-card-disabled'
+  | 'glass-dock-horizontal'
+  | 'glass-dock-vertical'
+  | 'glass-dock-disabled'
+  | 'glass-dock-custom-slot';
 
 export type VisualFixtureBackground = 'dark' | 'light' | 'image';
 export type VisualFixtureMode = 'full-optical' | 'material' | 'static';
-export type VisualFixtureComponent = 'liquid-glass' | 'glass-card';
+export type VisualFixtureComponent = 'liquid-glass' | 'glass-card' | 'glass-dock';
 export type VisualFixtureCardVariant = 'default' | 'rich-content' | 'interactive' | 'disabled';
+export type VisualFixtureDockVariant = 'default' | 'disabled' | 'custom-slot';
 
 export interface VisualFixtureCardConfig {
   readonly size: 'sm' | 'md' | 'lg';
   readonly variant: VisualFixtureCardVariant;
   readonly interactive: boolean;
   readonly disabled: boolean;
+}
+
+export interface VisualFixtureDockConfig {
+  readonly size: 'sm' | 'md' | 'lg';
+  readonly orientation: 'horizontal' | 'vertical';
+  readonly variant: VisualFixtureDockVariant;
+  readonly active: 'home' | 'search' | 'settings' | 'profile';
 }
 
 export interface VisualFixtureScene {
@@ -38,6 +50,7 @@ export interface VisualFixtureScene {
   readonly baseline: string;
   readonly options: Readonly<LiquidGlassCreateOptions>;
   readonly card?: VisualFixtureCardConfig;
+  readonly dock?: VisualFixtureDockConfig;
 }
 
 interface VisualFixtureManifestEntry {
@@ -215,6 +228,73 @@ export const VISUAL_FIXTURE_SCENARIOS: Readonly<Record<VisualFixtureSceneId, Vis
         radius: 20,
         bezel: 22,
         opacity: 0.12,
+      }),
+    },
+    'glass-dock-horizontal': {
+      ...sceneMetadata('glass-dock-horizontal'),
+      label: 'GlassDock / Horizontal / Pure',
+      dock: Object.freeze({
+        size: 'md',
+        orientation: 'horizontal',
+        variant: 'default',
+        active: 'search',
+      }),
+      options: Object.freeze({
+        ...commonOptions,
+        materialPreset: 'pure',
+        radius: 24,
+        bezel: 24,
+      }),
+    },
+    'glass-dock-vertical': {
+      ...sceneMetadata('glass-dock-vertical'),
+      label: 'GlassDock / Vertical / iOS',
+      dock: Object.freeze({
+        size: 'md',
+        orientation: 'vertical',
+        variant: 'default',
+        active: 'profile',
+      }),
+      options: Object.freeze({
+        ...commonOptions,
+        materialPreset: 'ios',
+        radius: 24,
+        bezel: 24,
+        tint: '#f4f8ff',
+      }),
+    },
+    'glass-dock-disabled': {
+      ...sceneMetadata('glass-dock-disabled'),
+      label: 'GlassDock / Disabled Item / Pure',
+      dock: Object.freeze({
+        size: 'md',
+        orientation: 'horizontal',
+        variant: 'disabled',
+        active: 'home',
+      }),
+      options: Object.freeze({
+        ...commonOptions,
+        materialPreset: 'pure',
+        radius: 24,
+        bezel: 24,
+        tint: '#f4f8ff',
+      }),
+    },
+    'glass-dock-custom-slot': {
+      ...sceneMetadata('glass-dock-custom-slot'),
+      label: 'GlassDock / Custom Slot / iOS',
+      dock: Object.freeze({
+        size: 'lg',
+        orientation: 'horizontal',
+        variant: 'custom-slot',
+        active: 'home',
+      }),
+      options: Object.freeze({
+        ...commonOptions,
+        materialPreset: 'ios',
+        radius: 28,
+        bezel: 28,
+        tint: '#f4f8ff',
       }),
     },
   });

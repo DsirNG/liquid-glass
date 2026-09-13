@@ -4,7 +4,7 @@ This fixture is intentionally independent from the Playground layout. It uses th
 `LiquidGlass` component with deterministic CSS-only backgrounds, fixed element sizes, disabled
 interaction, and disabled animation/transition styles.
 
-The ten scenes and their expected runtime modes are defined in `manifest.json`. Each fixture root
+The fourteen scenes and their expected runtime modes are defined in `manifest.json`. Each fixture root
 also exposes `data-visual-fixture` so the screenshot runner can capture only the glass fixture, not
 the surrounding page.
 
@@ -27,6 +27,10 @@ Then open one of these URLs at a fixed browser viewport and DPR:
 /tests/visual/fixtures/index.html?scene=glass-card-rich-content
 /tests/visual/fixtures/index.html?scene=glass-card-interactive
 /tests/visual/fixtures/index.html?scene=glass-card-disabled
+/tests/visual/fixtures/index.html?scene=glass-dock-horizontal
+/tests/visual/fixtures/index.html?scene=glass-dock-vertical
+/tests/visual/fixtures/index.html?scene=glass-dock-disabled
+/tests/visual/fixtures/index.html?scene=glass-dock-custom-slot
 ```
 
 The root element exposes stable selectors for browser automation:
@@ -46,6 +50,10 @@ The four `glass-card-*` scenes render the public `GlassCard` component with dete
 rich-content, interactive, and disabled-interactive states. Their runtime status is checked through
 an off-screen `LiquidGlass` probe configured with the same canonical material options; the captured
 region contains only the GlassCard itself.
+
+The four `glass-dock-*` scenes render the public `GlassDock` component with horizontal, vertical,
+disabled-item, and custom-slot states. Dock interaction is disabled for deterministic screenshots;
+the active item and item geometry remain explicit in each scene configuration.
 
 ## Canonical Chromium screenshot environment
 

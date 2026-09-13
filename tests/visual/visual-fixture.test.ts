@@ -16,6 +16,10 @@ const expectedSceneIds: VisualFixtureSceneId[] = [
   'glass-card-rich-content',
   'glass-card-interactive',
   'glass-card-disabled',
+  'glass-dock-horizontal',
+  'glass-dock-vertical',
+  'glass-dock-disabled',
+  'glass-dock-custom-slot',
 ];
 
 describe('visual fixture scenarios', () => {
@@ -30,7 +34,11 @@ describe('visual fixture scenarios', () => {
       expect(scene.options.interactive).toBe(false);
       expect(scene.options.fallbackPolicy).toBe('auto');
       expect(scene.component).toBe(
-        sceneId.startsWith('glass-card-') ? 'glass-card' : 'liquid-glass'
+        sceneId.startsWith('glass-card-')
+          ? 'glass-card'
+          : sceneId.startsWith('glass-dock-')
+            ? 'glass-dock'
+            : 'liquid-glass'
       );
     }
   });
@@ -68,6 +76,30 @@ describe('visual fixture scenarios', () => {
     expect(VISUAL_FIXTURE_SCENARIOS['material-fallback'].options.capability).toBe('material');
     expect(VISUAL_FIXTURE_SCENARIOS['static-fallback'].options.capability).toBeUndefined();
     expect(VISUAL_FIXTURE_SCENARIOS['static-fallback'].mode).toBe('static');
+  });
+
+  it('keeps GlassDock visual scenes explicit and deterministic', () => {
+    const dockSceneIds: VisualFixtureSceneId[] = [
+      'glass-dock-horizontal',
+      'glass-dock-vertical',
+      'glass-dock-disabled',
+      'glass-dock-custom-slot',
+    ];
+
+    expect(dockSceneIds.map((sceneId) => VISUAL_FIXTURE_SCENARIOS[sceneId].dock?.variant)).toEqual([
+      'default',
+      'default',
+      'disabled',
+      'custom-slot',
+    ]);
+    expect(VISUAL_FIXTURE_SCENARIOS['glass-dock-horizontal'].dock).toEqual({
+      size: 'md',
+      orientation: 'horizontal',
+      variant: 'default',
+      active: 'search',
+    });
+    expect(VISUAL_FIXTURE_SCENARIOS['glass-dock-vertical'].dock?.orientation).toBe('vertical');
+    expect(VISUAL_FIXTURE_SCENARIOS['glass-dock-custom-slot'].dock?.size).toBe('lg');
   });
 
   it('falls back to the first scene for an unknown URL scene', () => {
