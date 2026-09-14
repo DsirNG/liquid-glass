@@ -1,0 +1,64 @@
+:root {
+  color-scheme: dark;
+  font-family: Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.feasibility-fixture {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+  background: #151a2d;
+}
+
+.feasibility-backdrop {
+  position: absolute;
+  inset: 0;
+  background: #151a2d;
+}
+
+.feasibility-fixture[data-scene='split-background'] .feasibility-backdrop {
+  background: linear-gradient(to right, #151a2d 0 50%, #f7fbff 50% 100%);
+}
+
+.feasibility-fixture[data-scene='moving-background'] .feasibility-backdrop {
+  background: linear-gradient(
+    to right,
+    #151a2d 0 var(--split-position, 35%),
+    #f7fbff var(--split-position, 35%) 100%
+  );
+}
+
+.feasibility-signal {
+  position: absolute;
+  top: 160px;
+  left: 50%;
+  width: 360px;
+  height: 180px;
+  transform: translateX(-50%);
+  border-radius: 28px;
+  background: transparent;
+}
+
+/* The core runtime remains alive, but its visual layers are hidden so the
+ * diagnostic filter output is the only signal captured by the runner. */
+.feasibility-signal > .lg-backdrop,
+.feasibility-signal > .lg-material,
+.feasibility-signal > .lg-border,
+.feasibility-signal > .lg-content {
+  display: none !important;
+}

@@ -38,6 +38,9 @@ jobs:
       - name: Run Chromium visual regression
         run: pnpm run visual:test
 
+      - name: Run Chromium backdrop feasibility
+        run: pnpm run backdrop:feasibility
+
       - name: Upload visual failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
@@ -48,3 +51,4 @@ jobs:
             tests/visual/artifacts/actual/
             tests/visual/artifacts/diff/
             tests/visual/artifacts/reports/
+            tests/visual/artifacts/backdrop-feasibility/

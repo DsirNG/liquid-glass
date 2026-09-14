@@ -81,6 +81,8 @@
     "visual:update": "node scripts/visual-runner.mjs --update",
     "visual:test:canonical": "node scripts/visual-docker.mjs",
     "visual:update:canonical": "node scripts/visual-docker.mjs --update",
+    "backdrop:feasibility": "node scripts/backdrop-feasibility.mjs",
+    "backdrop:feasibility:canonical": "node scripts/backdrop-feasibility-docker.mjs",
     "runtime:matrix": "node scripts/runtime-matrix.mjs",
     "test:adapter:vanilla:runtime": "node scripts/vanilla-dist-smoke.mjs",
     "test:adapter:vanilla:types": "tsc -p tsconfig.vanilla-dist-type-contract.json --noEmit",
