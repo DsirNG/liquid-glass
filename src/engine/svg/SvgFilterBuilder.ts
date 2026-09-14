@@ -16,6 +16,13 @@ export interface FilterViewport {
 const MIN_FILTER_SAMPLING_MARGIN = 24;
 const MAX_FILTER_SAMPLING_MARGIN = 192;
 
+const ADAPTIVE_VISIBILITY_FEASIBILITY = Object.freeze({
+  minMorphologyRadius: 1,
+  maxMorphologyRadius: 16,
+  defaultMorphologyRadius: 4,
+  visibilityTable: '1 1 0.8 0.4 0.1 0',
+});
+
 function resolveFilterSamplingMargin(material: ResolvedMaterial): number {
   const requestedMargin = Number.isFinite(material.samplingMargin)
     ? Math.ceil(material.samplingMargin)
@@ -60,6 +67,120 @@ export function resolveDispersionScales(
  */
 export class SvgFilterBuilder {
   public static resolveDispersionScales = resolveDispersionScales;
+
+  /**
+   * Builds an intentionally unwired graph for Phase 8D-0A feasibility checks.
+   *
+   * This probe is not consumed by the production filter yet. It exists to
+   * prove that the current SVG primitive vocabulary can express a filter-time
+   * local-luminance signal and restrict it to the existing optical basis
+   * channels without changing the active visual path.
+   */
+  public static buildAdaptiveVisibilityFeasibilityGraph(
+    morphologyRadius = ADAPTIVE_VISIBILITY_FEASIBILITY.defaultMorphologyRadius
+  ): string {
+    const requestedRadius = Number.isFinite(morphologyRadius)
+      ? morphologyRadius
+      : ADAPTIVE_VISIBILITY_FEASIBILITY.defaultMorphologyRadius;
+    const radius = Math.max(
+      ADAPTIVE_VISIBILITY_FEASIBILITY.minMorphologyRadius,
+      Math.min(ADAPTIVE_VISIBILITY_FEASIBILITY.maxMorphologyRadius, Math.round(requestedRadius))
+    );
+    const visibilityTable = ADAPTIVE_VISIBILITY_FEASIBILITY.visibilityTable;
+
+    return `
+      <!-- Phase 8D-0A feasibility graph: intentionally not wired into build(). -->
+      <feColorMatrix
+        in="SourceGraphic"
+        type="matrix"
+        values="0.2126 0.7152 0.0722 0 0
+                0.2126 0.7152 0.0722 0 0
+                0.2126 0.7152 0.0722 0 0
+                0 0 0 0 1"
+        result="ADAPTIVE_LUMA"
+      />
+      <feMorphology
+        in="ADAPTIVE_LUMA"
+        operator="dilate"
+        radius="${radius}"
+        result="ADAPTIVE_LUMA_MAX"
+      />
+      <feMorphology
+        in="ADAPTIVE_LUMA"
+        operator="erode"
+        radius="${radius}"
+        result="ADAPTIVE_LUMA_MIN"
+      />
+      <feBlend
+        in="ADAPTIVE_LUMA_MAX"
+        in2="ADAPTIVE_LUMA_MIN"
+        mode="difference"
+        result="ADAPTIVE_LOCAL_RANGE"
+      />
+      <feComponentTransfer in="ADAPTIVE_LOCAL_RANGE" result="ADAPTIVE_VISIBILITY_NEED">
+        <feFuncR type="table" tableValues="${visibilityTable}" />
+        <feFuncG type="table" tableValues="${visibilityTable}" />
+        <feFuncB type="table" tableValues="${visibilityTable}" />
+        <feFuncA type="table" tableValues="1" />
+      </feComponentTransfer>
+      <feComponentTransfer in="ADAPTIVE_LUMA" result="ADAPTIVE_DARK_POLARITY">
+        <feFuncR type="table" tableValues="1 0" />
+        <feFuncG type="table" tableValues="1 0" />
+        <feFuncB type="table" tableValues="1 0" />
+        <feFuncA type="table" tableValues="1" />
+      </feComponentTransfer>
+      <feComponentTransfer in="ADAPTIVE_LUMA" result="ADAPTIVE_LIGHT_POLARITY">
+        <feFuncR type="table" tableValues="0 1" />
+        <feFuncG type="table" tableValues="0 1" />
+        <feFuncB type="table" tableValues="0 1" />
+        <feFuncA type="table" tableValues="1" />
+      </feComponentTransfer>
+      <feComposite
+        in="ADAPTIVE_VISIBILITY_NEED"
+        in2="ADAPTIVE_DARK_POLARITY"
+        operator="arithmetic"
+        k1="1"
+        k2="0"
+        k3="0"
+        k4="0"
+        result="ADAPTIVE_DARK_NEED"
+      />
+      <feComposite
+        in="ADAPTIVE_VISIBILITY_NEED"
+        in2="ADAPTIVE_LIGHT_POLARITY"
+        operator="arithmetic"
+        k1="1"
+        k2="0"
+        k3="0"
+        k4="0"
+        result="ADAPTIVE_LIGHT_NEED"
+      />
+      <feComposite
+        in="ADAPTIVE_DARK_NEED"
+        in2="OUTER_MASK"
+        operator="in"
+        result="ADAPTIVE_OUTER_RESPONSE"
+      />
+      <feComposite
+        in="ADAPTIVE_LIGHT_NEED"
+        in2="EDGE_MASK"
+        operator="in"
+        result="ADAPTIVE_INNER_RESPONSE"
+      />
+      <feBlend
+        in="ADAPTIVE_OUTER_RESPONSE"
+        in2="ADAPTIVE_INNER_RESPONSE"
+        mode="screen"
+        result="ADAPTIVE_BOUNDARY_RESPONSE"
+      />
+      <feComposite
+        in="ADAPTIVE_BOUNDARY_RESPONSE"
+        in2="COVERAGE_MASK"
+        operator="in"
+        result="ADAPTIVE_COVERAGE_RESPONSE"
+      />
+    `;
+  }
 
   public static build(
     material: ResolvedMaterial,
