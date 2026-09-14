@@ -80,6 +80,28 @@ describe('SvgBackendContextAdapter', () => {
     element.remove();
   });
 
+  it('assigns adaptive boundary ownership to the SVG optical path only', () => {
+    const { element, host, adapter } = createAdapter();
+    const adaptiveOptions = createOptions({ borderMode: 'adaptive' });
+
+    adapter.commitOptical(
+      { filterId: 'adaptive-optical-filter' } as SvgGlassEngine,
+      createAssets(),
+      adaptiveOptions
+    );
+
+    expect(host.borderScreenLayer.style.opacity).toBe('0');
+    expect(host.borderOverlayLayer.style.opacity).toBe('0');
+
+    adapter.commitMaterial(adaptiveOptions);
+
+    expect(host.borderScreenLayer.style.opacity).toBe('');
+    expect(host.borderOverlayLayer.style.opacity).toBe('');
+
+    host.destroy();
+    element.remove();
+  });
+
   it('clears backdrop and preserves static fill opacity for static commits', () => {
     const { element, host, adapter } = createAdapter();
     const options = { ...createOptions(), fillOpacity: 0.08 };

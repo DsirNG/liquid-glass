@@ -79,6 +79,7 @@ export class SvgBackendContextAdapter implements SvgBackendContext {
     options: SvgBackendSyncOptions
   ): void {
     this.materialStyler.apply(options.material);
+    this.host.setOpticalAdaptiveBoundary(options.material.borderMode === 'adaptive');
     this.host.setFresnelMask(assets.fresnelMaskUrl ?? null);
     this.host.applyOpticalBackdrop(
       `url(#${engine.filterId})`,
@@ -88,6 +89,7 @@ export class SvgBackendContextAdapter implements SvgBackendContext {
 
   private applyMaterial(options: SvgBackendSyncOptions): void {
     this.materialStyler.apply(options.material);
+    this.host.setOpticalAdaptiveBoundary(false);
     this.host.clearFresnelMask();
 
     const blurPx = Math.max(0, Math.round(options.material.bodyBlur));
@@ -99,6 +101,7 @@ export class SvgBackendContextAdapter implements SvgBackendContext {
     const overrides: MaterialStyleOverrides | undefined =
       options.fillOpacity === undefined ? undefined : { tintOpacity: options.fillOpacity };
     this.materialStyler.apply(options.material, overrides);
+    this.host.setOpticalAdaptiveBoundary(false);
     this.host.clearFresnelMask();
     this.host.clearBackdrop();
   }

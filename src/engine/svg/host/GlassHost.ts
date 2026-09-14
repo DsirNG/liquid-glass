@@ -133,6 +133,15 @@ export class GlassHost {
     this.setFresnelMask(null);
   }
 
+  /** Selects which layer owns boundary visibility for the active backend. */
+  public setOpticalAdaptiveBoundary(enabled: boolean): void {
+    if (this.isDestroyed) return;
+
+    const opacity = enabled ? '0' : '';
+    this.borderScreenLayer.style.opacity = opacity;
+    this.borderOverlayLayer.style.opacity = opacity;
+  }
+
   public destroy(): void {
     if (this.isDestroyed) return;
     this.isDestroyed = true;

@@ -71,10 +71,9 @@ export class SvgFilterBuilder {
   /**
    * Builds an intentionally unwired graph for Phase 8D-0A feasibility checks.
    *
-   * This probe is not consumed by the production filter yet. It exists to
-   * prove that the current SVG primitive vocabulary can express a filter-time
-   * local-luminance signal and restrict it to the existing optical basis
-   * channels without changing the active visual path.
+   * The fragment is kept pure so feasibility tests and the production adaptive
+   * branch use the same signal path. The 8D-0A probe can consume it without
+   * changing the active visual path; 8D-1 wires it only for adaptive borders.
    */
   public static buildAdaptiveVisibilityFeasibilityGraph(
     morphologyRadius = ADAPTIVE_VISIBILITY_FEASIBILITY.defaultMorphologyRadius
@@ -202,6 +201,10 @@ export class SvgFilterBuilder {
     const refractionGain = material.calibration?.optics?.refractionGain ?? 1.0;
     const baseScale = physicalAmplitude * lensingGain * userRefraction * refractionGain;
     const scales = resolveDispersionScales(baseScale, dispersionGain);
+    const ownsAdaptiveBoundary =
+      material.borderMode === 'adaptive' &&
+      (material.debug === 'none' || material.debug === 'final');
+    const refractedResult = ownsAdaptiveBoundary ? 'BOUNDARY_AWARE_REFRACTED' : 'BEVEL_REFRACTED';
 
     const vectorHref = assets?.vectorUrl || '';
     const basisHref = assets?.basisUrl || '';
@@ -440,6 +443,21 @@ export class SvgFilterBuilder {
       <feComposite in="RGB_COMBINED" in2="SourceGraphic" operator="in" result="RGB_ALPHA_PRESERVED" />
       <feComposite in="RGB_ALPHA_PRESERVED" in2="REFRACTION_MASK" operator="in" result="BEVEL_REFRACTED" />
 
+      ${
+        ownsAdaptiveBoundary
+          ? `
+      <!-- 8D-1: Full Optical adaptive visibility owns boundary emphasis only. -->
+      ${SvgFilterBuilder.buildAdaptiveVisibilityFeasibilityGraph()}
+      <feBlend
+        in="BEVEL_REFRACTED"
+        in2="ADAPTIVE_COVERAGE_RESPONSE"
+        mode="screen"
+        result="BOUNDARY_AWARE_REFRACTED"
+      />
+      `
+          : ''
+      }
+
       <!-- 5. Optical Recombination or Debug Mode Inspection Output -->
       ${
         material.debug === 'vector'
@@ -455,7 +473,7 @@ export class SvgFilterBuilder {
                   : material.debug === 'refraction'
                     ? `<feComposite in="RGB_ALPHA_PRESERVED" in2="REFRACTION_MASK" operator="in" result="FINAL_GLASS" />`
                     : `<!-- Standard Material Composite: Outer + Inner + Body = Coverage -->
-                       <feComposite in="BEVEL_REFRACTED" in2="BODY_CLEAN" operator="over" result="OPTICAL_COMBINED" />
+                       <feComposite in="${refractedResult}" in2="BODY_CLEAN" operator="over" result="OPTICAL_COMBINED" />
                        <feComposite in="OPTICAL_COMBINED" in2="COVERAGE_MASK" operator="in" result="FINAL_GLASS" />`
       }
 
@@ -519,6 +537,7 @@ export class SvgGlassEngine {
       assets?.vectorUrl ?? '',
       assets?.basisUrl ?? '',
       material.debug,
+      material.borderMode,
       material.refractionCoverage,
       bodyMode,
       colorBleedMode,
