@@ -52,7 +52,7 @@ describe('SvgBackendContextAdapter', () => {
       createOptions()
     );
 
-    expect(element.style.backdropFilter).toContain('adapter-optical-filter');
+    expect(host.refractionLayer.style.backdropFilter).toContain('adapter-optical-filter');
     expect(element.style.getPropertyValue('--lg-fresnel-mask-image')).toContain('fresnel.png');
     expect(host.borderScreenLayer.classList.contains('lg-border-geometry')).toBe(true);
 
@@ -72,7 +72,7 @@ describe('SvgBackendContextAdapter', () => {
     adapter.commitMaterial(options);
 
     expect(element.style.getPropertyValue('--lg-fresnel-mask-image')).toBe('');
-    expect(element.style.backdropFilter).toContain('blur(');
+    expect(host.refractionLayer.style.backdropFilter).toContain('blur(');
     expect(host.refractionLayer.style.opacity).toBe('1');
     expect(host.borderScreenLayer.classList.contains('lg-border-geometry')).toBe(false);
 
@@ -80,7 +80,7 @@ describe('SvgBackendContextAdapter', () => {
     element.remove();
   });
 
-  it('assigns adaptive boundary ownership to the SVG optical path only', () => {
+  it('keeps material boundary lighting across optical and fallback backends', () => {
     const { element, host, adapter } = createAdapter();
     const adaptiveOptions = createOptions({ borderMode: 'adaptive' });
 
@@ -90,8 +90,8 @@ describe('SvgBackendContextAdapter', () => {
       adaptiveOptions
     );
 
-    expect(host.borderScreenLayer.style.opacity).toBe('0');
-    expect(host.borderOverlayLayer.style.opacity).toBe('0');
+    expect(host.borderScreenLayer.style.opacity).toBe('');
+    expect(host.borderOverlayLayer.style.opacity).toBe('');
 
     adapter.commitMaterial(adaptiveOptions);
 
@@ -130,7 +130,7 @@ describe('SvgBackendContextAdapter', () => {
     adapter.commitStatic({ ...opticalOptions, fillOpacity: 0.08 });
     adapter.restoreVisualState(snapshot);
 
-    expect(element.style.backdropFilter).toContain('adapter-optical-filter');
+    expect(host.refractionLayer.style.backdropFilter).toContain('adapter-optical-filter');
     expect(element.style.getPropertyValue('--lg-fresnel-mask-image')).toContain('fresnel.png');
     expect(host.refractionLayer.style.display).toBe('');
 

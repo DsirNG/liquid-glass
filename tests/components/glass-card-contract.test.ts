@@ -140,7 +140,9 @@ describe('Vue GlassCard contract', () => {
 
     const cards = [...roots[0].querySelectorAll<HTMLElement>('.glass-card')];
     expect(createSpy).toHaveBeenCalledTimes(3);
-    expect(createSpy.mock.calls[0][1]).toEqual(expect.objectContaining({ radius: 16 }));
+    expect(createSpy.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ radius: 16, refractionCoverage: 'full' })
+    );
     expect(createSpy.mock.calls[1][1]).toEqual(expect.objectContaining({ radius: 30 }));
     expect(createSpy.mock.calls[2][1]).toEqual(expect.objectContaining({ radius: 42 }));
     expect(cards.map((card) => card.className)).toEqual([

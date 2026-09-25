@@ -1,429 +1,169 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue';
-import type { LiquidGlassMaterialOptions } from '@dinqorai/liquid-glass';
-import { LiquidGlass } from '@dinqorai/liquid-glass/vue';
-
-import GlassButtonPreview from '../components/GlassButtonPreview.vue';
-import CleanNavPreview from '../components/CleanNavPreview.vue';
-import GlassCardPreview from '../components/GlassCardPreview.vue';
-import GlassDockPreview from '../components/GlassDockPreview.vue';
-import MusicPlayerCard from '../components/MusicPlayerCard.vue';
+import ButtonExample from '../examples/GlassButtonExample.vue';
+import TabBarExample from '../examples/GlassTabBarExample.vue';
+import CardExample from '../examples/GlassCardExample.vue';
+import DockExample from '../examples/GlassDockExample.vue';
+import GlassExample from '../examples/LiquidGlassExample.vue';
+import MusicExample from '../examples/MusicCardExample.vue';
 import UsageCodePanel from '../components/UsageCodePanel.vue';
-import { withPureRefraction } from '../utils/material';
-import { USAGE_CODE } from '../utils/usage-code';
+import { USAGE_CODE, type UsageCodeId } from '../utils/usage-code';
 
-type LibraryComponentId =
-  'glass-button' | 'glass-tab-bar' | 'glass-card' | 'glass-dock' | 'liquid-glass' | 'music-card';
-
-interface LibraryComponent {
-  id: LibraryComponentId;
-  number: string;
-  name: string;
-  description: string;
-  props: Array<{ name: string; description: string }>;
-  usageCode: string;
-}
-
-const scriptClose = '</' + 'script>';
-const joinCode = (...lines: string[]): string => lines.join('\n');
-
-const libraryComponents: LibraryComponent[] = [
+const components = [
+  {
+    id: 'liquid-glass',
+    name: 'LiquidGlass',
+    label: '搜索与音量',
+    component: GlassExample,
+    description: '以搜索框和音量条观察弧面、透色与细边缘。',
+  },
   {
     id: 'glass-button',
-    number: '01',
     name: 'GlassButton',
-    description: '带有液态按压回弹的玻璃按钮。',
-    props: [
-      { name: 'size', description: '按钮尺寸：sm、md、lg。' },
-      { name: 'variant', description: '按钮风格：default、primary、ghost、danger。' },
-      { name: 'surface-profile', description: '玻璃表面轮廓，例如 fluid_dome。' },
-      { name: 'refraction-coverage', description: '折射覆盖范围：rim 或 full。' },
-      { name: 'border-mode', description: '边框对比度模式：directional 或 adaptive。' },
-    ],
-    usageCode: joinCode(
-      '<script setup lang="ts">',
-      "import { GlassButton } from '@dinqorai/liquid-glass/vue';",
-      '',
-      'function handleClick(): void {}',
-      scriptClose,
-      '',
-      '<template>',
-      '  <GlassButton',
-      '    size="md"',
-      '    variant="primary"',
-      '    refraction-coverage="full"',
-      '    surface-profile="fluid_dome"',
-      '    :options="{',
-      '      blur: 0,',
-      '      opacity: 0,',
-      '      refraction: 1,',
-      '      dispersion: 1.5,',
-      '      specular: 0.75,',
-      '    }"',
-      '    @click="handleClick"',
-      '  >',
-      '    立即体验',
-      '  </GlassButton>',
-      '</template>'
-    ),
+    label: '按钮',
+    component: ButtonExample,
+    description: '四种语义样式、三种尺寸，共用同一套玻璃材质。',
   },
   {
     id: 'glass-tab-bar',
-    number: '02',
     name: 'GlassTabBar',
-    description: '支持选中 lens、hover lens 和咚咚按压反馈的导航栏。',
-    props: [
-      { name: 'items', description: '导航项数组，每项至少包含 value 和 label。' },
-      { name: 'item-width', description: '每个导航项预留的宽度，单位为 px。' },
-      { name: 'lens-inset', description: '选中透镜相对外层导航栏的垂直内缩，单位为 px。' },
-      { name: 'radius', description: '外层导航栏和透镜的圆角半径。' },
-      { name: 'responsive', description: '是否启用移动端和 tablet 断点尺寸。' },
-    ],
-    usageCode: joinCode(
-      '<script setup lang="ts">',
-      "import { computed, shallowRef } from 'vue';",
-      "import { GlassTabBar } from '@dinqorai/liquid-glass/vue';",
-      '',
-      "const activeTab = shallowRef('home');",
-      'const items = computed(() => [',
-      "  { value: 'home', label: 'Home', active: activeTab.value === 'home' },",
-      "  { value: 'discover', label: 'Discover', active: activeTab.value === 'discover' },",
-      "  { value: 'profile', label: 'Profile', active: activeTab.value === 'profile' },",
-      ']);',
-      '',
-      'const glassOptions = {',
-      '  blur: 0,',
-      '  opacity: 0,',
-      '  refraction: 1,',
-      "  refractionCoverage: 'full',",
-      '};',
-      scriptClose,
-      '',
-      '<template>',
-      '  <GlassTabBar',
-      '    :items="items"',
-      '    @click="activeTab = $event.value"',
-      '    :base-options="glassOptions"',
-      '    :lens-options="glassOptions"',
-      '    :item-width="88"',
-      '    :lens-inset="7"',
-      '    :radius="999"',
-      '    responsive',
-      '  />',
-      '</template>'
-    ),
+    label: '标签导航',
+    component: TabBarExample,
+    description: '连续胶囊外壳、柔和选中透镜与清晰的图标文字。',
   },
   {
     id: 'glass-card',
-    number: '03',
     name: 'GlassCard',
-    description: '提供 header、body、footer 插槽的内容容器型玻璃组件。',
-    props: [
-      { name: 'size', description: '卡片尺寸：sm、md、lg。' },
-      { name: 'interactive', description: '是否启用卡片自身的视觉交互反馈。' },
-      { name: 'disabled', description: '关闭卡片自身反馈，但不阻断插槽内控件。' },
-      { name: 'header / footer', description: '可选的头部和底部内容插槽。' },
-      { name: 'materialPreset', description: '沿用 Core 的材质预设名称。' },
-    ],
-    usageCode: joinCode(
-      '<script setup lang="ts">',
-      "import { GlassCard } from '@dinqorai/liquid-glass/vue';",
-      '',
-      'const glassOptions = {',
-      '  refraction: 0.8,',
-      '  blur: 4,',
-      '};',
-      scriptClose,
-      '',
-      '<template>',
-      '  <GlassCard',
-      '    size="md"',
-      '    :options="glassOptions"',
-      '    material-preset="pure"',
-      '    fallback-policy="auto"',
-      '  >',
-      '    <template #header>',
-      '      <h3>Liquid Glass</h3>',
-      '    </template>',
-      '',
-      '    <p>Content stays in the default slot.</p>',
-      '',
-      '    <template #footer>',
-      '      <button type="button">Continue</button>',
-      '    </template>',
-      '  </GlassCard>',
-      '</template>'
-    ),
+    label: '内容卡片',
+    component: CardExample,
+    description: '为内容保留可读性，让背景色彩透过柔和的玻璃表面。',
   },
   {
     id: 'glass-dock',
-    number: '04',
     name: 'GlassDock',
-    description: '支持受控选中、键盘导航和自定义插槽的多项玻璃容器。',
-    props: [
-      { name: 'items', description: '数据驱动的 value、label 和 disabled 项数组。' },
-      { name: 'v-model', description: '受控的 active item value。' },
-      { name: 'orientation', description: '布局方向：horizontal 或 vertical。' },
-      { name: 'size', description: 'Dock 尺寸：sm、md、lg。' },
-      { name: '#item', description: '自定义 item 内容和 active / hover / focus 状态。' },
-    ],
-    usageCode: joinCode(
-      '<script setup lang="ts">',
-      "import { GlassDock } from '@dinqorai/liquid-glass/vue';",
-      '',
-      'const items = [',
-      "  { value: 'home', label: 'Home' },",
-      "  { value: 'search', label: 'Search' },",
-      "  { value: 'settings', label: 'Settings', disabled: true },",
-      '];',
-      scriptClose,
-      '',
-      '<template>',
-      '  <GlassDock :items="items" size="md" interactive />',
-      '</template>'
-    ),
-  },
-  {
-    id: 'liquid-glass',
-    number: '05',
-    name: 'LiquidGlass',
-    description: '底层液态玻璃容器，承载折射、色散与高光效果。',
-    props: [
-      { name: 'options', description: '统一传入玻璃材质参数。' },
-      { name: 'interactive', description: '是否启用鼠标/触摸驱动的高光交互。' },
-      { name: 'refraction', description: '折射强度。' },
-      { name: 'dispersion', description: '色散强度。' },
-      { name: 'saturation', description: '背景饱和度。' },
-    ],
-    usageCode: joinCode(
-      '<script setup lang="ts">',
-      "import { LiquidGlass } from '@dinqorai/liquid-glass/vue';",
-      '',
-      'const glassOptions = {',
-      '  blur: 0,',
-      '  opacity: 0,',
-      '  refraction: 1,',
-      '  dispersion: 1.5,',
-      '  saturation: 1.3,',
-      '  specular: 0.75,',
-      '  shadow: 0.25,',
-      "  refractionCoverage: 'full',",
-      '};',
-      scriptClose,
-      '',
-      '<template>',
-      '  <LiquidGlass :options="glassOptions" :interactive="true">',
-      '    <div class="content">Liquid Glass Content</div>',
-      '  </LiquidGlass>',
-      '</template>'
-    ),
+    label: '应用 Dock',
+    component: DockExample,
+    description: '玻璃托盘承载应用图标，支持方向键导航和受控选中。',
   },
   {
     id: 'music-card',
-    number: '06',
     name: 'MusicPlayerCard',
-    description: '用于验证不同尺寸下内容布局和液态玻璃容器的组合示例。',
-    props: [
-      { name: 'slot content', description: '通过 LiquidGlass slot 放置自定义内容。' },
-      { name: 'responsive layout', description: '内容卡片会随容器尺寸调整布局。' },
-      { name: 'playback state', description: '示例播放器的播放、暂停和进度状态。' },
-    ],
-    usageCode: joinCode(
-      '<script setup lang="ts">',
-      "import { LiquidGlass } from '@dinqorai/liquid-glass/vue';",
-      "import MusicPlayerCard from './MusicPlayerCard.vue';",
-      '',
-      'const glassOptions = {',
-      '  blur: 0,',
-      '  opacity: 0,',
-      '  refraction: 1,',
-      "  refractionCoverage: 'full',",
-      '};',
-      scriptClose,
-      '',
-      '<template>',
-      '  <LiquidGlass :options="glassOptions" :interactive="true">',
-      '    <MusicPlayerCard />',
-      '  </LiquidGlass>',
-      '</template>'
-    ),
+    label: '音乐播放器',
+    component: MusicExample,
+    description: '由 GlassCard 与 GlassButton 组合，可直接复制使用。',
   },
-];
-
-const componentsWithUsageCode: LibraryComponent[] = libraryComponents.map((component) => ({
-  ...component,
-  usageCode: USAGE_CODE[component.id],
-}));
-
-const selectedId = shallowRef<LibraryComponentId>('glass-button');
-const selectedComponent = computed<LibraryComponent>(
-  () =>
-    componentsWithUsageCode.find((item) => item.id === selectedId.value) ??
-    componentsWithUsageCode[0]
+] as const;
+const selectedId = shallowRef<UsageCodeId>('liquid-glass');
+const selected = computed(
+  () => components.find((item) => item.id === selectedId.value) ?? components[0]
 );
-
 const viewMode = shallowRef<'preview' | 'code'>('preview');
-
-// The library is a reference surface, so its previews stay on a stable
-// default material instead of following the HomeShowcase control panel.
-const previewOptions: LiquidGlassMaterialOptions = withPureRefraction({
-  shape: 'roundedRect',
+const backgrounds = [
+  {
+    id: 'amber',
+    name: '暖色',
+    value:
+      'radial-gradient(ellipse at 20% 10%, #c18543, transparent 65%), linear-gradient(115deg, #8a562b, #382418)',
+    ink: '#fff',
+    swatch: '#9c6635',
+  },
+  {
+    id: 'image',
+    name: '图片',
+    value: 'url(/backgrounds/image2.png)',
+    ink: '#fff',
+    swatch: '#44586d',
+  },
+  { id: 'white', name: '纯白', value: '#ffffff', ink: '#202124', swatch: '#fff' },
+  { id: 'black', name: '纯黑', value: '#000000', ink: '#f5f5f7', swatch: '#000' },
+] as const;
+const backgroundId = shallowRef('amber');
+const showArtwork = shallowRef(false);
+const background = computed(
+  () => backgrounds.find((item) => item.id === backgroundId.value) ?? backgrounds[0]
+);
+const sceneStyle = computed(() => ({
+  '--demo-backdrop': background.value.value,
+  '--demo-ink': background.value.ink,
+  '--demo-art-display': showArtwork.value ? 'block' : 'none',
+}));
+const code = computed(() => {
+  const declarations = Object.entries(sceneStyle.value)
+    .map(([key, value]) => `  ${key}: ${value};`)
+    .join('\n');
+  return USAGE_CODE[selectedId.value].replace('.demo-scene {', `.demo-scene {\n${declarations}`);
 });
-
-function selectComponent(id: LibraryComponentId): void {
-  selectedId.value = id;
-}
 </script>
 
 <template>
   <main class="component-library-view">
     <header class="library-heading">
       <div>
-        <span class="library-heading__eyebrow">VUE COMPONENT LIBRARY</span>
-        <h1>组件库</h1>
-        <p>从这里查看 Vue 组件的独立使用方式与当前液态玻璃材质。</p>
+        <span class="eyebrow">MATERIALS / COMPONENTS</span>
+        <h1>让玻璃，回到界面里。</h1>
+        <p>同一组件，切换背景。每个示例都可以独立使用。</p>
       </div>
-      <div class="library-heading__meta">
-        <span class="library-heading__dot" />
-        <span>6 COMPONENTS</span>
-      </div>
+      <span class="component-count">06 个组件</span>
     </header>
-
     <div class="library-layout">
-      <aside class="library-sidebar" aria-label="组件列表">
-        <div class="library-sidebar__label">COMPONENTS</div>
-        <nav class="library-sidebar__nav">
-          <button
-            v-for="component in libraryComponents"
-            :key="component.id"
-            class="library-item"
-            :class="{ active: selectedId === component.id }"
-            type="button"
-            @click="selectComponent(component.id)"
+      <nav class="component-nav" aria-label="组件列表">
+        <button
+          v-for="(item, index) in components"
+          :key="item.id"
+          :aria-pressed="selectedId === item.id"
+          @click="selectedId = item.id"
+        >
+          <span class="component-number">0{{ index + 1 }}</span
+          ><span
+            ><strong>{{ item.name }}</strong
+            ><small>{{ item.label }}</small></span
           >
-            <span class="library-item__number">{{ component.number }}</span>
-            <span class="library-item__copy">
-              <strong>{{ component.name }}</strong>
-              <small>{{ component.description }}</small>
-            </span>
-            <span class="library-item__arrow">↗</span>
-          </button>
-        </nav>
-
-        <div class="library-sidebar__hint">
-          <span class="library-sidebar__hint-icon">⌘</span>
-          <p>首页用于调参，组件库用于查看单个组件的组合方式。</p>
-        </div>
-      </aside>
-
+        </button>
+      </nav>
       <section class="library-detail">
-        <header class="library-detail__header">
+        <header class="detail-heading">
           <div>
-            <span class="library-detail__kicker">COMPONENT {{ selectedComponent.number }}</span>
-            <h2>{{ selectedComponent.name }}</h2>
-            <p>{{ selectedComponent.description }}</p>
+            <h2>{{ selected.name }}</h2>
+            <p>{{ selected.description }}</p>
           </div>
-          <div class="library-detail__actions">
-            <span class="library-detail__badge">
-              {{ viewMode === 'preview' ? 'LIVE PREVIEW' : 'VUE USAGE' }}
-            </span>
-            <div class="library-view-switch" role="tablist" aria-label="查看预览或使用代码">
-              <button
-                class="library-view-switch__button"
-                :class="{ active: viewMode === 'preview' }"
-                type="button"
-                role="tab"
-                :aria-selected="viewMode === 'preview'"
-                @click="viewMode = 'preview'"
-              >
-                预览
-              </button>
-              <button
-                class="library-view-switch__button"
-                :class="{ active: viewMode === 'code' }"
-                type="button"
-                role="tab"
-                :aria-selected="viewMode === 'code'"
-                @click="viewMode = 'code'"
-              >
-                使用代码
-              </button>
-            </div>
+          <div class="view-switch" role="tablist" aria-label="示例视图">
+            <button
+              role="tab"
+              :aria-selected="viewMode === 'preview'"
+              @click="viewMode = 'preview'"
+            >
+              预览</button
+            ><button role="tab" :aria-selected="viewMode === 'code'" @click="viewMode = 'code'">
+              使用代码
+            </button>
           </div>
         </header>
-
-        <div v-if="viewMode === 'preview'" class="library-preview-surface">
-          <GlassButtonPreview
-            v-if="selectedId === 'glass-button'"
-            :glass-options="previewOptions"
-          />
-          <CleanNavPreview
-            v-else-if="selectedId === 'glass-tab-bar'"
-            :glass-options="previewOptions"
-          />
-
-          <GlassCardPreview
-            v-else-if="selectedId === 'glass-card'"
-            :glass-options="previewOptions"
-          />
-
-          <GlassDockPreview
-            v-else-if="selectedId === 'glass-dock'"
-            :glass-options="previewOptions"
-          />
-
-          <div v-else-if="selectedId === 'liquid-glass'" class="single-glass-preview">
-            <div class="single-glass-preview__frame">
-              <LiquidGlass
-                :options="previewOptions"
-                :interactive="true"
-                style="width: 100%; height: 100%"
-              >
-                <div class="single-glass-preview__content">
-                  <span class="single-glass-preview__icon">◌</span>
-                  <strong>LiquidGlass</strong>
-                  <span>hover to inspect refraction</span>
-                </div>
-              </LiquidGlass>
-            </div>
-            <p class="preview-caption">
-              容器本身不限制内容类型，所有视觉参数通过 options 进入同一个底层引擎。
-            </p>
-          </div>
-
-          <div v-else class="music-card-preview">
-            <div class="music-card-preview__frame">
-              <LiquidGlass
-                :options="previewOptions"
-                :interactive="true"
-                style="width: 100%; height: 100%"
-              >
-                <MusicPlayerCard />
-              </LiquidGlass>
-            </div>
-            <p class="preview-caption">内容组件保持独立，玻璃容器只负责提供材质和光学效果。</p>
-          </div>
-        </div>
-
-        <UsageCodePanel
-          v-else
-          :component-name="selectedComponent.name"
-          :code="selectedComponent.usageCode"
-        />
-
-        <footer class="library-detail__footer">
-          <span class="library-detail__footer-label">SUPPORTED PARAMETERS</span>
-          <div class="library-props">
-            <code
-              v-for="prop in selectedComponent.props"
-              :key="prop.name"
-              :title="prop.description"
-              :aria-label="`${prop.name}: ${prop.description}`"
+        <div class="scene-toolbar">
+          <div class="backgrounds" role="group" aria-label="预览背景">
+            <span>背景</span
+            ><button
+              v-for="item in backgrounds"
+              :key="item.id"
+              :aria-pressed="backgroundId === item.id"
+              @click="backgroundId = item.id"
             >
-              {{ prop.name }}
-            </code>
+              <i :style="{ background: item.swatch }" />{{ item.name }}
+            </button>
           </div>
+          <label class="art-toggle"
+            ><input v-model="showArtwork" type="checkbox" />加入底层图案</label
+          >
+        </div>
+        <div v-if="viewMode === 'preview'" class="preview-stage" :style="sceneStyle">
+          <component :is="selected.component" />
+        </div>
+        <UsageCodePanel v-else :component-name="selected.name" :code="code" />
+        <footer class="scene-footer">
+          <span>组件实景 · {{ background.name }}背景</span><span>文字与图标不参与折射</span>
         </footer>
+        <p v-if="backgroundId === 'image' && viewMode === 'code'" class="asset-note">
+          图片示例引用 /backgrounds/image2.png；独立使用时请替换为你自己的图片路径。
+        </p>
       </section>
     </div>
   </main>
@@ -431,478 +171,244 @@ function selectComponent(id: LibraryComponentId): void {
 
 <style scoped>
 .component-library-view {
-  width: min(1240px, calc(100% - 48px));
-  height: 100%;
-  min-height: 0;
+  width: min(1240px, 100%);
   margin: 0 auto;
-  padding: 126px 0 30px;
-  overflow: auto;
-  color: #fff;
+  padding: 136px 32px 48px;
+  box-sizing: border-box;
+  color: #e9edf4;
 }
-
 .library-heading {
   display: flex;
-  align-items: flex-end;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 32px;
 }
-
-.library-heading__eyebrow,
-.library-sidebar__label,
-.library-detail__kicker,
-.library-detail__footer-label {
-  color: rgba(255, 255, 255, 0.5);
+.eyebrow {
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.18em;
+  color: #8090a5;
 }
-
-.library-heading h1 {
-  margin: 7px 0 5px;
-  font-size: clamp(28px, 4vw, 42px);
-  letter-spacing: -0.055em;
+h1 {
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 550;
+  letter-spacing: -0.04em;
+  margin: 12px 0;
 }
-
 .library-heading p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.62);
   font-size: 13px;
+  color: #93a0b2;
+  margin: 0;
 }
-
-.library-heading__meta,
-.library-detail__badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 11px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.18);
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.08em;
+.component-count {
+  font-size: 11px;
   white-space: nowrap;
+  color: #78879b;
 }
-
-.library-heading__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.9);
-}
-
 .library-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 0.3fr) minmax(0, 1fr);
-  min-width: 0;
-  min-height: 540px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 28px;
-  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(22px) saturate(1.15);
-  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 32px;
 }
-
-.library-sidebar {
+.component-nav {
   display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 16px;
-  padding: 22px 14px 18px;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.library-sidebar__label {
-  padding: 0 10px;
-}
-
-.library-sidebar__nav {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.library-item {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 18px;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 13px 10px;
-  border: 1px solid transparent;
-  border-radius: 16px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.66);
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
-}
-
-.library-item:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.library-item.active {
-  border-color: rgba(125, 211, 252, 0.42);
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.24), rgba(139, 124, 247, 0.18));
-  color: #fff;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.18);
-}
-
-.library-item:active {
-  transform: scale(0.985);
-}
-
-.library-item__number {
-  color: rgba(255, 255, 255, 0.38);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
-}
-
-.library-item.active .library-item__number {
-  color: #7dd3fc;
-}
-
-.library-item__copy {
-  display: flex;
-  min-width: 0;
   flex-direction: column;
   gap: 4px;
 }
-
-.library-item__copy strong {
-  overflow: hidden;
-  color: inherit;
+.component-nav button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  border: 1px solid transparent;
+  padding: 15px 10px;
+  border-radius: 12px;
+  color: #8593a5;
+  background: transparent;
+  cursor: pointer;
+}
+.component-nav button[aria-pressed='true'] {
+  background: #1b2636;
+  border-color: #314258;
+  color: #fff;
+}
+.component-number {
+  font-size: 10px;
+  opacity: 0.5;
+}
+.component-nav strong {
+  display: block;
   font-size: 12px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 550;
 }
-
-.library-item__copy small {
-  overflow: hidden;
-  color: rgba(255, 255, 255, 0.43);
-  font-size: 10px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.component-nav small {
+  display: block;
+  font-size: 11px;
+  margin-top: 6px;
+  opacity: 0.6;
 }
-
-.library-item__arrow {
-  color: rgba(255, 255, 255, 0.35);
-  font-size: 16px;
-}
-
-.library-item.active .library-item__arrow {
-  color: #7dd3fc;
-}
-
-.library-sidebar__hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  margin-top: auto;
-  padding: 13px 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.42);
-}
-
-.library-sidebar__hint-icon {
-  color: #7dd3fc;
-  font-size: 14px;
-}
-
-.library-sidebar__hint p {
-  margin: 0;
-  font-size: 10px;
-  line-height: 1.45;
-}
-
 .library-detail {
-  display: flex;
   min-width: 0;
-  width: 100%;
-  flex-direction: column;
-  padding: 26px 28px 22px;
 }
-
-.library-detail__header {
+.detail-heading {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
+  margin-bottom: 22px;
 }
-
-.library-detail__actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 0 0 auto;
+h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 550;
+  letter-spacing: -0.02em;
 }
-
-.library-view-switch {
-  display: inline-flex;
-  padding: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.library-view-switch__button {
-  padding: 6px 9px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.52);
-  font: inherit;
-  font-size: 10px;
-  cursor: pointer;
-  transition:
-    background 160ms ease,
-    color 160ms ease;
-}
-
-.library-view-switch__button.active {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-}
-
-.library-detail__header h2 {
-  margin: 8px 0 5px;
-  color: #fff;
-  font-size: clamp(22px, 3vw, 30px);
-  letter-spacing: -0.045em;
-}
-
-.library-detail__header p {
+.detail-heading p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.58);
   font-size: 12px;
+  line-height: 1.6;
+  color: #8493a7;
 }
-
-.library-preview-surface {
+.view-switch {
   display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  min-height: 330px;
-  min-width: 0;
-  margin: 24px 0 20px;
-  padding: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 22px;
-  overflow: auto;
+  padding: 3px;
+  flex-shrink: 0;
+  border: 1px solid #2c3748;
+  border-radius: 9px;
 }
-
-.library-preview-surface :deep(.button-preview) {
-  width: min(720px, 100%);
+.view-switch button {
+  border: 0;
+  padding: 7px 12px;
+  background: none;
+  border-radius: 6px;
+  color: #95a3b6;
+  font-size: 11px;
+  cursor: pointer;
 }
-
-.library-preview-surface :deep(.clean-nav-preview) {
-  width: min(720px, 100%);
-}
-
-.single-glass-preview,
-.music-card-preview {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: min(620px, 100%);
-  flex-direction: column;
-  gap: 18px;
-}
-
-.single-glass-preview__frame,
-.music-card-preview__frame {
-  width: min(540px, 100%);
-  height: 250px;
-}
-
-.single-glass-preview__content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  flex-direction: column;
-  gap: 10px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.single-glass-preview__content strong {
+.view-switch button[aria-selected='true'] {
   color: #fff;
-  font-size: 24px;
-  letter-spacing: -0.04em;
+  background: #28354a;
 }
-
-.single-glass-preview__content span:last-child {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 11px;
-}
-
-.single-glass-preview__icon {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 50%;
-  color: #7dd3fc;
-  font-size: 26px;
-}
-
-.preview-caption {
-  max-width: 520px;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.48);
-  font-size: 11px;
-  line-height: 1.5;
-  text-align: center;
-}
-
-.library-detail__footer {
+.scene-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-}
-
-.library-props {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
   flex-wrap: wrap;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid #253143;
 }
-
-.library-props code {
-  padding: 5px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.65);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+.backgrounds {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #8493a7;
+}
+.backgrounds > span {
+  margin-right: 6px;
+}
+.backgrounds button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #9aa8bc;
+  background: none;
+  cursor: pointer;
+  font-size: 11px;
+}
+.backgrounds button[aria-pressed='true'] {
+  border-color: #49576b;
+  color: #fff;
+}
+.backgrounds i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #ffffff30;
+}
+.art-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #9aa8bc;
+  cursor: pointer;
+}
+.art-toggle input {
+  accent-color: #8aaaff;
+}
+.preview-stage {
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid #ffffff18;
+}
+.scene-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: #64748b;
   font-size: 10px;
+  margin-top: 15px;
 }
-
-@media (max-width: 900px) {
-  .component-library-view {
-    width: min(100% - 32px, 720px);
-    padding-top: 112px;
-  }
-
-  .library-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .library-sidebar {
-    border-right: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .library-sidebar__nav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-width: 100%;
-  }
-
-  .library-sidebar__hint {
-    display: none;
-  }
+.asset-note {
+  color: #94a3b8;
+  font-size: 12px;
 }
-
-@media (max-width: 600px) {
-  .component-library-view {
-    width: calc(100% - 20px);
-    padding-top: 92px;
-    padding-bottom: 18px;
-  }
-
-  .library-heading {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .library-heading p {
-    max-width: 310px;
-    line-height: 1.45;
-  }
-
+button:focus-visible {
+  outline: 2px solid #94b4ff;
+  outline-offset: 3px;
+}
+@media (max-width: 1000px) {
   .library-layout {
-    min-height: 0;
-    border-radius: 22px;
+    grid-template-columns: 1fr;
+    gap: 24px;
   }
-
-  .library-sidebar {
-    padding: 16px 10px 12px;
-  }
-
-  .library-sidebar__nav {
-    display: flex;
+  .component-nav {
     flex-direction: row;
-    max-width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
+    flex-wrap: wrap;
   }
-
-  .library-sidebar__nav::-webkit-scrollbar {
+  .component-nav button {
+    padding: 12px;
+    flex: 1 1 26%;
+  }
+  .component-nav small {
     display: none;
   }
-
-  .library-item {
-    min-width: 142px;
-    grid-template-columns: 22px minmax(0, 1fr);
-    padding: 10px 9px;
+}
+@media (max-width: 540px) {
+  .component-library-view {
+    padding: 104px 14px 28px;
   }
-
-  .library-item__arrow {
+  .library-heading {
+    margin-bottom: 22px;
+  }
+  .component-count {
     display: none;
   }
-
-  .library-detail {
-    padding: 20px 14px 16px;
+  .component-nav button {
+    gap: 6px;
+    padding: 10px 7px;
   }
-
-  .library-detail__header {
+  .component-nav strong {
+    font-size: 10px;
+  }
+  .detail-heading {
+    align-items: start;
     flex-direction: column;
     gap: 12px;
   }
-
-  .library-detail__actions {
-    width: 100%;
-    justify-content: space-between;
+  .backgrounds {
+    gap: 2px;
   }
-
-  .library-preview-surface {
-    min-height: 290px;
-    margin: 18px 0 16px;
-    padding: 14px;
+  .backgrounds button {
+    padding: 6px;
   }
-
-  .single-glass-preview__frame,
-  .music-card-preview__frame {
-    height: 210px;
-  }
-
-  .library-detail__footer {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .library-props {
-    justify-content: flex-start;
+  .scene-footer {
+    font-size: 9px;
   }
 }
 </style>

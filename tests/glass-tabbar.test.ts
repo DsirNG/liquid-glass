@@ -20,6 +20,42 @@ describe('vue/GlassTabBar', () => {
     vi.restoreAllMocks();
   });
 
+  it('preserves the oversized hover lens and press bounce', async () => {
+    vi.spyOn(coreModule, 'createLiquidGlass').mockImplementation(() => createMockInstance());
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const app = createApp({
+      render: () =>
+        h(GlassTabBar, {
+          height: 72,
+          itemWidth: 100,
+          items: [
+            { value: 'home', label: 'Home', active: true },
+            { value: 'search', label: 'Search' },
+          ],
+        }),
+    });
+    app.mount(root);
+    await nextTick();
+    const shell = root.querySelector<HTMLElement>('.glass-tabbar-shell')!;
+    expect(parseFloat(shell.style.getPropertyValue('--lens-hover-height'))).toBe(82);
+    expect(parseFloat(shell.style.getPropertyValue('--lens-hover-width'))).toBeGreaterThan(100);
+    const button = root.querySelectorAll('button')[1];
+    button.dispatchEvent(new MouseEvent('pointerenter', { clientX: 100 }));
+    await nextTick();
+    expect(root.querySelector('.glass-tabbar__lens')?.classList.contains('is-hovering')).toBe(true);
+    button.click();
+    await nextTick();
+    expect(root.querySelector('.glass-tabbar__lens')?.classList.contains('is-bouncing')).toBe(true);
+    shell.dispatchEvent(new MouseEvent('pointerleave'));
+    await nextTick();
+    expect(root.querySelector('.glass-tabbar__lens')?.classList.contains('is-hovering')).toBe(
+      false
+    );
+    app.unmount();
+    root.remove();
+  });
+
   it('creates an outer glass surface and a separate active lens', async () => {
     const createSpy = vi
       .spyOn(coreModule, 'createLiquidGlass')
@@ -48,8 +84,8 @@ describe('vue/GlassTabBar', () => {
     const createOptions = createSpy.mock.calls.map((call) => call[1]);
     expect(createOptions).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ radius: 36, interactive: false }),
-        expect.objectContaining({ radius: 30, interactive: false }),
+        expect.objectContaining({ radius: 36, interactive: false, refractionCoverage: 'full' }),
+        expect.objectContaining({ radius: 30, interactive: false, refractionCoverage: 'full' }),
       ])
     );
     expect(root.querySelector('.glass-tabbar')).not.toBeNull();
@@ -90,7 +126,11 @@ describe('vue/GlassTabBar', () => {
     expect(click).not.toHaveBeenCalled();
 
     buttons[0].click();
-    expect(click).toHaveBeenCalledWith(expect.objectContaining({ label: 'Home' }), 0, expect.any(MouseEvent));
+    expect(click).toHaveBeenCalledWith(
+      expect.objectContaining({ label: 'Home' }),
+      0,
+      expect.any(MouseEvent)
+    );
     expect(createSpy).toHaveBeenCalledTimes(2);
 
     app.unmount();

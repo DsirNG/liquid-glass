@@ -24,7 +24,7 @@ function getLevel(
 describe('playground runtime observability support levels', () => {
   it('reports full optical parameters as fully supported', () => {
     expect(getLevel('full-optical', 'refraction')).toBe('full');
-    expect(getLevel('full-optical', 'dispersion')).toBe('full');
+    expect(getLevel('full-optical', 'dispersion')).toBe('approximate');
     expect(getLevel('full-optical', 'shape')).toBe('full');
   });
 
@@ -45,5 +45,20 @@ describe('playground runtime observability support levels', () => {
 
   it('marks parameters as waiting while no backend is active', () => {
     expect(getLevel(null, 'refraction')).toBe('unsupported');
+  });
+
+  it('distinguishes backend support from an effect hidden by current values and background', () => {
+    const rows = getParameterSupportRows(
+      { activeMode: 'full-optical' },
+      fullReport,
+      { blur: 0, opacity: 0, refraction: 1 },
+      true
+    );
+    const row = (key: string) => rows.find((item) => item.key === key);
+
+    expect(row('blur')).toMatchObject({ level: 'full', visualNote: '模糊当前为 0' });
+    expect(row('tint')?.visualNote).toContain('填充透明度为 0');
+    expect(row('refraction')).toMatchObject({ level: 'full', visualState: 'context' });
+    expect(row('shadow')?.visualNote).toBeUndefined();
   });
 });

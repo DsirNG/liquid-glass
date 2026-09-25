@@ -4,16 +4,13 @@ import type { LiquidGlassCreateOptions } from '../../../types';
 import { useLiquidGlass } from '../../composables/useLiquidGlass';
 import type { GlassButtonProps, GlassButtonSize, GlassButtonVariant } from './types';
 
-const props = withDefaults(
-  defineProps<GlassButtonProps>(),
-  {
-    size: 'md',
-    variant: 'default',
-    disabled: false,
-    type: 'button',
-    interactive: true,
-  }
-);
+const props = withDefaults(defineProps<GlassButtonProps>(), {
+  size: 'md',
+  variant: 'default',
+  disabled: false,
+  type: 'button',
+  interactive: true,
+});
 
 const emit = defineEmits<{
   (e: 'click', event: MouseEvent): void;
@@ -74,9 +71,9 @@ onUnmounted(cancelReleaseFrame);
 // radius: corner radius; bezel: optical edge width; thickness: perceived glass depth.
 const SIZE_CONFIGS: Record<GlassButtonSize, { radius: number; bezel: number; thickness: number }> =
   {
-    sm: { radius: 16, bezel: 12, thickness: 30 },
-    md: { radius: 20, bezel: 16, thickness: 42 },
-    lg: { radius: 24, bezel: 20, thickness: 54 },
+    sm: { radius: 16, bezel: 7, thickness: 18 },
+    md: { radius: 20, bezel: 9, thickness: 24 },
+    lg: { radius: 24, bezel: 11, thickness: 28 },
   };
 
 // Variant-based material presets — the visual tuning knobs for each button style.
@@ -88,31 +85,31 @@ const VARIANT_CONFIGS: Record<
 > = {
   default: {
     tint: '#ffffff',
-    opacity: 0.12,
-    specular: 0.75,
-    blur: 1.0,
-    shadow: 0.25,
+    opacity: 0.012,
+    specular: 0.9,
+    blur: 0.25,
+    shadow: 0.18,
   },
   primary: {
-    tint: '#8b7cf7',
-    opacity: 0.26,
+    tint: '#007aff',
+    opacity: 0.085,
     specular: 0.85,
-    blur: 5.0,
-    shadow: 0.35,
+    blur: 0.3,
+    shadow: 0.22,
   },
   ghost: {
     tint: '#ffffff',
-    opacity: 0.05,
-    specular: 0.5,
-    blur: 2.0,
-    shadow: 0.12,
+    opacity: 0.005,
+    specular: 0.72,
+    blur: 0.15,
+    shadow: 0.1,
   },
   danger: {
     tint: '#ef4444',
-    opacity: 0.24,
+    opacity: 0.075,
     specular: 0.8,
-    blur: 4.5,
-    shadow: 0.3,
+    blur: 0.3,
+    shadow: 0.2,
   },
 };
 
@@ -129,6 +126,11 @@ const createOptions = computed<LiquidGlassCreateOptions>(() => {
     specular: variantCfg.specular,
     blur: variantCfg.blur,
     shadow: variantCfg.shadow,
+    refraction: 1.65,
+    dispersion: 0.12,
+    saturation: 1.08,
+    colorBleed: 0.04,
+    refractionCoverage: 'full',
     interactive: props.interactive && !props.disabled,
     ...props.options,
   };
@@ -223,7 +225,7 @@ defineExpose({
   margin: 0;
   border: none;
   background: transparent;
-  color: #fff;
+  color: var(--lg-foreground, inherit);
   font-family: inherit;
   font-weight: 500;
   cursor: pointer;

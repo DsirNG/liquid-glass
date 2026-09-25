@@ -53,6 +53,10 @@ onUnmounted(() => {
       </button>
     </header>
 
+    <p class="usage-code-panel__context">
+      此代码直接来自当前运行的示例，包含组件、样式和背景。安装依赖后可直接保存为 Vue 单文件组件。
+    </p>
+
     <pre class="usage-code-panel__code"><code>{{ code }}</code></pre>
   </section>
 </template>
@@ -79,6 +83,15 @@ onUnmounted(() => {
   gap: 16px;
   padding: 14px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.usage-code-panel__context {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(224, 242, 254, 0.72);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .usage-code-panel__header > div {

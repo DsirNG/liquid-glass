@@ -52,6 +52,8 @@ const MATERIAL_OPTION_KEYS: ReadonlyArray<keyof LiquidGlassMaterialOptions> = [
 const resolvedMaterialOptions = computed<LiquidGlassMaterialOptions>(() => {
   const resolved: LiquidGlassMaterialOptions = {
     radius: SIZE_CONFIGS[props.size].radius,
+    refraction: 1.4,
+    refractionCoverage: 'full',
     ...props.options,
   };
   const source = props as unknown as Record<string, unknown>;
@@ -389,7 +391,7 @@ defineExpose({ instance, getStatus, update, resize, destroy });
   border-radius: 12px;
   outline: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--lg-foreground, inherit);
   cursor: pointer;
   font: inherit;
   line-height: 1;
@@ -425,7 +427,7 @@ defineExpose({ instance, getStatus, update, resize, destroy });
 .glass-dock__item.is-active,
 .glass-dock__item.is-hovered,
 .glass-dock__item:focus-visible {
-  color: #fff;
+  color: var(--lg-foreground, inherit);
 }
 
 .glass-dock__item.is-focused:focus-visible {
@@ -433,12 +435,19 @@ defineExpose({ instance, getStatus, update, resize, destroy });
 }
 
 .glass-dock__item.is-disabled {
-  color: rgb(255 255 255 / 34%);
+  opacity: 0.35;
   cursor: not-allowed;
   opacity: 0.55;
 }
 
 .glass-dock--disabled .glass-dock__item {
   cursor: default;
+}
+.glass-dock__item.is-active {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 22%);
+}
+.glass-dock__item:hover:not(:disabled) {
+  background: color-mix(in srgb, currentColor 8%, transparent);
 }
 </style>

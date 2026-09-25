@@ -47,9 +47,9 @@ function setInspectionMode(mode: 'final' | 'refraction' | 'frosted'): void {
   > = {
     final: {
       debug: 'none',
-      refraction: 1.0,
-      blur: 0.1,
-      opacity: 0.08,
+      refraction: 0.65,
+      blur: 0.8,
+      opacity: 0.025,
       specular: 0.7,
       shadow: 0.35,
     },
@@ -98,12 +98,6 @@ function onCustomColorInput(e: Event) {
     </div>
 
     <div class="drawer-body">
-      <RuntimeObservabilityPanel
-        :status="status"
-        :capability-report="capabilityReport"
-        :fallback-policy="fallbackPolicy"
-      />
-
       <!-- 🔬 质检观察模式 (Inspection Modes) -->
       <section class="ctrl-group">
         <label class="group-title">{{ t.inspectionMode }}</label>
@@ -281,7 +275,6 @@ function onCustomColorInput(e: Event) {
             <button
               :class="{
                 active:
-                  !params.surfaceProfile ||
                   params.surfaceProfile === 'convex_squircle' ||
                   params.surfaceProfile === 'convex_circle',
               }"
@@ -289,6 +282,13 @@ function onCustomColorInput(e: Event) {
               @click="emit('updateParam', 'surfaceProfile', 'convex_squircle')"
             >
               {{ t.profileChamfer }}
+            </button>
+            <button
+              :class="{ active: (params.surfaceProfile ?? 'concave') === 'concave' }"
+              style="font-size: 10px; padding: 7px 4px; font-weight: 700; text-align: center"
+              @click="emit('updateParam', 'surfaceProfile', 'concave')"
+            >
+              {{ t.profileConcave }}
             </button>
             <button
               :class="{ active: params.surfaceProfile === 'fluid_dome' }"
@@ -346,14 +346,14 @@ function onCustomColorInput(e: Event) {
           style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px"
         >
           <button
-            :class="{ active: (params.refractionCoverage ?? 'rim') === 'rim' }"
+            :class="{ active: params.refractionCoverage === 'rim' }"
             style="font-size: 10px; padding: 7px 4px; font-weight: 700; text-align: center"
             @click="emit('updateParam', 'refractionCoverage', 'rim')"
           >
             边缘液态 (Rim)
           </button>
           <button
-            :class="{ active: params.refractionCoverage === 'full' }"
+            :class="{ active: (params.refractionCoverage ?? 'full') === 'full' }"
             style="font-size: 10px; padding: 7px 4px; font-weight: 700; text-align: center"
             @click="emit('updateParam', 'refractionCoverage', 'full')"
           >
@@ -371,14 +371,14 @@ function onCustomColorInput(e: Event) {
         <div class="slider-row-block">
           <div class="slider-header">
             <span>{{ t.refraction }}</span>
-            <span class="val">{{ (params.refraction ?? 1.0).toFixed(1) }}x</span>
+            <span class="val">{{ (params.refraction ?? 0.65).toFixed(2) }}x</span>
           </div>
           <input
             :value="params.refraction"
             type="range"
             min="0.0"
             max="3.0"
-            step="0.1"
+            step="0.05"
             @input="onParamInput('refraction', $event)"
           />
           <small class="param-hint">{{ t.refractionHint }}</small>
@@ -415,14 +415,14 @@ function onCustomColorInput(e: Event) {
         <div class="slider-row-block">
           <div class="slider-header">
             <span>{{ t.dispersion }}</span>
-            <span class="val">{{ (params.dispersion ?? 1.0).toFixed(1) }}x</span>
+            <span class="val">{{ (params.dispersion ?? 0.25).toFixed(2) }}x</span>
           </div>
           <input
             :value="params.dispersion"
             type="range"
             min="0.0"
             max="4.0"
-            step="0.1"
+            step="0.05"
             @input="onParamInput('dispersion', $event)"
           />
           <small class="param-hint">{{ t.dispersionHint }}</small>
@@ -454,7 +454,7 @@ function onCustomColorInput(e: Event) {
             type="range"
             min="0.0"
             max="2.5"
-            step="0.1"
+            step="0.05"
             @input="onParamInput('saturation', $event)"
           />
           <small class="param-hint">调整透镜内背景颜色的强弱，100% 为原始饱和度</small>
@@ -468,7 +468,7 @@ function onCustomColorInput(e: Event) {
             :value="params.blur"
             type="range"
             min="0.0"
-            max="10.0"
+            max="30.0"
             step="0.2"
             @input="onParamInput('blur', $event)"
           />
@@ -541,7 +541,7 @@ function onCustomColorInput(e: Event) {
             type="range"
             min="0.0"
             max="0.4"
-            step="0.02"
+            step="0.005"
             @input="onParamInput('opacity', $event)"
           />
           <small class="param-hint">{{ t.tintOpacityHint }}</small>
@@ -612,6 +612,16 @@ function onCustomColorInput(e: Event) {
           </button>
         </div>
       </section>
+      <details class="runtime-details">
+        <summary>渲染能力与参数状态</summary>
+        <RuntimeObservabilityPanel
+          :status="status"
+          :capability-report="capabilityReport"
+          :fallback-policy="fallbackPolicy"
+          :params="params"
+          :is-solid-background="isSolidColor(currentBg)"
+        />
+      </details>
     </div>
   </aside>
 </template>
@@ -619,13 +629,11 @@ function onCustomColorInput(e: Event) {
 <style scoped>
 .control-drawer {
   position: fixed;
-  top: 16px;
+  top: 106px;
   right: 16px;
   bottom: 16px;
   width: 320px;
-  background: rgba(16, 18, 24, 0.75);
-  backdrop-filter: blur(40px) saturate(1.8);
-  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  background: #151c29;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 28px;
   z-index: 120;
@@ -897,7 +905,7 @@ function onCustomColorInput(e: Event) {
 /* Tablet: keep the inspector as a right rail without covering the usable stage. */
 @media (min-width: 768px) and (max-width: 1199px) {
   .control-drawer {
-    top: 12px;
+    top: 96px;
     right: 12px;
     bottom: 12px;
     width: min(312px, calc(100vw - 24px));
@@ -950,5 +958,11 @@ function onCustomColorInput(e: Event) {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+.runtime-details > summary {
+  cursor: pointer;
+  padding: 14px 0;
+  color: #a4b1c4;
+  font-size: 12px;
 }
 </style>

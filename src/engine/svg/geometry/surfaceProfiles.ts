@@ -10,7 +10,12 @@ export type SurfaceProfile =
 export const SURFACE_PROFILES: Record<SurfaceProfile, (x: number) => number> = {
   convex_squircle: (x: number) => Math.pow(Math.max(0, 1 - Math.pow(1 - x, 4)), 0.25),
   convex_circle: (x: number) => Math.sqrt(Math.max(0, 1 - (1 - x) * (1 - x))),
-  concave: (x: number) => 1 - Math.sqrt(Math.max(0, 1 - (1 - x) * (1 - x))),
+  // Recessed bowl: the surface falls from the outer lip toward the center.
+  // Zero slope at both ends avoids a sharp refractive band at the footprint.
+  concave: (x: number) => {
+    const t = Math.max(0, Math.min(1, x));
+    return 1 - t * t * (3 - 2 * t);
+  },
   lip: (x: number) => {
     const convex = Math.pow(Math.max(0, 1 - Math.pow(1 - Math.min(x * 2, 1), 4)), 0.25);
     const concave = 1 - Math.sqrt(Math.max(0, 1 - (1 - x) * (1 - x))) + 0.1;

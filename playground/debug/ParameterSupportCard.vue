@@ -1,45 +1,68 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { ParameterSupportRow, SupportLevel } from './runtime-observability';
 
-defineProps<{
+const props = defineProps<{
   rows: readonly ParameterSupportRow[];
 }>();
 
+const attentionCount = computed(() => props.rows.filter((row) => row.visualNote).length);
+
 const levelLabels: Record<SupportLevel, string> = {
-  full: 'Full',
-  approximate: 'Approx.',
-  unsupported: 'Unsupported',
+  full: '已实现',
+  approximate: '近似',
+  unsupported: '不可用',
 };
 </script>
 
 <template>
-  <details class="observability-card parameter-support-card" open>
+  <details class="observability-card parameter-support-card">
     <summary class="observability-card__summary">
       <span>
         <span class="observability-card__eyebrow">PARAMETERS</span>
-        <strong>Support level</strong>
+        <strong>参数实现状态</strong>
+        <small v-if="attentionCount" class="parameter-support-count">
+          {{ attentionCount }} 项受当前参数或背景影响
+        </small>
       </span>
       <span class="summary-chevron" aria-hidden="true">v</span>
     </summary>
 
     <p class="parameter-support-description">
-      Based on the active backend and the probed runtime facts.
+      已实现只代表当前渲染后端支持，不代表在当前参数和背景下有明显视觉变化。
     </p>
 
     <div class="parameter-support-list">
-      <div v-for="row in rows" :key="row.key" class="parameter-support-row" :title="row.detail">
+      <div
+        v-for="row in rows"
+        :key="row.key"
+        class="parameter-support-row"
+        :title="row.visualNote ? `${row.detail}；${row.visualNote}` : row.detail"
+      >
         <span class="parameter-support-name">{{ row.label }}</span>
         <span class="parameter-support-impact">{{ row.meta.impact }}</span>
-        <strong class="parameter-support-level" :class="`is-${row.level}`">
-          {{ levelLabels[row.level] }}
+        <strong
+          class="parameter-support-level"
+          :class="row.visualState ? `is-${row.visualState}` : `is-${row.level}`"
+        >
+          {{
+            row.visualState === 'inactive'
+              ? '暂不显效'
+              : row.visualState === 'context'
+                ? '依赖背景'
+                : levelLabels[row.level]
+          }}
         </strong>
+        <small v-if="row.visualNote" class="parameter-support-note">{{ row.visualNote }}</small>
       </div>
     </div>
 
-    <div class="parameter-support-legend" aria-label="Support level legend">
-      <span class="is-full">Full</span>
-      <span class="is-approximate">Approx.</span>
-      <span class="is-unsupported">Unsupported</span>
+    <div class="parameter-support-legend" aria-label="参数状态说明">
+      <span class="is-full">已实现</span>
+      <span class="is-inactive">暂不显效</span>
+      <span class="is-context">依赖背景</span>
+      <span class="is-approximate">近似</span>
+      <span class="is-unsupported">不可用</span>
     </div>
   </details>
 </template>
@@ -80,6 +103,13 @@ const levelLabels: Record<SupportLevel, string> = {
   font-size: 13px;
 }
 
+.parameter-support-count {
+  display: block;
+  margin-top: 4px;
+  color: #cbd5e1;
+  font-size: 10px;
+}
+
 .summary-chevron {
   color: rgba(255, 255, 255, 0.5);
   font-size: 16px;
@@ -108,6 +138,13 @@ const levelLabels: Record<SupportLevel, string> = {
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+.parameter-support-note {
+  grid-column: 1 / -1;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 9px;
+  line-height: 1.35;
 }
 
 .parameter-support-name {
@@ -141,6 +178,16 @@ const levelLabels: Record<SupportLevel, string> = {
 .parameter-support-level.is-approximate,
 .parameter-support-legend .is-approximate {
   color: #fcd34d;
+}
+
+.parameter-support-level.is-inactive,
+.parameter-support-legend .is-inactive {
+  color: #cbd5e1;
+}
+
+.parameter-support-level.is-context,
+.parameter-support-legend .is-context {
+  color: #93c5fd;
 }
 
 .parameter-support-level.is-unsupported,

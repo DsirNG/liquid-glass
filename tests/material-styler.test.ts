@@ -24,7 +24,7 @@ describe('MaterialStyler', () => {
     expect(element.style.getPropertyValue('--lg-border-screen-stop-1')).toMatch(
       /^rgba\(255,255,255,/
     );
-    expect(element.style.getPropertyValue('--lg-border-screen-stop-3')).toMatch(/^rgba\(15,23,42,/);
+    expect(element.style.getPropertyValue('--lg-border-overlay-stop-2')).toMatch(/^rgba\(0,0,0,/);
     expect(element.style.getPropertyValue('--lg-border-screen-bg')).toContain('linear-gradient');
 
     host.destroy();
@@ -42,7 +42,9 @@ describe('MaterialStyler', () => {
       )
     );
 
-    expect(element.style.getPropertyValue('--lg-border-screen-stop-1')).toMatch(/^rgba\(45,52,69,/);
+    expect(element.style.getPropertyValue('--lg-border-screen-stop-1')).toMatch(
+      /^rgba\(255,255,255,/
+    );
     expect(element.style.getPropertyValue('--lg-border-overlay-bg')).toContain('linear-gradient');
 
     host.destroy();

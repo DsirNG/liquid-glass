@@ -83,25 +83,21 @@ export class GlassHost {
     this.borderOverlayLayer.className = state.borderOverlayClassName;
   }
 
-  /** Applies the SVG filter to the host and keeps the layer-level contract. */
+  /** Only the backdrop is filtered. Text, icons and nested controls stay sharp. */
   public applyOpticalBackdrop(filterCss: string, saturationPercent = 100): void {
     if (this.isDestroyed) return;
 
     this.resetBackdropStyles();
-    this.element.style.filter = `saturate(${saturationPercent}%)`;
-    this.setBackdropFilter(this.element, filterCss);
-    this.setBackdropFilter(this.refractionLayer, filterCss);
-    this.refractionLayer.style.opacity = '0';
+    this.setBackdropFilter(this.refractionLayer, `${filterCss} saturate(${saturationPercent}%)`);
+    this.refractionLayer.style.opacity = '1';
   }
 
-  /** Applies the CSS blur fallback to the host and refraction layer. */
+  /** A single material pass avoids blurring the same backdrop twice. */
   public applyMaterialBackdrop(filterCss: string, saturationPercent = 100): void {
     if (this.isDestroyed) return;
 
     this.resetBackdropStyles();
-    this.element.style.filter = `saturate(${saturationPercent}%)`;
-    this.setBackdropFilter(this.element, filterCss);
-    this.setBackdropFilter(this.refractionLayer, filterCss);
+    this.setBackdropFilter(this.refractionLayer, `${filterCss} saturate(${saturationPercent}%)`);
     this.refractionLayer.style.opacity = '1';
   }
 
@@ -137,9 +133,11 @@ export class GlassHost {
   public setOpticalAdaptiveBoundary(enabled: boolean): void {
     if (this.isDestroyed) return;
 
-    const opacity = enabled ? '0' : '';
-    this.borderScreenLayer.style.opacity = opacity;
-    this.borderOverlayLayer.style.opacity = opacity;
+    // Boundary lighting belongs to the material layers in every backend.
+    // A luminance image composited over the bevel creates a thick opaque frame.
+    this.element.dataset.lgBoundary = enabled ? 'adaptive' : 'directional';
+    this.borderScreenLayer.style.opacity = '';
+    this.borderOverlayLayer.style.opacity = '';
   }
 
   public destroy(): void {
@@ -187,11 +185,6 @@ export class GlassHost {
   }
 
   private resetBackdropStyles(): void {
-    this.element.style.filter = '';
-    this.element.style.backgroundImage = '';
-    this.element.style.backgroundColor = '';
-    this.clearBackdropFilter(this.element);
-
     this.refractionLayer.style.filter = '';
     this.refractionLayer.style.backgroundImage = '';
     this.refractionLayer.style.backgroundColor = '';

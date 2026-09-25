@@ -36,10 +36,12 @@ export default {
   bezelHint: 'Width of the curved refraction zone along borders',
   lensProfileTitle: 'Lens Profile',
   profileChamfer: '📐 Chamfer',
+  profileConcave: '◡ Recessed Bowl',
   profileFluidDome: '💧 Fluid Dome',
   profileViscous: '🌊 Meniscus',
   profileRod: '🧪 Glass Rod',
-  profileHint: 'Fluid and rod modes eliminate the flat-body chamfer boundary for a continuous liquid lens',
+  profileHint:
+    'Recessed Bowl curves inward and reverses refraction; the other profiles curve outward',
 
   opticsTitle: 'Optics & Physics',
   refraction: 'Refraction Amplitude',
@@ -49,7 +51,7 @@ export default {
   ior: 'Index of Refraction (IOR)',
   iorHint: 'Optical constant (water: 1.33, glass: 1.5, diamond: 2.4)',
   dispersion: 'Chromatic Dispersion',
-  dispersionHint: 'Subtle RGB separation at outer perimeter',
+  dispersionHint: 'Subtle edge softening from nearby refracted samples (approximation)',
   colorBleed: 'Liquid Color Bleed',
   colorBleedHint: 'Simulates fluid defocus & chromatic bloom that bleeds backdrop colors outward',
   blur: 'Body Blur',
@@ -59,8 +61,10 @@ export default {
   borderModeTitle: 'Border in Light/White Background',
   borderModeDirectional: '🌓 Option 1: Directional Rim',
   borderModeAdaptive: '🌗 Option 2: Luma Adaptive',
-  borderModeDirectionalHint: 'Option 1: Facing light highlights, shadow side dark rim. Universal 3D depth on all backgrounds.',
-  borderModeAdaptiveHint: 'Option 2: Dynamically shifts between white specular and dark ink outline based on ambient brightness.',
+  borderModeDirectionalHint:
+    'Option 1: Facing light highlights, shadow side dark rim. Universal 3D depth on all backgrounds.',
+  borderModeAdaptiveHint:
+    'Option 2: Dynamically shifts between white specular and dark ink outline based on ambient brightness.',
 
   appearanceTitle: 'Appearance & Shadow',
   tintColor: 'Tint Color',

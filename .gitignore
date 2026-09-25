@@ -35,3 +35,4 @@ liquid-glass-react/
 
 tests/visual/artifacts/
 tests/runtime-matrix/artifacts/
+tests/consumer/artifacts/

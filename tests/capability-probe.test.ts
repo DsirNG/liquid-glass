@@ -84,4 +84,26 @@ describe('CapabilityProbe', () => {
     expect(plan.targetMode).toBe('material');
     expect(plan.degraded).toBe(true);
   });
+
+  it('routes Firefox to material rendering even when CSS syntax is accepted', () => {
+    const originalUa = navigator.userAgent;
+    try {
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 Gecko/20100101 Firefox/130.0',
+        configurable: true,
+      });
+      CapabilityProbe.resetForTests();
+      const capabilityReport = CapabilityProbe.probe();
+      expect(capabilityReport.knownRestrictions).toContain('gecko-svg-backdrop-displacement');
+      const plan = resolveRenderPlan({
+        requested: canonicalizeOptions(normalizeOptions()),
+        capabilities: fullCapabilities,
+        capabilityReport,
+      });
+      expect(plan.targetMode).toBe('material');
+    } finally {
+      Object.defineProperty(navigator, 'userAgent', { value: originalUa, configurable: true });
+      CapabilityProbe.resetForTests();
+    }
+  });
 });

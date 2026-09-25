@@ -63,6 +63,9 @@ describe('GlassDock runtime and edge-case contract', () => {
     app.mount(host);
     await nextTick();
     expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(createSpy.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ refractionCoverage: 'full' })
+    );
     expect(dockRef.value?.getStatus?.()).toBe(instance.status);
 
     const items = () => [...host.querySelectorAll<HTMLButtonElement>('.glass-dock__item')];

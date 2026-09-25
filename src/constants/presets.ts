@@ -1,23 +1,11 @@
 import type { GlassPreset, LiquidGlassMaterialOptions } from '../types/glass';
+import { DEFAULT_GLASS_OPTIONS } from './defaults';
 
 export const GLASS_PRESETS: Readonly<Record<GlassPreset, Readonly<LiquidGlassMaterialOptions>>> =
   Object.freeze({
-    'ios-like': Object.freeze({
-      blur: 2.0,
-      opacity: 0.06,
-      thickness: 45,
-      ior: 2.2,
-      refraction: 1.0,
-      dispersion: 1.5,
-      saturation: 1.3,
-      bezel: 38,
-      specular: 0.65,
-      radius: 44,
-      tint: '#ffffff',
-      shadow: 0.4,
-      debug: 'none',
-    }),
+    'ios-like': Object.freeze({ ...DEFAULT_GLASS_OPTIONS }),
     clear: Object.freeze({
+      ...DEFAULT_GLASS_OPTIONS,
       blur: 0.6,
       opacity: 0.03,
       thickness: 35,
@@ -33,6 +21,7 @@ export const GLASS_PRESETS: Readonly<Record<GlassPreset, Readonly<LiquidGlassMat
       debug: 'none',
     }),
     vivid: Object.freeze({
+      ...DEFAULT_GLASS_OPTIONS,
       blur: 1.8,
       opacity: 0.08,
       thickness: 60,
@@ -48,6 +37,7 @@ export const GLASS_PRESETS: Readonly<Record<GlassPreset, Readonly<LiquidGlassMat
       debug: 'none',
     }),
     heavy: Object.freeze({
+      ...DEFAULT_GLASS_OPTIONS,
       blur: 6.0,
       opacity: 0.14,
       thickness: 75,

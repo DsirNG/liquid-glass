@@ -36,7 +36,7 @@ function resolveCommonOptions(
 
   return {
     tint: requested.tint,
-    opacity: ensureVisibleFallback ? Math.max(requested.opacity, 0.08) : requested.opacity,
+    opacity: ensureVisibleFallback ? Math.max(requested.opacity, 0.025) : requested.opacity,
     shadow: requested.shadow,
     shadowColor: requested.shadowColor,
     specular: ensureVisibleFallback ? Math.max(requested.specular, 0.15) : requested.specular,
@@ -54,7 +54,8 @@ function resolveBackdropOptions(
   const ensureVisibleFallback = policy !== 'preserve' && policy !== 'strict';
 
   return {
-    blur: ensureVisibleFallback ? Math.max(requested.blur, 8) : requested.blur,
+    // Missing displacement must not silently turn clear glass into frosted glass.
+    blur: requested.blur,
     saturation: ensureVisibleFallback ? Math.max(requested.saturation, 1.05) : requested.saturation,
   };
 }

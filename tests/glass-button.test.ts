@@ -46,8 +46,9 @@ describe('vue/GlassButton', () => {
       expect.any(HTMLButtonElement),
       expect.objectContaining({
         radius: 24, // lg radius
-        bezel: 20, // lg bezel
-        tint: '#8b7cf7', // primary tint
+        bezel: 11, // lg bezel
+        tint: '#007aff', // primary tint
+        refractionCoverage: 'full',
       })
     );
     expect(btnRef.value?.instance).toBe(mockInstance);

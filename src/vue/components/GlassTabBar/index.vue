@@ -25,7 +25,10 @@ const itemRefs = ref<(HTMLElement | null)[]>([]);
 const selectedIndex = computed(() => {
   const activeIndex = props.items.findIndex((item) => item.active && !item.disabled);
   if (activeIndex >= 0) return activeIndex;
-  return Math.max(0, props.items.findIndex((item) => !item.disabled));
+  return Math.max(
+    0,
+    props.items.findIndex((item) => !item.disabled)
+  );
 });
 const hoverIndex = ref<number | null>(null);
 const isHovering = computed(() => hoverIndex.value !== null);
@@ -119,17 +122,20 @@ const rootStyle = computed(() => ({
   '--lens-hover-width': `${hoverLensWidth.value}px`,
   '--lens-hover-height': `${hoverLensHeight.value}px`,
   '--lens-hover-radius': `${hoverLensRadius.value}px`,
+  '--lens-cutout-width': `${isHovering.value ? hoverLensWidth.value : selectedLensWidth.value}px`,
+  '--lens-cutout-height': `${isHovering.value ? hoverLensHeight.value : selectedLensHeight.value}px`,
 }));
 
 const baseCreateOptions = computed<LiquidGlassCreateOptions>(() => ({
   thickness: 30,
   bezel: 14,
-  blur: 3,
-  opacity: 0.08,
-  refraction: 0.28,
+  blur: 0.8,
+  opacity: 0.025,
+  refraction: 1.3,
+  refractionCoverage: 'full',
   dispersion: 0.02,
   saturation: 1.08,
-  specular: 0.58,
+  specular: 0.7,
   shadow: 0.14,
   tint: '#ffffff',
   ...props.baseOptions,
@@ -142,12 +148,13 @@ const selectedLensOptions = computed<LiquidGlassCreateOptions>(() => {
   return {
     radius,
     bezel: Math.min(16, Math.max(2, radius - 2)),
-    thickness: 38,
-    blur: 2.2,
-    opacity: 0.1,
-    refraction: 0.85,
+    thickness: 42,
+    blur: 0.22,
+    opacity: 0.01,
+    refraction: 1.8,
+    refractionCoverage: 'full',
     saturation: 1.12,
-    specular: 0.68,
+    specular: 0.88,
     tint: '#ffffff',
     shadow: 0.12,
     interactive: false,
@@ -157,12 +164,13 @@ const selectedLensOptions = computed<LiquidGlassCreateOptions>(() => {
 const hoverLensOptions = computed<LiquidGlassCreateOptions>(() => ({
   radius: hoverLensRadius.value,
   bezel: 16,
-  thickness: 38,
-  blur: 1.2,
-  opacity: 0.06,
-  refraction: 0.92,
+  thickness: 46,
+  blur: 0.16,
+  opacity: 0.008,
+  refraction: 2.0,
+  refractionCoverage: 'full',
   saturation: 1.18,
-  specular: 0.86,
+  specular: 0.96,
   tint: '#ffffff',
   shadow: 0.18,
   interactive: false,
@@ -202,6 +210,11 @@ function setItemRef(element: Element | null, index: number): void {
 
 function renderLensX(): void {
   lensRef.value?.style.setProperty('--lens-x', `${currentX}px`);
+  // The base material must not pre-blur the moving lens's source pixels.
+  // Move a capsule cutout with the existing spring, leaving the clear lens
+  // free to sample the scene directly, including beyond the outer bar.
+  const base = baseGlassRef.value?.$el as HTMLElement | undefined;
+  base?.style.setProperty('--lens-x', `${currentX}px`);
 }
 
 function startLensAnimation(): void {
@@ -347,14 +360,11 @@ function handleClick(index: number, event: MouseEvent): void {
   emit('click', item, index, event);
 }
 
-watch(
-  selectedIndex,
-  () => {
-    void nextTick(() => {
-      if (!isHovering.value) scheduleLensTarget(selectedIndex.value);
-    });
-  }
-);
+watch(selectedIndex, () => {
+  void nextTick(() => {
+    if (!isHovering.value) scheduleLensTarget(selectedIndex.value);
+  });
+});
 
 watch([barHeight, tabItemWidth, () => props.itemHeight, () => props.lensInset], () => {
   void nextTick(() => scheduleLensTarget(targetIndex.value));
@@ -450,7 +460,9 @@ defineExpose({
             :is-hovered="hoverIndex === index"
           >
             <span v-if="item.icon || item.activeIcon" class="glass-tabbar__icon">
-              <component :is="selectedIndex === index && item.activeIcon ? item.activeIcon : item.icon" />
+              <component
+                :is="selectedIndex === index && item.activeIcon ? item.activeIcon : item.icon"
+              />
             </span>
             <span class="glass-tabbar__label">{{ item.label }}</span>
             <span v-if="item.badge !== undefined" class="glass-tabbar__badge">
@@ -564,6 +576,31 @@ defineExpose({
   height: 100%;
 }
 
+/* Subtract the union of two circles and a rectangle from the base material.
+ * CSS variables track the same lens position/dimensions as the visual surface.
+ * No bitmap copies or application-specific backgrounds are needed. */
+.glass-tabbar > .lg-backdrop,
+.glass-tabbar > .lg-material {
+  --cutout-diameter: min(var(--lens-cutout-width), var(--lens-cutout-height));
+  --cutout-left: calc(var(--lens-x, -999px) - var(--lens-cutout-width) / 2);
+  mask-image:
+    linear-gradient(#fff 0 0), linear-gradient(#fff 0 0),
+    radial-gradient(ellipse closest-side, #fff 98%, transparent 100%),
+    radial-gradient(ellipse closest-side, #fff 98%, transparent 100%);
+  mask-size:
+    100% 100%,
+    max(0px, calc(var(--lens-cutout-width) - var(--cutout-diameter))) var(--lens-cutout-height),
+    var(--cutout-diameter) var(--lens-cutout-height),
+    var(--cutout-diameter) var(--lens-cutout-height);
+  mask-position:
+    0 0,
+    calc(var(--cutout-left) + var(--cutout-diameter) / 2) center,
+    var(--cutout-left) center,
+    calc(var(--cutout-left) + var(--lens-cutout-width) - var(--cutout-diameter)) center;
+  mask-repeat: no-repeat;
+  mask-composite: subtract, add, add;
+}
+
 .glass-tabbar__item {
   position: relative;
   z-index: 4;
@@ -580,7 +617,7 @@ defineExpose({
   outline: none;
   background: transparent;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--lg-foreground, inherit);
   font-family: inherit;
   font-weight: 500;
   line-height: 1;
@@ -629,7 +666,7 @@ defineExpose({
 
 .glass-tabbar__item.is-selected,
 .glass-tabbar__item.is-hovered {
-  color: #fff;
+  color: var(--lg-accent, inherit);
   opacity: 1;
 }
 
@@ -696,5 +733,10 @@ defineExpose({
   100% {
     transform: scale(1);
   }
+}
+.glass-tabbar__item:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -5px;
+  border-radius: var(--lens-selected-radius);
 }
 </style>

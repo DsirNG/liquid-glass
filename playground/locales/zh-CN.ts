@@ -36,10 +36,11 @@ export default {
   bezelHint: '从边缘向内弯曲的区域宽度（透镜边缘厚度）',
   lensProfileTitle: '曲面形态 (Lens Profile)',
   profileChamfer: '📐 机械斜切',
+  profileConcave: '◡ 内凹曲面',
   profileFluidDome: '💧 饱满水滴',
   profileViscous: '🌊 弯月流体',
   profileRod: '🧪 胶囊水管',
-  profileHint: '水滴、流体与水管模式消除平板边缘斜切分界线，实现全曲面连续流体透镜',
+  profileHint: '内凹曲面让中心向内下沉并反转折射方向；其余模式向外凸起',
 
   opticsTitle: '光学与物理',
   refraction: '折射强度 (Refraction)',
@@ -49,7 +50,7 @@ export default {
   ior: '物理折射率 (IOR)',
   iorHint: '光学常数（水 1.33，玻璃 1.5，钻石 2.4）',
   dispersion: '色散微差 (Dispersion)',
-  dispersionHint: '透镜边缘的红蓝微弱色散分离度',
+  dispersionHint: '透镜边缘不同折射采样形成的轻微柔化（近似效果）',
   colorBleed: '液态色彩晕染 (Color Bleed)',
   colorBleedHint: '模拟水滴透镜的柔焦色相扩散与溢彩晕染，让文字与底色像液体般向边缘自然晕开',
   blur: '磨砂模糊 (Blur)',
@@ -59,7 +60,8 @@ export default {
   borderModeTitle: '白底边缘呈现方案 (Border in Light/White)',
   borderModeDirectional: '🌓 方案 1: 双向流光',
   borderModeAdaptive: '🌗 方案 2: 环境自适应',
-  borderModeDirectionalHint: '方案 1: 迎光白高光 + 背光物理微暗切角，全场景自动立体凸显，白底黑底皆宜',
+  borderModeDirectionalHint:
+    '方案 1: 迎光白高光 + 背光物理微暗切角，全场景自动立体凸显，白底黑底皆宜',
   borderModeAdaptiveHint: '方案 2: 根据背景明度自适应切换，白底呈现深灰微墨线轮廓，黑底呈现晶亮白',
 
   appearanceTitle: '材质外观与阴影',

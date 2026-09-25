@@ -121,23 +121,23 @@ describe('LiquidGlass Contract Tests', () => {
         expect(dm.getAttribute('in2')).toBe('DISPLACEMENT_TEXTURE');
       });
 
-      // ③ Channel isolation color matrices
-      expect(filterHtml).toContain('result="RED_CHANNEL"');
-      expect(filterHtml).toContain('result="GREEN_CHANNEL"');
-      expect(filterHtml).toContain('result="BLUE_CHANNEL"');
+      // ③ Full-color samples avoid black channel-isolation planes.
+      expect(filterHtml).not.toContain('result="RED_CHANNEL"');
+      expect(filterHtml).not.toContain('result="GREEN_CHANNEL"');
+      expect(filterHtml).not.toContain('result="BLUE_CHANNEL"');
 
-      // ④ Alpha preservation (clamped to SourceGraphic to prevent white halo)
+      // ④ Full-color samples are blended before footprint clipping.
       expect(filterHtml).toContain('result="RGB_COMBINED"');
-      expect(filterHtml).toContain('result="RGB_ALPHA_PRESERVED"');
+      expect(filterHtml).not.toContain('result="RGB_ALPHA_PRESERVED"');
       expect(filterHtml).toContain('operator="in"');
 
       // ⑤ Body mask hierarchy and center preservation
       expect(filterHtml).toContain('result="EDGE_MASK"');
       expect(filterHtml).toContain('result="BODY_MASK"');
       expect(filterHtml).toContain('result="REFRACTION_MASK"');
-      expect(filterHtml).toContain('result="BEVEL_REFRACTED"');
+      expect(filterHtml).not.toContain('result="BEVEL_REFRACTED"');
       expect(filterHtml).not.toContain('result="OUTER_PASS"');
-      expect(filterHtml).toContain('result="BODY_CLEAN"');
+      expect(filterHtml).not.toContain('result="BODY_CLEAN"');
       expect(filterHtml).toContain('result="FINAL_GLASS"');
 
       // ⑥ Backdrop filter ordering on layer:
@@ -175,9 +175,9 @@ describe('LiquidGlass Contract Tests', () => {
       const ios = SvgFilterBuilder.resolveDispersionScales(10, 1.0, 'ios');
       const strong = SvgFilterBuilder.resolveDispersionScales(10, 1.0, 'strong');
 
-      expect(subtle.r).toBe(-10);
-      expect(ios.r).toBe(-10);
-      expect(strong.r).toBe(-10);
+      expect(subtle.g).toBe(-10);
+      expect(ios.g).toBe(-10);
+      expect(strong.g).toBe(-10);
       // As dispersion profile gets stronger, blue is shifted further away from red
       expect(Math.abs(subtle.r - subtle.b)).toBeLessThan(Math.abs(ios.r - ios.b));
       expect(Math.abs(ios.r - ios.b)).toBeLessThan(Math.abs(strong.r - strong.b));

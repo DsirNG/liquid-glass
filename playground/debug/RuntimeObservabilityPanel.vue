@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue';
-import type { FallbackPolicy, LiquidGlassStatus } from '@dinqorai/liquid-glass';
+import type {
+  FallbackPolicy,
+  LiquidGlassMaterialOptions,
+  LiquidGlassStatus,
+} from '@dinqorai/liquid-glass';
 import type { CapabilityReport } from './types';
 import CapabilityReportCard from './CapabilityReportCard.vue';
 import ParameterSupportCard from './ParameterSupportCard.vue';
@@ -11,12 +15,21 @@ const props = defineProps<{
   status: Readonly<LiquidGlassStatus>;
   capabilityReport: CapabilityReport;
   fallbackPolicy: FallbackPolicy;
+  params: LiquidGlassMaterialOptions;
+  isSolidBackground: boolean;
 }>();
 
 const copyState = ref<'idle' | 'copied' | 'failed'>('idle');
 let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
 
-const parameterRows = computed(() => getParameterSupportRows(props.status, props.capabilityReport));
+const parameterRows = computed(() =>
+  getParameterSupportRows(
+    props.status,
+    props.capabilityReport,
+    props.params,
+    props.isSolidBackground
+  )
+);
 
 const runtimeInfo = computed(() => {
   const status = props.status;

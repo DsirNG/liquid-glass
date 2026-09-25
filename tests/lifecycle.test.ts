@@ -72,14 +72,15 @@ describe('DOM engine lifecycle', () => {
     const glass = createLiquidGlass(element, { capability: 'full' });
 
     await new Promise((resolve) => setTimeout(resolve, 50));
-    const lastGoodFilter = element.style.backdropFilter;
-    expect(lastGoodFilter).toContain('url("#');
+    const backdrop = element.querySelector<HTMLElement>('.lg-backdrop')!;
+    const lastGoodFilter = backdrop.style.backdropFilter;
+    expect(lastGoodFilter).toMatch(/url\(["']?#/);
 
     generateSpy.mockRejectedValueOnce(new Error('resize candidate failed'));
     glass.resize();
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(element.style.backdropFilter).toBe(lastGoodFilter);
+    expect(backdrop.style.backdropFilter).toBe(lastGoodFilter);
 
     generateSpy.mockRestore();
     glass.destroy();

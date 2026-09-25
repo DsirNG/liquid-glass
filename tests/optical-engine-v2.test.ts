@@ -17,6 +17,14 @@ import {
 } from '../src/engine/svg';
 
 describe('Liquid Glass Optical Engine v2.1 Architecture Contracts', () => {
+  it('bends a recessed full-surface profile in the opposite direction to a convex profile', () => {
+    const convex = calculateRefractionProfile(24, 40, SURFACE_PROFILES.convex_squircle, 1.5);
+    const recessed = calculateRefractionProfile(24, 40, SURFACE_PROFILES.concave, 1.5);
+    const convexShift = sampleRefractionProfile(convex, 0.5);
+    const recessedShift = sampleRefractionProfile(recessed, 0.5);
+    expect(Math.abs(recessedShift)).toBeGreaterThan(0);
+    expect(Math.sign(recessedShift)).toBe(-Math.sign(convexShift));
+  });
   describe('Contract 1: Analytical Multi-Footprint Geometry (SDF & Normals)', () => {
     it('evaluates accurate distances for roundedRect, capsule, and circle', () => {
       // 1. Center of 100x100 circle should be -50 (inside)
@@ -267,7 +275,7 @@ describe('Liquid Glass Optical Engine v2.1 Architecture Contracts', () => {
 
       // Update to pure refraction inspection
       instance.update({ debug: 'refraction' });
-      expect(filter?.innerHTML).toContain('RGB_ALPHA_PRESERVED');
+      expect(filter?.innerHTML).toContain('RGB_COMBINED');
 
       instance.destroy();
       el.remove();

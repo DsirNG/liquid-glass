@@ -102,8 +102,7 @@ export class MaterialResolver {
     );
 
     const radiusPx = typeof options.radius === 'number' ? `${options.radius}px` : '40px';
-    const requestedCoverage = options.refractionCoverage || 'rim';
-    const isCompactSurface = width <= 180 || height <= 70;
+    const requestedCoverage = options.refractionCoverage || 'full';
 
     return {
       bodyBlur,
@@ -128,9 +127,7 @@ export class MaterialResolver {
       calibration,
       borderMode: options.borderMode || 'directional',
       colorBleed: typeof options.colorBleed === 'number' ? options.colorBleed : 0.6,
-      // Small buttons and pills need a continuous liquid body. Larger cards
-      // keep refraction localized to their soft edge/bezel region.
-      refractionCoverage: isCompactSurface ? 'full' : requestedCoverage,
+      refractionCoverage: requestedCoverage,
     };
   }
 }

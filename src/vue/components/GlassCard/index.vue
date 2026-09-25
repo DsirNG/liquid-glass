@@ -46,6 +46,8 @@ const MATERIAL_OPTION_KEYS: ReadonlyArray<keyof LiquidGlassMaterialOptions> = [
 const resolvedMaterialOptions = computed<LiquidGlassMaterialOptions>(() => {
   const resolved: LiquidGlassMaterialOptions = {
     radius: SIZE_DEFAULTS[props.size].radius,
+    refraction: 1.25,
+    refractionCoverage: 'full',
     ...props.options,
   };
   const source = props as unknown as Record<string, unknown>;
@@ -99,7 +101,7 @@ const effectiveInteractive = computed(() => props.interactive && !props.disabled
   width: 100%;
   min-width: 0;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--lg-foreground, inherit);
 }
 
 .glass-card > .lg-content {

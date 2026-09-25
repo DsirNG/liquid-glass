@@ -12,6 +12,7 @@
   position: relative;
   display: inline-flex;
   box-sizing: border-box;
+  color: var(--lg-foreground, inherit);
 }
 
 /* SVG Renderer Layers */
@@ -19,8 +20,9 @@
   position: relative;
   display: inline-flex;
   border-radius: var(--lg-radius, 40px);
-  box-shadow: 0 8px var(--lg-outer-shadow-blur, 24px)
-    rgba(0, 0, 0, calc(0.22 * var(--lg-shadow-opacity, 1)));
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, calc(0.16 * var(--lg-shadow-opacity, 1))),
+    0 8px var(--lg-outer-shadow-blur, 24px) rgba(0, 0, 0, calc(0.2 * var(--lg-shadow-opacity, 1)));
 
   /* Keep engine press depth and component motion as separate composable scales. */
   transform: scale(calc(1 - (1 - var(--lg-press-scale, 0.97)) * var(--lg-pressed, 0)))
@@ -51,7 +53,7 @@
   z-index: 1;
   pointer-events: none;
   box-shadow: inset 0 0 var(--lg-shadow-blur, 16px) var(--lg-shadow-spread, -6px)
-    var(--lg-shadow-color, rgba(255, 255, 255, 0.4));
+    var(--lg-shadow-color, transparent);
   background-color: rgba(var(--lg-tint-rgb, 255, 255, 255), var(--lg-tint-alpha, 0.08));
 }
 
@@ -63,7 +65,7 @@
   pointer-events: none;
   z-index: 2;
   box-sizing: border-box;
-  padding: 1.25px;
+  padding: 1px;
   opacity: var(--lg-fresnel-gain, 1);
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-mask:
@@ -79,7 +81,10 @@
 
 /* Geometry-coupled bevel rim (guaranteed hollow center to never obstruct refraction) */
 .lg-border-geometry {
-  padding: 1.25px;
+  padding: 0;
+  mask-image: var(--lg-fresnel-mask-image);
+  mask-size: 100% 100%;
+  mask-composite: add;
 }
 
 /* Specular Highlight Border 1 (Ambient Environmental Light Rim) */

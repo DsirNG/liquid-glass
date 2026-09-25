@@ -9,6 +9,9 @@ describe('engine/options', () => {
     expect(opts.blur).toBe(DEFAULT_GLASS_OPTIONS.blur);
     expect(opts.ior).toBe(DEFAULT_GLASS_OPTIONS.ior);
     expect(opts.quality).toBe(DEFAULT_GLASS_OPTIONS.quality);
+    expect(opts.refractionCoverage).toBe('full');
+    expect(opts.surfaceProfile).toBe('concave');
+    expect(opts.surfaceShape).toBe('concave');
     expect(opts).not.toHaveProperty('renderer');
     expect(opts).not.toHaveProperty('backgroundUrl');
   });
@@ -55,6 +58,9 @@ describe('engine/options', () => {
     const canonicalField = normalizeOptions({ surfaceProfile: 'concave' });
     expect(canonicalField.surfaceShape).toBe('concave');
     expect(canonicalField.surfaceProfile).toBe('concave');
+    expect(normalizeOptions({ surfaceShape: 'convex_squircle' }).surfaceProfile).toBe(
+      'convex_squircle'
+    );
 
     expect(normalizeOptionPatch({ surfaceShape: 'viscous_meniscus' })).toEqual({
       surfaceProfile: 'viscous_meniscus',
@@ -88,8 +94,8 @@ describe('engine/options', () => {
 
     expect(plan.requestedOptions.blur).toBe(0);
     expect(plan.requestedOptions.opacity).toBe(0);
-    expect(plan.effective.backdrop.blur).toBe(8);
-    expect(plan.effective.common.opacity).toBe(0.08);
+    expect(plan.effective.backdrop.blur).toBe(0);
+    expect(plan.effective.common.opacity).toBe(0.025);
     expect(plan.degraded).toBe(true);
     expect(plan.degradationReason).toBe('optical-unsupported');
   });

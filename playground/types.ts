@@ -20,6 +20,7 @@ export interface SolidColorItem {
 }
 
 export const DEFAULT_SOLID_COLORS: SolidColorItem[] = [
+  { id: 'black', name: 'Pure Black', color: '#000000' },
   { id: 'obsidian', name: 'Obsidian Noir', color: '#0b0d14' },
   { id: 'navy', name: 'Midnight Navy', color: '#0f172a' },
   { id: 'slate', name: 'Deep Slate', color: '#1e293b' },

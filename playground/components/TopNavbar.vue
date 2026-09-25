@@ -27,11 +27,11 @@ const navItems = computed<GlassTabBarItem[]>(() => [
 ]);
 
 const navOptions = computed<LiquidGlassMaterialOptions>(() => ({
-  blur: 0,
-  opacity: 0,
+  blur: 0.8,
+  opacity: 0.025,
   specular: 0.75,
   shadow: 0.25,
-  refraction: 2,
+  refraction: 0.5,
   refractionCoverage: 'full',
   shape: 'roundedRect',
   debug: 'none',
@@ -46,7 +46,6 @@ function togglePanel(): void {
 
 <template>
   <header class="top-navbar-wrapper">
-
     <GlassTabBar
       :items="navItems"
       :height="76"
@@ -59,7 +58,6 @@ function togglePanel(): void {
       :tablet-height="68"
       :tablet-item-width="70"
       :base-options="navOptions"
-      :lens-options="navOptions"
       @click="emit('update:modelValue', $event.value as PlaygroundView)"
     >
       <template #prefix>
@@ -69,7 +67,7 @@ function togglePanel(): void {
         </div>
       </template>
       <template #item="{ item, index }">
-        <span class="glass-tabbar__icon clean-nav-preview__icon" aria-hidden="true">
+        <span class="glass-tabbar__icon top-navbar-tab-icon" aria-hidden="true">
           <svg v-if="index === 0" viewBox="0 0 24 24">
             <path
               class="is-filled"
@@ -158,7 +156,9 @@ function togglePanel(): void {
 .top-navbar-tab-icon svg {
   width: 20px;
   height: 20px;
-  fill: currentColor;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
 }
 
 .top-navbar-tab-icon :deep(path),
@@ -279,5 +279,9 @@ function togglePanel(): void {
     font-size: 11px;
     letter-spacing: 0;
   }
+}
+.top-navbar-tab-icon .is-filled {
+  fill: currentColor;
+  stroke: none;
 }
 </style>

@@ -1,6 +1,9 @@
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
-export type KnownRestriction = 'webkit-svg-backdrop-displacement' | 'ios-svg-backdrop-displacement';
+export type KnownRestriction =
+  | 'webkit-svg-backdrop-displacement'
+  | 'ios-svg-backdrop-displacement'
+  | 'gecko-svg-backdrop-displacement';
 
 export interface CapabilityReport {
   readonly backdropFilter: boolean;
@@ -55,6 +58,8 @@ function detectKnownRestrictions(): readonly KnownRestriction[] {
   if (isIOS) {
     return ['ios-svg-backdrop-displacement'];
   }
+
+  if (/Firefox\//i.test(userAgent)) return ['gecko-svg-backdrop-displacement'];
 
   const isWebKit = /AppleWebKit/i.test(userAgent);
   const isChromium = /Chrome|CriOS|Edg|OPR/i.test(userAgent);

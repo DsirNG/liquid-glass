@@ -4,7 +4,6 @@ import type { GlassPreset, LiquidGlassMaterialOptions } from '@dinqorai/liquid-g
 import { GLASS_PRESETS } from '@dinqorai/liquid-glass';
 
 import { DEFAULT_BACKGROUNDS, type QualityTier } from './types';
-import { withPureRefraction } from './utils/material';
 import type { PlaygroundView } from './components/TopNavbar.vue';
 import TopNavbar from './components/TopNavbar.vue';
 import HomeShowcase from './views/HomeShowcase.vue';
@@ -18,16 +17,8 @@ const glassHeight = shallowRef(240);
 const isPanelOpen = shallowRef(true);
 
 const params = reactive<LiquidGlassMaterialOptions>({
-  ...withPureRefraction(GLASS_PRESETS['ios-like']),
-  radius: 26,
-  bezel: 24,
-  tint: '#ffffff',
-  refraction: 1.0,
-  dispersion: 2.0,
-  saturation: 1.3,
-  quality: 'high',
-  borderMode: 'directional',
-  ambientLuma: 0.5,
+  ...GLASS_PRESETS['ios-like'],
+  radius: 32,
 });
 
 const selectedQuality = computed<QualityTier>({
@@ -84,6 +75,13 @@ watch(
 );
 
 const rootStyle = computed(() => {
+  if (activeView.value === 'library') {
+    return {
+      backgroundColor: '#0d1420',
+      backgroundImage: 'none',
+    };
+  }
+
   if (isSolidColor.value) {
     return {
       backgroundColor: currentBg.value,

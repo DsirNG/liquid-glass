@@ -179,7 +179,11 @@ function updateParam(key: keyof LiquidGlassMaterialOptions, value: unknown): voi
 
     <main class="showcase-stage" :class="{ 'drawer-open': props.isPanelOpen }">
       <div class="stage-viewport">
-        <StageBackdrop :is-light="isLightBg" :calibration-mode="calibrationMode" />
+        <StageBackdrop
+          v-if="calibrationMode"
+          :is-light="isLightBg"
+          :calibration-mode="calibrationMode"
+        />
 
         <div class="stage-center">
           <div class="engine-indicator-pill">
@@ -412,6 +416,8 @@ function updateParam(key: keyof LiquidGlassMaterialOptions, value: unknown): voi
 }
 
 .engine-indicator-pill {
+  position: relative;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -468,6 +474,7 @@ function updateParam(key: keyof LiquidGlassMaterialOptions, value: unknown): voi
 
 .glass-stage-card-wrapper {
   position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
